@@ -17,8 +17,10 @@ body,.day,.tip,.stat,.tbl,.wk,.note,.subj,.date,.dream,.mini{transition:backgrou
   --math:#7fb8ff;--phys:#ff9fcf;--bio:#5ee08f;--chem:#c79bff;--eng:#f2be4e;--isl:#58d6cc;--ar:#ff8fa5;--rev:#93a99c;color-scheme:dark}
 /* علوم: دفتر المختبر */
 :root[data-dream="science"]{--paper:#f7f4ec;--grid:#e9e2d1;--card:#fffdf8;--ink:#2a2418;--muted:#6f6552;--line:#e0d7c2;--accent:#b9542a;--accent-soft:#f6e6da;--done:#3d7a4a;--today:#b23b2a;--warn-soft:#f8ebe2;color-scheme:light}
-/* علوم سياسية: ورق دبلوماسي عاجي وعنابي */
-:root[data-dream="politics"]{--paper:#f6f2ea;--grid:#ece5d6;--card:#fffdf8;--ink:#1f2433;--muted:#5f6272;--line:#ddd3c1;--accent:#7a1f2b;--accent-soft:#f3e4e2;--done:#2f6b4a;--today:#b0552a;--warn-soft:#f6e9df;color-scheme:light}
+/* علوم سياسية: شاشة ديجتل داكنة بألوان علم العراق */
+:root[data-dream="politics"]{--paper:#0b0f14;--grid:rgba(255,255,255,.035);--card:#121821;--ink:#e9eef4;--muted:#94a1b2;--line:#253041;--accent:#e0263a;--accent-soft:#2a1419;--done:#1fae5a;--today:#ffb347;--warn-soft:#2a2112;
+  --math:#8fc1ff;--phys:#ff9fcf;--bio:#5fd38f;--chem:#c9a4ff;--eng:#ffc58a;--isl:#5fd6cc;--ar:#ff98ab;--rev:#a9b5c4;color-scheme:dark}
+:root[data-dream="politics"] body{background-image:radial-gradient(rgba(255,255,255,.05) 1px,transparent 1px);background-size:6px 6px}
 .hemi{width:200px;max-width:100%;flex:none}
 /* عسكري وشرطة وطيران: زيتوني ونحاسي */
 :root[data-dream="military"]{--paper:#2a3021;--grid:rgba(255,255,255,.045);--card:#333a28;--ink:#eceadb;--muted:#b6b49b;--line:#4c543b;--accent:#d6b45c;--accent-soft:#3e4630;--done:#a3cf80;--today:#e38c4b;--warn-soft:#3d3a26;

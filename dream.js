@@ -250,22 +250,31 @@ const fx=(()=>{
         for(let i=0;i<3;i++){const ang=a.t*(1+i*.3)+i*2,rot=i*Math.PI/3,ex=Math.cos(ang)*a.R,ey=Math.sin(ang)*a.R*.38;
           ctx.beginPath();ctx.arc(a.x+ex*Math.cos(rot)-ey*Math.sin(rot),a.y+ex*Math.sin(rot)+ey*Math.cos(rot),2.6,0,7);ctx.fill()}}
       ctx.globalAlpha=1},
-    politics(){ // a drifting network of capitals; the pointer joins the talks and a tap sends out a signed-agreement pulse
-      if(!st.n){st.c=col('--accent');st.k=col('--ink');st.f=0;st.rings=[];
-        const names=['بغداد','القاهرة','جنيف','نيويورك','بروكسل','طوكيو','الرياض','أنقرة','باريس','لندن','طهران','عمّان'];
-        st.n=Array.from({length:Math.min(34,Math.round(W*H/26000))},(_,i)=>({x:rnd(0,W),y:rnd(0,H),vx:rnd(-.18,.18),vy:rnd(-.18,.18),name:names[i]||''}))}
-      st.f++;ctx.clearRect(0,0,W,H);const D=170,act=ptr.on&&performance.now()-ptr.last<5000;
-      for(const a of st.n){a.x+=a.vx;a.y+=a.vy;if(a.x<0||a.x>W)a.vx*=-1;if(a.y<0||a.y>H)a.vy*=-1}
-      ctx.lineWidth=1;
-      for(let i=0;i<st.n.length;i++)for(let j=i+1;j<st.n.length;j++){const a=st.n[i],b=st.n[j],d=Math.hypot(a.x-b.x,a.y-b.y);
-        if(d<D){ctx.globalAlpha=(1-d/D)*.22;ctx.strokeStyle=st.k;ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke()}}
-      if(act)for(const a of st.n){const d=Math.hypot(a.x-ptr.x,a.y-ptr.y);if(d<D*1.3){ctx.globalAlpha=(1-d/(D*1.3))*.6;ctx.strokeStyle=st.c;ctx.beginPath();ctx.moveTo(ptr.x,ptr.y);ctx.lineTo(a.x,a.y);ctx.stroke()}}
-      ctx.font='500 11px "IBM Plex Sans Arabic",sans-serif';ctx.textAlign='center';
-      for(const a of st.n){ctx.globalAlpha=a.name?.55:.35;ctx.fillStyle=a.name?st.c:st.k;ctx.beginPath();ctx.arc(a.x,a.y,a.name?3.4:2.2,0,7);ctx.fill();
-        if(a.name){ctx.globalAlpha=.4;ctx.fillStyle=st.k;ctx.fillText(a.name,a.x,a.y-8)}}
-      if(ptr.tap){ptr.tap=false;st.rings.push({x:ptr.x,y:ptr.y,r:4,a:.7})}
-      ctx.strokeStyle=st.c;st.rings=st.rings.filter(g=>{g.r+=2.2;g.a-=.012;ctx.globalAlpha=Math.max(0,g.a);ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(g.x,g.y,g.r,0,7);ctx.stroke();return g.a>0});
-      ctx.globalAlpha=1;ctx.lineWidth=1},
+    politics(){ // the Iraqi flag drawn in LED dots waving at the top, rockets launching from the bottom; a tap launches one from that spot
+      const kufi=!!(document.fonts&&document.fonts.check('800 15px "Noto Kufi Arabic"'));
+      if(!st.led||(kufi&&!st.kufi)){st.kufi=kufi;
+        const cols=96,rows=64,oc=document.createElement('canvas');oc.width=cols;oc.height=rows;const o=oc.getContext('2d');
+        o.fillStyle='#000';o.fillRect(0,0,cols,rows);o.fillStyle='#fff';o.textAlign='center';o.textBaseline='middle';
+        o.font='800 15px "Noto Kufi Arabic",sans-serif';o.direction='rtl';o.fillText('الله أكبر',cols/2,rows/2+1);
+        const px=o.getImageData(0,0,cols,rows).data;st.led=[];
+        for(let y=0;y<rows;y++)for(let x=0;x<cols;x++){const band=y<rows/3?0:y<2*rows/3?1:2,txt=band===1&&px[(y*cols+x)*4]>110;
+          st.led.push({x,y,c:txt?'#1fae5a':band===0?'#e0263a':band===1?'#f2f4f7':'#3a3f47'})}
+        st.cols=cols;st.rows=rows;if(st.t===undefined){st.t=0;st.rk=[];st.sp=[];st.next=60}}
+      st.t+=.03;ctx.clearRect(0,0,W,H);
+      // flag
+      const fw=Math.min(W*.5,520),s=fw/st.cols,x0=W<700?(W-fw)/2:24,y0=W<700?70:86,amp=s*1.6;
+      for(const p of st.led){const w=Math.sin(st.t+p.x*.12),y=y0+p.y*s+w*amp;ctx.globalAlpha=.09+.09*(w+1)/2;ctx.fillStyle=p.c;ctx.fillRect(x0+p.x*s,y,s*.72,s*.72)}
+      // rockets
+      if(--st.next<=0){st.next=70+Math.random()*110;st.rk.push({x:rnd(W*.1,W*.9),y:H+10,vx:rnd(-.6,.6),vy:rnd(-3.4,-2.4)})}
+      if(ptr.tap){ptr.tap=false;st.rk.push({x:ptr.x,y:ptr.y,vx:rnd(-.5,.5),vy:-3.6})}
+      st.rk=st.rk.filter(r=>{r.x+=r.vx;r.y+=r.vy;r.vy-=.012;
+        for(let k=0;k<2;k++)st.sp.push({x:r.x+rnd(-2,2),y:r.y+10,a:.55,s:rnd(2,4)});
+        const ang=Math.atan2(r.vy,r.vx)+Math.PI/2;ctx.save();ctx.translate(r.x,r.y);ctx.rotate(ang);ctx.scale(1.8,1.8);ctx.globalAlpha=.8;
+        ctx.fillStyle='#d9dee5';ctx.fillRect(-3,-8,6,16);ctx.fillStyle='#e0263a';ctx.beginPath();ctx.moveTo(-3,-8);ctx.lineTo(0,-15);ctx.lineTo(3,-8);ctx.fill();
+        ctx.fillStyle='#1fae5a';ctx.fillRect(-6,4,3,5);ctx.fillRect(3,4,3,5);ctx.fillStyle='#ffb347';ctx.fillRect(-2,8,4,4+Math.random()*4);ctx.restore();
+        return r.y>-40});
+      st.sp=st.sp.filter(p=>{p.a-=.012;p.y+=.25;ctx.globalAlpha=Math.max(0,p.a)*.6;ctx.fillStyle='#ffb347';ctx.fillRect(Math.round(p.x/3)*3,Math.round(p.y/3)*3,p.s,p.s);return p.a>0});
+      ctx.globalAlpha=1},
     military(){ // radar in the corner; tapping drops a contact on it
       if(!st.c){st.c=col('--accent');st.t=0;st.blips=[]}
       st.t+=.012;const R=Math.min(W,H)*.42,cx=W-R*.35,cy=H-R*.35;ctx.clearRect(0,0,W,H);

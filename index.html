@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" content="خطة دراسية يومية للسادس العلمي من 30/10/2026 إلى 5/1/2027 بمحاضرات يوتيوب">
+<meta name="description" content="خطة دراسية يومية للسادس العلمي من 1/11/2026 إلى 5/1/2027 بمحاضرات يوتيوب وأوقات الدراسة">
 <title>خطة السادس العلمي</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Kufi+Arabic:wght@600;800&family=IBM+Plex+Sans+Arabic:wght@400;500;600&display=swap">
 <style>
@@ -86,6 +86,11 @@ a:focus-visible,button:focus-visible,input:focus-visible,summary:focus-visible{o
 .lec .m{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap}
 .lec.checked a,.lec.checked .t{text-decoration:line-through;opacity:.55}
 .plain{font-size:14px}
+.tm{font-size:12px;color:var(--today);font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap}
+.subj.extra{background:var(--accent-soft)}
+.tt td:first-child{white-space:nowrap;font-variant-numeric:tabular-nums;color:var(--today);font-weight:600}
+.tt tr.study td:last-child{font-weight:600}
+.tt tr.free td{color:var(--muted)}
 @media (max-width:520px){.day{grid-template-columns:64px 1fr}.date .dd{font-size:18px}}
 @media (prefers-reduced-motion:reduce){.bar i{transition:none}}
 </style>
@@ -94,7 +99,7 @@ a:focus-visible,button:focus-visible,input:focus-visible,summary:focus-visible{o
 
 <div class="wrap">
   <header>
-    <h1>خطة السادس العلمي — من ٣٠/١٠/٢٠٢٦ إلى ٥/١/٢٠٢٧</h1>
+    <h1>خطة السادس العلمي — من ١/١١/٢٠٢٦ إلى ٥/١/٢٠٢٧</h1>
     <p class="sub">كل محاضرة مكتوبة باسمها ومدتها ورابطها، ومرتبة على الأيام حسب وقت الفيديو حتى يتوزع الحمل بالتساوي. الفصول ١–٣ للرياضيات والأحياء والكيمياء، اليونتات ١–٣ للإنكليزي، الوحدات ١–٣ للإسلامية، وكتاب العربي كامل. آخر ستة أيام مراجعة نهائية.</p>
     <div class="stats">
       <div class="stat"><b id="sDays">—</b><span>يوم</span></div>
@@ -146,6 +151,25 @@ a:focus-visible,button:focus-visible,input:focus-visible,summary:focus-visible{o
         <li>المربعات تحفظ تقدمك بهذا المتصفح، فاستعمل نفس الجهاز.</li>
       </ul></div>
     </div>
+  </section>
+
+  <section>
+    <h2>يومك الدراسي</h2>
+    <p class="sub">من الكعدة ١٠ الصبح لحد النوم ٢ بالليل. حوالي ١٠ ساعات دراسة، وبعد ١٢ بالليل وقتك للأصدقاء. داخل كل جلسة: ٥٠ دقيقة دراسة و١٠ دقايق استراحة.</p>
+    <div class="tbl"><table class="tt" style="min-width:0"><tbody>
+      <tr><td>١٠:٠٠ – ١٠:٤٥ص</td><td>الكعدة، فطور، ترتيب مكان الدراسة</td></tr>
+      <tr class="study"><td>١٠:٤٥ص – ١:١٥م</td><td>الجلسة ١: المادة الأولى بجدول اليوم (الأصعب، وذهنك صافي)</td></tr>
+      <tr class="free"><td>١:١٥ – ٢:٣٠م</td><td>غداء، صلاة، استراحة</td></tr>
+      <tr class="study"><td>٢:٣٠ – ٥:٠٠م</td><td>الجلسة ٢: المادة الثانية</td></tr>
+      <tr class="free"><td>٥:٠٠ – ٥:٤٥م</td><td>استراحة: مشي أو رياضة خفيفة</td></tr>
+      <tr class="study"><td>٥:٤٥ – ٨:١٥م</td><td>الجلسة ٣: المادة الثالثة</td></tr>
+      <tr class="free"><td>٨:١٥ – ٩:١٥م</td><td>عشاء، صلاة، استراحة</td></tr>
+      <tr class="study"><td>٩:١٥ – ١١:١٥م</td><td>الجلسة ٤: حل تمارين الكتاب والأسئلة الوزارية لمحاضرات اليوم</td></tr>
+      <tr class="study"><td>١١:١٥ – ١٢:٠٠</td><td>مراجعة ملخص اليوم، وتشوف جدول باجر</td></tr>
+      <tr class="free"><td>١٢:٠٠ – ٢:٠٠</td><td>وقت الأصدقاء والراحة</td></tr>
+      <tr class="free"><td>٢:٠٠</td><td>نوم</td></tr>
+    </tbody></table></div>
+    <p class="note">كل يوم بالجدول تحت مكتوب جنب كل مادة وقت جلستها. إذا فيديوهات المادة أطول من الجلسة، مكتوب جنبها بأي سرعة تشغلها حتى تلحك. الجمعة نفس الأوقات، والجلسة الثالثة بيها مراجعة الأسبوع.</p>
   </section>
 
   <section>
@@ -229,12 +253,17 @@ const DN=['الأحد','الاثنين','الثلاثاء','الأربعاء','�
 const MN=['كانون الثاني','شباط','آذار','نيسان','أيار','حزيران','تموز','آب','أيلول','تشرين الأول','تشرين الثاني','كانون الأول'];
 const ar=n=>String(n).replace(/\d/g,d=>'٠١٢٣٤٥٦٧٨٩'[d]);
 const dur=m=>m>=60?ar(Math.floor(m/60))+'س '+(m%60?ar(m%60)+'د':''):ar(m)+'د';
-const START=new Date(2026,9,30), STUDY_END=new Date(2026,11,30), END=new Date(2027,0,5);
+// daily sessions: wake 10:00, study until midnight, friends 12–2, sleep 2:00
+const SESS=['١٠:٤٥ص – ١:١٥م','٢:٣٠ – ٥:٠٠م','٥:٤٥ – ٨:١٥م'];
+const EXTRA=[['٩:١٥ – ١١:١٥م','حل تمارين الكتاب والأسئلة الوزارية لمحاضرات اليوم'],['١١:١٥ – ١٢:٠٠','مراجعة ملخص اليوم وتشوف جدول باجر']];
+const START=new Date(2026,10,1), STUDY_END=new Date(2026,11,30), END=new Date(2027,0,5);
 const days=[];for(let d=new Date(START);d<=END;d.setDate(d.getDate()+1))days.push(new Date(d));
 const kk=d=>d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate();
 
 // flatten each subject into one ordered queue and split it over the subject's slots by video time
 const Q={};for(const s in S){Q[s]=[];S[s].lists.forEach((l,li)=>DATA[l.k].forEach(v=>Q[s].push({v:v[0],t:v[1],m:v[2],li})))}
+// already watched before the plan restarted: الاستفهام (1) و(2)
+const DONE_BEFORE={};for(const s in DONE_BEFORE)Q[s].splice(0,DONE_BEFORE[s]);
 const slots={};days.filter(d=>d<=STUDY_END).forEach(d=>WEEK[d.getDay()].forEach(s=>{if(S[s])slots[s]=(slots[s]||0)+1}));
 const cur={},used={};
 function take(s){const q=Q[s],tot=q.reduce((a,x)=>a+x.m,0),i=used[s]||0;used[s]=i+1;const target=tot*(i+1)/slots[s];
@@ -291,16 +320,21 @@ plan.forEach((p,i)=>{
   p.blocks.forEach((b,j)=>{
     const el=document.createElement('div');el.className='subj';el.dataset.s=b.s;el.style.setProperty('--c','var('+COLOR[b.s]+')');
     const nm=b.s==='rev'?'مراجعة':S[b.s].name;
+    const tm=`<span class="tm">${SESS[j]}</span>`;
     if(b.plain){const id='p'+kk(p.d)+'-'+j;allIds.push(id);
-      el.innerHTML=`<div class="lec"><input type="checkbox" id="${id}"><label for="${id}" class="plain"><span class="subj-h"><span class="s">${nm}</span></span> <span class="t">${b.plain}</span></label><span></span></div>`;
+      el.innerHTML=`<div class="subj-h">${tm}</div><div class="lec"><input type="checkbox" id="${id}"><label for="${id}" class="plain"><span class="subj-h"><span class="s">${nm}</span></span> <span class="t">${b.plain}</span></label><span></span></div>`;
       check(el.querySelector('.lec'),id)}
     else{const lists=[...new Set(b.lecs.map(l=>l.li))].map(li=>S[b.s].lists[li]);
-      el.innerHTML=`<div class="subj-h"><span class="s">${nm}</span><span class="w">${lists.map(l=>l.t).join(' ← ')} · ${lists[0].by||S[b.s].teacher}</span></div>`;
+      const bm=b.lecs.reduce((a,l)=>a+l.m,0);
+      const speed=bm>190?' · شغّلها بسرعة ١.٥':bm>150?' · شغّلها بسرعة ١.٢٥':'';
+      el.innerHTML=`<div class="subj-h">${tm}<span class="s">${nm}</span><span class="w">${lists.map(l=>l.t).join(' ← ')} · ${lists[0].by||S[b.s].teacher}${speed}</span></div>`;
       b.lecs.forEach(l=>{const L=S[b.s].lists[l.li];const id='v'+l.v;allIds.push(id);
         const r=document.createElement('div');r.className='lec';
         r.innerHTML=`<input type="checkbox" id="${id}" aria-label="أنجزت ${l.t}"><label for="${id}"><a href="${V(l.v,L.id)}" target="_blank" rel="noopener">${l.t}</a></label><span class="m">${dur(l.m)}</span>`;
         check(r,id);el.appendChild(r)})}
     box.appendChild(el)});
+  EXTRA.forEach(([t,w])=>{const el=document.createElement('div');el.className='subj extra';el.dataset.s='extra';
+    el.innerHTML=`<div class="subj-h"><span class="tm">${t}</span><span class="w">${w}</span></div>`;box.appendChild(el)});
   weekEl.appendChild(day)});
 function progress(){const n=allIds.filter(i=>done[i]).length;const pc=Math.round(100*n/allIds.length);document.getElementById('sDone').textContent=ar(pc)+'٪';document.getElementById('pbar').style.width=pc+'%'}
 document.getElementById('sDays').textContent=ar(days.length);

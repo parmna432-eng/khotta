@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="description" content="خطة دراسية يومية للسادس العلمي من 1/11/2026 إلى 5/1/2027 بمحاضرات يوتيوب وأوقات الدراسة">
 <title>خطة السادس العلمي</title>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Kufi+Arabic:wght@600;800&family=IBM+Plex+Sans+Arabic:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Kufi+Arabic:wght@600;800&family=IBM+Plex+Sans+Arabic:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap">
 <style>
 /* Layout: exercise-book page — grid-paper ground, header, teachers, tips, then week-by-week day cards listing each lecture */
 :root{
@@ -96,6 +96,8 @@ a:focus-visible,button:focus-visible,input:focus-visible,summary:focus-visible{o
 </style>
 </head>
 <body>
+<link rel="stylesheet" href="dream.css">
+<script>try{const p=JSON.parse(localStorage.getItem('plan6sci-dream'));if(p&&p.fam&&p.fam!=='other')document.documentElement.dataset.dream=p.fam}catch(e){}</script>
 
 <div class="wrap">
   <header>
@@ -287,6 +289,7 @@ const plan=days.map(d=>{
     const lecs=take(s);totalL+=lecs.length;lecs.forEach(x=>totalM+=x.m);return {s,lecs}});
   return {d,blocks};
 });
+window.PLAN={plan,S,kk};
 
 // teachers
 const tb=document.querySelector('#teachers tbody');
@@ -306,7 +309,8 @@ const today=new Date();today.setHours(0,0,0,0);
 const host=document.getElementById('plan');
 let weekEl=null,wn=0,todayEl=null;
 function check(row,id){const cb=row.querySelector('input');cb.checked=!!done[id];row.classList.toggle('checked',cb.checked);
-  cb.addEventListener('change',()=>{if(cb.checked)done[id]=1;else delete done[id];row.classList.toggle('checked',cb.checked);save();progress()})}
+  cb.addEventListener('change',()=>{if(cb.checked)done[id]=1;else delete done[id];row.classList.toggle('checked',cb.checked);save();progress();
+    document.dispatchEvent(new CustomEvent('plancheck',{detail:{checked:cb.checked}}))})}
 plan.forEach((p,i)=>{
   if(i===0||p.d.getDay()===6||(p.review&&!plan[i-1].review)){
     weekEl=document.createElement('div');weekEl.className='week';const h=document.createElement('h3');
@@ -336,7 +340,8 @@ plan.forEach((p,i)=>{
   EXTRA.forEach(([t,w])=>{const el=document.createElement('div');el.className='subj extra';el.dataset.s='extra';
     el.innerHTML=`<div class="subj-h"><span class="tm">${t}</span><span class="w">${w}</span></div>`;box.appendChild(el)});
   weekEl.appendChild(day)});
-function progress(){const n=allIds.filter(i=>done[i]).length;const pc=Math.round(100*n/allIds.length);document.getElementById('sDone').textContent=ar(pc)+'٪';document.getElementById('pbar').style.width=pc+'%'}
+function progress(){const n=allIds.filter(i=>done[i]).length;const pc=Math.round(100*n/allIds.length);document.getElementById('sDone').textContent=ar(pc)+'٪';document.getElementById('pbar').style.width=pc+'%';
+  window.PLAN_PCT=pc;document.dispatchEvent(new CustomEvent('planprogress',{detail:{pct:pc}}))}
 document.getElementById('sDays').textContent=ar(days.length);
 document.getElementById('sLect').textContent=ar(totalL);
 document.getElementById('sHrs').textContent=ar(Math.round(totalM/60));
@@ -352,6 +357,7 @@ const jump=document.getElementById('jump');
 if(!todayEl&&today<START)todayEl=host.querySelector('.day');
 if(todayEl)jump.onclick=()=>todayEl.scrollIntoView({behavior:'smooth',block:'center'});else jump.hidden=true;
 </script>
+<script src="dream.js"></script>
 
 </body>
 </html>

@@ -1,0 +1,110 @@
+/* Dream themes: each career repaints the page tokens with its own world; "other" keeps the default light/dark look */
+#bgfx{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:0}
+.wrap{position:relative;z-index:1}
+body,.day,.tip,.stat,.tbl,.wk,.note,.subj,.date,.dream,.mini{transition:background-color .6s ease,color .6s ease,border-color .6s ease}
+
+/* طبيب: أبيض مستشفى وأخضر عمليات */
+:root[data-dream="doctor"]{--paper:#f2f6f5;--grid:#e3ece9;--card:#ffffff;--ink:#102b29;--muted:#56706c;--line:#d0dfdb;--accent:#0e7a69;--accent-soft:#e0f0eb;--done:#0e7a69;--today:#cf4038;--warn-soft:#fbece9;color-scheme:light}
+/* طبيب أسنان: أبيض ناصع ونعناعي */
+:root[data-dream="dentist"]{--paper:#f4fafb;--grid:#e2eff2;--card:#ffffff;--ink:#12303a;--muted:#55707a;--line:#d3e5ea;--accent:#1f8aa0;--accent-soft:#e0f2f6;--done:#1f8aa0;--today:#d9694c;--warn-soft:#fcefe9;color-scheme:light}
+/* صيدلاني: أخضر الصيدلية */
+:root[data-dream="pharma"]{--paper:#f3f7f0;--grid:#e3ebdf;--card:#ffffff;--ink:#1b2e1a;--muted:#5a6d57;--line:#d5e1d0;--accent:#2e7a37;--accent-soft:#e3efe0;--done:#2e7a37;--today:#bd3b2e;--warn-soft:#f8ebe7;color-scheme:light}
+/* مهندس: ورق المخططات الأزرق */
+:root[data-dream="engineer"]{--paper:#123b63;--grid:rgba(255,255,255,.07);--grid2:rgba(255,255,255,.14);--card:#16446f;--ink:#eef4fb;--muted:#a9c2dc;--line:#3a6893;--accent:#ffd166;--accent-soft:#1d5182;--done:#8fd694;--today:#ffb347;--warn-soft:#2a4f6e;
+  --math:#9fcbff;--bio:#8fd694;--chem:#d8b4ff;--eng:#ffc58a;--isl:#7fe0d6;--ar:#ff9fb3;--rev:#c3d4e6;color-scheme:dark}
+/* مبرمج: شاشة الطرفية */
+:root[data-dream="coder"]{--paper:#0c1110;--grid:transparent;--card:#121917;--ink:#d5e6db;--muted:#80998b;--line:#24312c;--accent:#5ee08f;--accent-soft:#15261d;--done:#5ee08f;--today:#f2be4e;--warn-soft:#231f12;
+  --math:#7fb8ff;--bio:#5ee08f;--chem:#c79bff;--eng:#f2be4e;--isl:#58d6cc;--ar:#ff8fa5;--rev:#93a99c;color-scheme:dark}
+/* علوم: دفتر المختبر */
+:root[data-dream="science"]{--paper:#f7f4ec;--grid:#e9e2d1;--card:#fffdf8;--ink:#2a2418;--muted:#6f6552;--line:#e0d7c2;--accent:#b9542a;--accent-soft:#f6e6da;--done:#3d7a4a;--today:#b23b2a;--warn-soft:#f8ebe2;color-scheme:light}
+/* عسكري وشرطة وطيران: زيتوني ونحاسي */
+:root[data-dream="military"]{--paper:#2a3021;--grid:rgba(255,255,255,.045);--card:#333a28;--ink:#eceadb;--muted:#b6b49b;--line:#4c543b;--accent:#d6b45c;--accent-soft:#3e4630;--done:#a3cf80;--today:#e38c4b;--warn-soft:#3d3a26;
+  --math:#a9cbff;--bio:#a3cf80;--chem:#d6b8ff;--eng:#f3c27e;--isl:#86ddd1;--ar:#ffa4b5;--rev:#c9c7b0;color-scheme:dark}
+/* تربية: السبورة */
+:root[data-dream="teacher"]{--paper:#1f3a2f;--grid:transparent;--card:#25443a;--ink:#f2f0e6;--muted:#b8c6bb;--line:#3e5f53;--accent:#f5e17a;--accent-soft:#2d4e43;--done:#abe3a2;--today:#f6ac7d;--warn-soft:#3a4733;
+  --math:#a9d0ff;--bio:#abe3a2;--chem:#dcc0ff;--eng:#f7c88f;--isl:#8fe3d7;--ar:#ffb0bf;--rev:#cdd8cf;color-scheme:dark}
+:root[data-dream="teacher"] body,:root[data-dream="military"] body{background-image:none}
+:root[data-dream="engineer"] body{background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px),linear-gradient(var(--grid2) 1px,transparent 1px),linear-gradient(90deg,var(--grid2) 1px,transparent 1px);background-size:24px 24px,24px 24px,120px 120px,120px 120px}
+:root[data-dream="coder"] body{background-image:none}
+:root[data-dream="coder"] .dd,:root[data-dream="coder"] .stat b{font-family:"IBM Plex Mono",ui-monospace,monospace}
+
+/* theme switch: the new world opens as a circle from where the student tapped */
+::view-transition-old(root),::view-transition-new(root){animation:none;mix-blend-mode:normal}
+::view-transition-new(root){animation:dream-reveal .9s cubic-bezier(.7,0,.2,1)}
+@keyframes dream-reveal{from{clip-path:circle(0 at var(--vx,50%) var(--vy,30%))}to{clip-path:circle(150vmax at var(--vx,50%) var(--vy,30%))}}
+
+/* dream panel */
+.dream{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px 18px 16px;display:flex;flex-direction:column;gap:14px}
+.dream-top{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:flex-start;justify-content:space-between}
+.dream-top>div:first-child{min-width:0}
+.eyebrow{margin:0;font-size:12px;letter-spacing:.04em;color:var(--accent);font-weight:600}
+.dream h2{font-size:clamp(20px,4.5vw,26px)}
+.dream-actions{display:flex;flex-wrap:wrap;gap:8px}
+.chip{display:inline-flex;align-items:center;gap:6px;font:inherit;font-size:13px;border:1px solid var(--line);background:transparent;color:var(--ink);border-radius:99px;padding:5px 12px;cursor:pointer;text-decoration:none}
+.chip svg{width:16px;height:16px}
+.chip.solid{background:var(--accent);border-color:var(--accent);color:var(--card)}
+.milestone{margin:0;font-weight:600}
+.minis{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px}
+.mini{border:1px solid var(--line);border-radius:10px;padding:10px 14px;min-width:0;background:var(--paper)}
+.mini .k{display:block;font-size:12px;color:var(--muted)}
+.mini .v{display:block;font-weight:600}
+.mini .s{display:block;font-size:13px;color:var(--muted)}
+.foot{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;align-items:center;color:var(--muted);font-size:13px;padding-top:8px}
+
+/* meters, one per dream */
+.meter{min-width:0}
+.mon{background:#0a1715;border-radius:10px;padding:12px 14px;color:#5fe3a9;display:grid;grid-template-columns:1fr auto;gap:4px 14px;align-items:center;direction:ltr}
+.mon-h{grid-column:1/-1;display:flex;justify-content:space-between;font:500 12px "IBM Plex Mono",ui-monospace,monospace;color:#3fae80}
+.mon-h span:last-child{font-family:var(--body);direction:rtl}
+.ecg{width:100%;height:56px}
+.ecg path{fill:none;stroke:#5fe3a9;stroke-width:2;stroke-linejoin:round;stroke-dasharray:420;animation:ecg-sweep 2.4s linear infinite}
+@keyframes ecg-sweep{from{stroke-dashoffset:420}to{stroke-dashoffset:0}}
+.mon-v{font:600 44px/1 "IBM Plex Mono",ui-monospace,monospace;font-variant-numeric:tabular-nums}
+.mon-v small{font-size:20px}
+.mon-bar{grid-column:1/-1;height:4px;background:#173a30;border-radius:2px;overflow:hidden}
+.mon-bar i{display:block;height:100%;background:#5fe3a9;transition:width .8s ease}
+.teeth{display:flex;gap:4px;flex-wrap:wrap;justify-content:center}
+.teeth svg{width:clamp(16px,4.6vw,30px);height:auto}
+.teeth path{fill:var(--paper);stroke:var(--line);stroke-width:1.4;transition:fill .5s ease,stroke .5s ease}
+.teeth .on path{fill:var(--accent);stroke:var(--accent)}
+.big{font:600 34px/1.1 var(--display);font-variant-numeric:tabular-nums;color:var(--accent)}
+.row{display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+.bottle{width:76px;flex:none}
+.bottle .liq{transition:y .8s ease,height .8s ease}
+.ruler{position:relative;height:64px;border:1px solid var(--accent);border-radius:4px;background:repeating-linear-gradient(to left,var(--accent) 0 1px,transparent 1px 5%) bottom/100% 14px no-repeat,repeating-linear-gradient(to left,var(--accent) 0 1px,transparent 1px 10%) bottom/100% 26px no-repeat;margin-top:22px}
+.ruler .n{position:absolute;bottom:28px;transform:translateX(50%);font:500 11px "IBM Plex Mono",ui-monospace,monospace;color:var(--muted)}
+.ruler .mk{position:absolute;top:-22px;transform:translateX(50%);transition:right .8s ease;display:flex;flex-direction:column;align-items:center;color:var(--accent);font:600 13px "IBM Plex Mono",ui-monospace,monospace}
+.ruler .mk::after{content:"";width:2px;height:62px;background:var(--accent)}
+.term{margin:0;background:#070b0a;color:#5ee08f;border-radius:10px;padding:14px 16px;font:500 14px/1.7 "IBM Plex Mono",ui-monospace,monospace;direction:ltr;text-align:left;overflow-x:auto;white-space:pre}
+.term .dim{color:#3b7a55}
+.flask{width:84px;flex:none}
+.flask .liq{transition:y .8s ease,height .8s ease}
+.radar{width:120px;height:120px;flex:none;position:relative;direction:ltr}
+.radar svg{width:100%;height:100%}
+.radar .sweep{transform-origin:60px 60px;animation:radar-spin 4s linear infinite}
+@keyframes radar-spin{to{transform:rotate(360deg)}}
+.board{border:8px solid #6b4f33;border-radius:6px;background:#1b3328;color:#f2f0e6;padding:14px 16px;display:flex;flex-direction:column;gap:8px}
+.board .chalk{font:600 38px/1 var(--display);color:#f5e17a;font-variant-numeric:tabular-nums}
+.board .line{height:6px;border-radius:3px;background:repeating-linear-gradient(90deg,rgba(242,240,230,.25) 0 8px,transparent 8px 14px);position:relative;overflow:hidden}
+.board .line i{position:absolute;inset-block:0;inset-inline-start:0;background:#f2f0e6;border-radius:3px;transition:width .8s ease;opacity:.85}
+.dept{display:flex;flex-wrap:wrap;gap:6px}
+.dept button{font:inherit;font-size:13px;border:1px solid var(--line);background:var(--paper);color:var(--ink);border-radius:99px;padding:5px 12px;cursor:pointer}
+.dept button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--card)}
+.plainbar{height:14px;border-radius:99px;background:var(--line);overflow:hidden}
+.plainbar i{display:block;height:100%;background:var(--accent);transition:width .8s ease}
+
+/* first-visit card */
+.onb{position:fixed;inset:0;z-index:50;display:grid;place-items:center;padding:max(16px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) max(16px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));background:rgba(8,16,24,.55);backdrop-filter:blur(6px);overflow-y:auto}
+.onb-card{background:var(--card);color:var(--ink);border-radius:14px;padding:22px;width:min(560px,100%);display:flex;flex-direction:column;gap:10px;box-shadow:0 20px 60px rgba(0,0,0,.25)}
+.onb-card h2{font-size:22px}
+.onb-card label,.onb-card .lbl{font-size:13px;color:var(--muted);margin:4px 0 0}
+.onb-card input{font:inherit;border:1px solid var(--line);border-radius:8px;padding:9px 12px;background:var(--paper);color:var(--ink)}
+.dream-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.dream-grid button{font:inherit;display:flex;flex-direction:column;align-items:center;gap:4px;padding:12px 6px;border:1px solid var(--line);border-radius:10px;background:var(--paper);color:var(--ink);cursor:pointer}
+.dream-grid button svg{width:28px;height:28px;color:var(--accent)}
+.dream-grid button small{font-size:11px;color:var(--muted)}
+.dream-grid button[aria-pressed="true"]{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent);background:var(--accent-soft)}
+.onb-err{margin:0;color:var(--today);font-size:13px}
+.go{font:600 15px var(--body);border:0;border-radius:10px;padding:11px;background:var(--accent);color:var(--card);cursor:pointer;margin-top:6px}
+@media (max-width:480px){.dream-grid{grid-template-columns:repeat(2,1fr)}}
+@media (prefers-reduced-motion:reduce){.ecg path{animation:none;stroke-dasharray:none}.radar .sweep{animation:none}::view-transition-new(root){animation:none}}

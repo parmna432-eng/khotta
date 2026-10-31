@@ -97,6 +97,21 @@ a:focus-visible,button:focus-visible,input:focus-visible,summary:focus-visible{o
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--phys:#e88ab9}}
 :root[data-theme="dark"]{--phys:#e88ab9}
 [hidden]{display:none!important}
+.late{background:var(--warn-soft);border:1px solid var(--today);border-radius:12px;padding:14px 16px;display:flex;flex-direction:column;gap:12px}
+.late-h{display:grid;grid-template-columns:auto 1fr;gap:10px;align-items:start}
+.late-h svg{width:26px;height:26px;color:var(--today)}
+.late-h b{display:block;font-family:var(--display);font-size:16px}
+.late-h span{display:block;font-size:14px;color:var(--muted)}
+#lateActs{display:flex;flex-direction:column;gap:10px}
+.late-from{display:flex;flex-wrap:wrap;gap:14px;font-size:14px}
+.late-from input{accent-color:var(--today)}
+.late-btns{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px}
+.late-btns .chip{flex-direction:column;align-items:flex-start;gap:2px;border-radius:10px;padding:10px 14px;font-weight:600}
+.late-btns .chip small{font-weight:400;font-size:12px;opacity:.85}
+.late-btns .chip.alt2{background:var(--ink);border-color:var(--ink);color:var(--paper)}
+#lateUndo{align-self:flex-start}
+.day.past{opacity:.7}
+.day.past .date{background:var(--line)}
 .vh{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 .tools{display:flex;flex-wrap:wrap;gap:8px}
 .tsel{font:inherit;font-size:14px;max-width:100%;border:1px solid var(--line);border-radius:8px;padding:6px 10px;background:var(--paper);color:var(--ink)}
@@ -121,7 +136,7 @@ tr.off td{opacity:.55}
 .hours-pick button{font:inherit;font-size:13px;border:1px solid var(--line);background:var(--paper);color:var(--ink);border-radius:99px;padding:5px 12px;cursor:pointer}
 .hours-pick button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--card)}
 </style>
-<link rel="stylesheet" href="dream.css?v=8">
+<link rel="stylesheet" href="dream.css?v=9">
 <script>try{const p=JSON.parse(localStorage.getItem('plan6sci-dream'));if(p&&p.fam&&p.fam!=='other')document.documentElement.dataset.dream=p.fam}catch(e){}</script>
 
 </head>
@@ -138,6 +153,21 @@ tr.off td{opacity:.55}
     </div>
     <div class="bar" aria-hidden="true"><i id="pbar"></i></div>
   </header>
+
+  <section class="late" id="lateBox" hidden aria-live="polite">
+    <div class="late-h"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l3 2M9 2h6"/></svg><div><b id="lateTitle"></b><span id="lateText"></span></div></div>
+    <div id="lateActs">
+      <div class="late-from" role="radiogroup" aria-label="من وين نبدي الترتيب">
+        <label><input type="radio" name="lateFrom" value="today" checked> أبدي من اليوم</label>
+        <label><input type="radio" name="lateFrom" value="tomorrow"> أبدي من باجر</label>
+      </div>
+      <div class="late-btns">
+        <button class="chip solid" type="button" id="lateExtend">طوّل الجدول<small>نفس حمل اليوم، والنهاية تتأخر</small></button>
+        <button class="chip solid alt2" type="button" id="lateFit">وزّعها على الأيام الباقية<small>نفس تاريخ النهاية، والأيام أثقل</small></button>
+      </div>
+    </div>
+    <button class="chip" type="button" id="lateUndo" hidden>تراجع للترتيب الأصلي</button>
+  </section>
 
   <section id="teachersSec">
     <div class="toolbar">
@@ -210,7 +240,7 @@ tr.off td{opacity:.55}
   <section>
     <div class="toolbar">
       <h2>الجدول اليومي</h2>
-      <button class="jump" id="jump" type="button">روح لليوم</button>
+      <div class="tools"><button class="chip" id="lateOpen" type="button">تأخرت؟ أعد ترتيب جدولي</button><button class="jump" id="jump" type="button">روح لليوم</button></div>
     </div>
     <div class="filters" id="filters" role="group" aria-label="فلترة حسب المادة"></div>
     <div id="plan"></div>
@@ -224,9 +254,9 @@ tr.off td{opacity:.55}
 </div>
 <div class="toast" id="toast" role="status" hidden></div>
 
-<script src="data.js?v=8"></script>
-<script src="plan.js?v=8"></script>
-<script src="dream.js?v=8"></script>
+<script src="data.js?v=9"></script>
+<script src="plan.js?v=9"></script>
+<script src="dream.js?v=9"></script>
 
 </body>
 </html>

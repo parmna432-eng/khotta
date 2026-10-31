@@ -34,6 +34,8 @@ const FAM={
   teacher:{label:'تربية وتدريس',icon:'<rect x="3" y="4" width="18" height="12" rx="1"/><path d="M8 20l4-4 4 4"/>',depts:[
     ['تربية - رياضيات','كلية التربية','أ.'],['تربية - فيزياء','كلية التربية','أ.'],['تربية - كيمياء','كلية التربية','أ.'],['تربية - علوم الحياة','كلية التربية','أ.'],
     ['تربية - حاسوب','كلية التربية','أ.'],['تربية - لغة إنكليزية','كلية التربية','أ.'],['التربية البدنية','كلية التربية البدنية وعلوم الرياضة','']]},
+  politics:{label:'علوم سياسية',icon:'<path d="M3 21h18M5 21V10M9 21V10M15 21V10M19 21V10M2 10l10-6 10 6z"/>',depts:[
+    ['العلوم السياسية','كلية العلوم السياسية',''],['العلاقات الدولية والدبلوماسية','كلية العلوم السياسية',''],['النظم السياسية والسياسات العامة','كلية العلوم السياسية',''],['الفكر السياسي','كلية العلوم السياسية','']]},
   other:{label:'إنسانية وحلم ثاني',icon:'<path d="M12 3l2.6 5.6 6 .7-4.5 4.1 1.2 6L12 16.9 6.7 19.4l1.2-6L3.4 9.3l6-.7z"/>',depts:[
     ['القانون','كلية القانون',''],['الإدارة والاقتصاد','كلية الإدارة والاقتصاد',''],['الإعلام','كلية الإعلام',''],['اللغات','كلية اللغات',''],
     ['الفنون الجميلة','كلية الفنون الجميلة',''],['حلم ثاني','','']]}
@@ -86,6 +88,10 @@ function meterHTML(p){
     return `<div class="row"><svg class="flask" viewBox="0 0 84 120"><clipPath id="fc"><path d="M32 6h20v34l26 66a8 8 0 0 1-7 11H13a8 8 0 0 1-7-11l26-66z"/></clipPath><rect class="liq" clip-path="url(#fc)" x="0" y="${117-h}" width="84" height="${h}" fill="var(--accent)" opacity=".8"/><path d="M32 6h20v34l26 66a8 8 0 0 1-7 11H13a8 8 0 0 1-7-11l26-66z" fill="none" stroke="var(--ink)" stroke-width="2"/><path d="M28 6h28" stroke="var(--ink)" stroke-width="3"/></svg><div><div class="big"><span id="num">${ar(p)}</span>٪</div><p style="margin:0;color:var(--muted)">من تجربتك الكبيرة: المنهج</p></div></div>`}
   if(f==='military'){const C=2*Math.PI*46,off=C*(1-p/100);
     return `<div class="row"><div class="radar"><svg viewBox="0 0 120 120"><circle cx="60" cy="60" r="56" fill="#1d2316" stroke="var(--line)"/><circle cx="60" cy="60" r="36" fill="none" stroke="#3c4a2c"/><circle cx="60" cy="60" r="18" fill="none" stroke="#3c4a2c"/><path d="M60 4v112M4 60h112" stroke="#3c4a2c"/><circle cx="60" cy="60" r="46" fill="none" stroke="var(--accent)" stroke-width="5" stroke-dasharray="${C}" stroke-dashoffset="${off}" transform="rotate(-90 60 60)" style="transition:stroke-dashoffset .8s ease"/><g class="sweep"><path d="M60 60L60 6A54 54 0 0 1 98 22z" fill="var(--accent)" opacity=".18"/></g><text x="60" y="66" text-anchor="middle" font-size="20" font-weight="700" fill="var(--ink)">${p}%</text></svg></div><div><div class="big"><span id="num">${ar(p)}</span>٪</div><p style="margin:0;color:var(--muted)">من مهمتك: الهدف بالرادار</p></div></div>`}
+  if(f==='politics'){ // parliament hemicycle: seats fill from left to right as lectures get done
+    const seats=[];[44,58,72,86,100].forEach(r=>{const n=Math.round(Math.PI*r/13);for(let i=0;i<n;i++){const a=Math.PI-(i+.5)*Math.PI/n;seats.push({a,x:110+r*Math.cos(a),y:110-r*Math.sin(a)})}});
+    seats.sort((p,q)=>q.a-p.a);const on=Math.round(p/100*seats.length);
+    return `<div class="row"><svg class="hemi" viewBox="0 0 220 118" aria-hidden="true">${seats.map((s,i)=>`<circle cx="${s.x.toFixed(1)}" cy="${s.y.toFixed(1)}" r="4.6" fill="${i<on?'var(--accent)':'var(--line)'}"/>`).join('')}<text x="110" y="104" text-anchor="middle" font-size="22" font-weight="700" fill="var(--ink)">${ar(on)}/${ar(seats.length)}</text></svg><div><div class="big"><span id="num">${ar(p)}</span>٪</div><p style="margin:0;color:var(--muted)">من مقاعد برلمانك: كل محاضرة تخلصها تكسب مقعد</p></div></div>`}
   if(f==='teacher')return `<div class="board"><span style="font-size:13px;opacity:.8">درس اليوم: حلمك</span><span class="chalk"><span id="num">${ar(p)}</span>٪ من المنهج</span><div class="line"><i style="width:${p}%"></i></div></div>`;
   return `<div class="row"><div class="big"><span id="num">${ar(p)}</span>٪</div><div style="flex:1;min-width:160px"><div class="plainbar"><i style="width:${p}%"></i></div></div></div>`;
 }
@@ -244,6 +250,22 @@ const fx=(()=>{
         for(let i=0;i<3;i++){const ang=a.t*(1+i*.3)+i*2,rot=i*Math.PI/3,ex=Math.cos(ang)*a.R,ey=Math.sin(ang)*a.R*.38;
           ctx.beginPath();ctx.arc(a.x+ex*Math.cos(rot)-ey*Math.sin(rot),a.y+ex*Math.sin(rot)+ey*Math.cos(rot),2.6,0,7);ctx.fill()}}
       ctx.globalAlpha=1},
+    politics(){ // a drifting network of capitals; the pointer joins the talks and a tap sends out a signed-agreement pulse
+      if(!st.n){st.c=col('--accent');st.k=col('--ink');st.f=0;st.rings=[];
+        const names=['بغداد','القاهرة','جنيف','نيويورك','بروكسل','طوكيو','الرياض','أنقرة','باريس','لندن','طهران','عمّان'];
+        st.n=Array.from({length:Math.min(34,Math.round(W*H/26000))},(_,i)=>({x:rnd(0,W),y:rnd(0,H),vx:rnd(-.18,.18),vy:rnd(-.18,.18),name:names[i]||''}))}
+      st.f++;ctx.clearRect(0,0,W,H);const D=170,act=ptr.on&&performance.now()-ptr.last<5000;
+      for(const a of st.n){a.x+=a.vx;a.y+=a.vy;if(a.x<0||a.x>W)a.vx*=-1;if(a.y<0||a.y>H)a.vy*=-1}
+      ctx.lineWidth=1;
+      for(let i=0;i<st.n.length;i++)for(let j=i+1;j<st.n.length;j++){const a=st.n[i],b=st.n[j],d=Math.hypot(a.x-b.x,a.y-b.y);
+        if(d<D){ctx.globalAlpha=(1-d/D)*.22;ctx.strokeStyle=st.k;ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke()}}
+      if(act)for(const a of st.n){const d=Math.hypot(a.x-ptr.x,a.y-ptr.y);if(d<D*1.3){ctx.globalAlpha=(1-d/(D*1.3))*.6;ctx.strokeStyle=st.c;ctx.beginPath();ctx.moveTo(ptr.x,ptr.y);ctx.lineTo(a.x,a.y);ctx.stroke()}}
+      ctx.font='500 11px "IBM Plex Sans Arabic",sans-serif';ctx.textAlign='center';
+      for(const a of st.n){ctx.globalAlpha=a.name?.55:.35;ctx.fillStyle=a.name?st.c:st.k;ctx.beginPath();ctx.arc(a.x,a.y,a.name?3.4:2.2,0,7);ctx.fill();
+        if(a.name){ctx.globalAlpha=.4;ctx.fillStyle=st.k;ctx.fillText(a.name,a.x,a.y-8)}}
+      if(ptr.tap){ptr.tap=false;st.rings.push({x:ptr.x,y:ptr.y,r:4,a:.7})}
+      ctx.strokeStyle=st.c;st.rings=st.rings.filter(g=>{g.r+=2.2;g.a-=.012;ctx.globalAlpha=Math.max(0,g.a);ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(g.x,g.y,g.r,0,7);ctx.stroke();return g.a>0});
+      ctx.globalAlpha=1;ctx.lineWidth=1},
     military(){ // radar in the corner; tapping drops a contact on it
       if(!st.c){st.c=col('--accent');st.t=0;st.blips=[]}
       st.t+=.012;const R=Math.min(W,H)*.42,cx=W-R*.35,cy=H-R*.35;ctx.clearRect(0,0,W,H);

@@ -100,14 +100,14 @@ function meter(fresh){
 }
 
 /* ---------- small cards ---------- */
-const WIN=[[0,120,'وقت الأصدقاء والراحة'],[120,600,'وقت النوم'],[600,645,'فطور وتجهيز'],[645,795,0],[795,870,'غداء وصلاة واستراحة'],[870,1020,1],[1020,1065,'مشي أو رياضة خفيفة'],[1065,1215,2],[1215,1275,'عشاء وصلاة واستراحة'],[1275,1395,'حل تمارين وأسئلة وزارية لمحاضرات اليوم'],[1395,1440,'مراجعة ملخص اليوم']];
 function nowCard(){
   const el=document.getElementById('mNow');if(!el)return;
-  const n=new Date(),t=n.getHours()*60+n.getMinutes(),P=window.PLAN;
-  const w=WIN.find(x=>t>=x[0]&&t<x[1]);let v=w[2],s='';
+  const n=new Date(),t=n.getHours()*60+n.getMinutes(),P=window.PLAN;if(!P)return;
+  const w=P.timeline.find(x=>[t,t+1440,t-1440].some(v=>v>=x[0]&&v<x[1]))||[0,0,'وقت حر'];
+  let v=w[2]==='practice'?'حل تمارين وأسئلة وزارية لمحاضرات اليوم':w[2]==='review'?'مراجعة ملخص اليوم':w[2],s='';
   const entry=P&&P.plan.find(p=>P.kk(p.d)===dayKey(n));
   if(typeof v==='number'){
-    if(!entry){v='الخطة تبدي الأحد ١/١١';}
+    if(!entry){v=n<P.plan[0].d?'الخطة تبدي الأحد ١/١١':'خلصت الخطة';}
     else{const b=entry.blocks[v];if(!b){v='وقت مراجعة';}else{const nm=b.s==='rev'?'مراجعة الأسبوع':P.S[b.s].name;s=b.lecs&&b.lecs.length?'تبدي بـ: '+b.lecs[0].t:(b.plain||'');v='الجلسة '+ar(w[2]+1)+': '+nm}}
   }
   el.innerHTML=`<span class="k">هسه وقت</span><span class="v">${esc(v)}</span>${s?`<span class="s">${esc(s)}</span>`:''}`;
@@ -127,6 +127,7 @@ function quoteCard(){
 document.addEventListener('planprogress',e=>{pct=e.detail.pct;meter(false)});
 document.addEventListener('plancheck',e=>{if(e.detail.checked){const a=new Set(get(DAYS)||[]);a.add(dayKey());put(DAYS,[...a].slice(-120));streakCard()}});
 setInterval(nowCard,60000);
+document.addEventListener('planbuilt',nowCard);
 
 /* ---------- first visit ---------- */
 let onb=null;
@@ -141,6 +142,8 @@ function openOnb(){
     <div class="dream-grid">${Object.entries(FAM).map(([k,f])=>`<button type="button" data-f="${k}" aria-pressed="${k===fam}">${svg(f.icon)}<span>${f.label}</span></button>`).join('')}</div>
     <p class="lbl" id="deptL" hidden>اختار القسم</p><div class="dept" id="dept"></div>
     <div id="otherW" hidden><label for="onbOther">اكتب حلمك</label><input id="onbOther" maxlength="30" value="${prof&&prof.custom?esc(prof.custom):''}"></div>
+    <p class="lbl">بأي ساعة تبدي دراستك بالعادة؟</p>
+    <div class="hours-pick" id="onbHours">${(window.PLANAPP?PLANAPP.HOURS:[7,8,9,10]).map(h=>`<button type="button" data-h="${h}" aria-pressed="${prof&&window.PLANAPP&&PLANAPP.getHour()===h}">${ar(h)} الصبح</button>`).join('')}</div>
     <p class="onb-err" id="onbErr" hidden></p>
     <button type="submit" class="go">يلا نبدي</button>
     ${prof?'<button type="button" class="chip" id="onbX" style="align-self:center">إلغاء</button>':''}</form>`;
@@ -151,13 +154,15 @@ function openOnb(){
     $('#otherW').hidden=dept!=='حلم ثاني'};
   onb.querySelectorAll('.dream-grid button').forEach(b=>b.onclick=()=>{fam=b.dataset.f;dept='';onb.querySelectorAll('.dream-grid button').forEach(x=>x.setAttribute('aria-pressed',x===b));drawDept();previewFam(fam)});
   drawDept();
+  let hour=prof&&window.PLANAPP?PLANAPP.getHour():0;
+  onb.querySelectorAll('#onbHours button').forEach(b=>b.onclick=()=>{hour=+b.dataset.h;onb.querySelectorAll('#onbHours button').forEach(x=>x.setAttribute('aria-pressed',x===b))});
   if($('#onbX'))$('#onbX').onclick=()=>{closeOnb();applyTheme(famOf())};
   $('form').onsubmit=e=>{e.preventDefault();
     const name=$('#onbName').value.trim(),other=$('#onbOther').value.trim(),err=$('#onbErr');
-    const msg=!name?'اكتب اسمك حتى نبدي':!fam?'اختار مجال حلمك':!dept?'اختار القسم اللي تحلم بيه':(dept==='حلم ثاني'&&!other)?'اكتب حلمك':'';
+    const msg=!name?'اكتب اسمك حتى نبدي':!fam?'اختار مجال حلمك':!dept?'اختار القسم اللي تحلم بيه':(dept==='حلم ثاني'&&!other)?'اكتب حلمك':!hour?'اختار الساعة اللي تبدي بيها دراستك':'';
     if(msg){err.textContent=msg;err.hidden=false;return}
     prof={name,fam,dept,custom:dept==='حلم ثاني'?other:''};put(KEY,prof);
-    const r=$('.go').getBoundingClientRect();transition(()=>{closeOnb();setFam(fam);render()},r.left+r.width/2,r.top+r.height/2)};
+    const r=$('.go').getBoundingClientRect();transition(()=>{closeOnb();setFam(fam);if(window.PLANAPP)PLANAPP.setHour(hour);render();document.dispatchEvent(new CustomEvent('dreamsaved'))},r.left+r.width/2,r.top+r.height/2)};
   setTimeout(()=>$('#onbName').focus(),50);
 }
 function closeOnb(){if(onb){onb.remove();onb=null}}

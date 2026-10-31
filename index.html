@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" content="خطة دراسية يومية للسادس العلمي من 1/11/2026 إلى 5/1/2027 بمحاضرات يوتيوب وأوقات الدراسة">
+<meta name="description" content="خطة دراسية للسادس العلمي بمحاضرات يوتيوب: اختار مدرسك وموادك ووقت دراستك">
 <title>خطة السادس العلمي</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Kufi+Arabic:wght@600;800&family=IBM+Plex+Sans+Arabic:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap">
 <style>
@@ -93,16 +93,43 @@ a:focus-visible,button:focus-visible,input:focus-visible,summary:focus-visible{o
 .tt tr.free td{color:var(--muted)}
 @media (max-width:520px){.day{grid-template-columns:64px 1fr}.date .dd{font-size:18px}}
 @media (prefers-reduced-motion:reduce){.bar i{transition:none}}
+:root{--phys:#9a3c6e}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--phys:#e88ab9}}
+:root[data-theme="dark"]{--phys:#e88ab9}
+[hidden]{display:none!important}
+.vh{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.tools{display:flex;flex-wrap:wrap;gap:8px}
+.tsel{font:inherit;font-size:14px;max-width:100%;border:1px solid var(--line);border-radius:8px;padding:6px 10px;background:var(--paper);color:var(--ink)}
+tr.off td{opacity:.55}
+.subj-edit{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px 14px;display:flex;flex-direction:column;gap:10px}
+.sch-box{display:flex;flex-wrap:wrap;gap:8px}
+.sch{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:99px;padding:5px 12px;background:var(--paper);cursor:pointer;font-size:14px}
+.sch input{accent-color:var(--accent);width:16px;height:16px}
+.sch .dot{width:10px;height:10px;border-radius:50%;background:var(--c)}
+.hour-box{display:flex;flex-wrap:wrap;gap:8px}
+.hbtn{font:inherit;font-size:14px;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:99px;padding:6px 14px;cursor:pointer}
+.hbtn[aria-pressed="true"]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.notice{position:fixed;z-index:40;inset-inline:max(16px,env(safe-area-inset-left,0px));bottom:max(16px,env(safe-area-inset-bottom,0px));margin:0 auto;max-width:560px;background:var(--card);color:var(--ink);border:1px solid var(--accent);border-radius:12px;padding:12px 14px;display:grid;grid-template-columns:auto 1fr;gap:6px 12px;align-items:start;box-shadow:0 12px 40px rgba(0,0,0,.18);animation:notice-in .4s ease}
+.notice>svg{width:24px;height:24px;color:var(--accent);margin-top:2px}
+.notice b{display:block}
+.notice span{display:block;font-size:14px;color:var(--muted)}
+.notice-actions{grid-column:1/-1;display:flex;gap:8px;justify-content:flex-end}
+.toast{position:fixed;z-index:45;inset-inline:0;bottom:max(20px,env(safe-area-inset-bottom,0px));margin:0 auto;width:max-content;max-width:calc(100% - 32px);background:var(--ink);color:var(--paper);border-radius:99px;padding:8px 16px;font-size:14px;animation:notice-in .3s ease}
+@keyframes notice-in{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.notice,.toast{animation:none}}
+.hours-pick{display:flex;flex-wrap:wrap;gap:6px}
+.hours-pick button{font:inherit;font-size:13px;border:1px solid var(--line);background:var(--paper);color:var(--ink);border-radius:99px;padding:5px 12px;cursor:pointer}
+.hours-pick button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--card)}
 </style>
-</head>
-<body>
 <link rel="stylesheet" href="dream.css">
 <script>try{const p=JSON.parse(localStorage.getItem('plan6sci-dream'));if(p&&p.fam&&p.fam!=='other')document.documentElement.dataset.dream=p.fam}catch(e){}</script>
 
+</head>
+<body>
 <div class="wrap">
   <header>
-    <h1>خطة السادس العلمي — من ١/١١/٢٠٢٦ إلى ٥/١/٢٠٢٧</h1>
-    <p class="sub">كل محاضرة مكتوبة باسمها ومدتها ورابطها، ومرتبة على الأيام حسب وقت الفيديو حتى يتوزع الحمل بالتساوي. الفصول ١–٣ للرياضيات والأحياء والكيمياء، اليونتات ١–٣ للإنكليزي، الوحدات ١–٣ للإسلامية، وكتاب العربي كامل. آخر ستة أيام مراجعة نهائية.</p>
+    <h1 id="hTitle">خطة السادس العلمي</h1>
+    <p class="sub">كل محاضرة مكتوبة باسمها ومدتها ورابطها، ومرتبة على الأيام حسب وقت الفيديو حتى يتوزع الحمل بالتساوي. الفصول ١–٣ للرياضيات والفيزياء والأحياء والكيمياء، اليونتات ١–٣ للإنكليزي، الوحدات ١–٣ للإسلامية، وكتاب العربي كامل. آخر ستة أيام مراجعة نهائية. تكدر تختار مدرس بديل لأي مادة، وتضيف أو تشيل مواد، والجدول ينبني من جديد على اختيارك.</p>
     <div class="stats">
       <div class="stat"><b id="sDays">—</b><span>يوم</span></div>
       <div class="stat"><b id="sLect">—</b><span>محاضرة</span></div>
@@ -112,9 +139,21 @@ a:focus-visible,button:focus-visible,input:focus-visible,summary:focus-visible{o
     <div class="bar" aria-hidden="true"><i id="pbar"></i></div>
   </header>
 
-  <section>
-    <h2>المدرسين</h2>
-    <div class="tbl"><table id="teachers"><thead><tr><th>المادة</th><th>الأستاذ</th><th>القوائم (السنة · عدد المحاضرات)</th><th>البديل (مو من أبواب)</th></tr></thead><tbody></tbody></table></div>
+  <section id="teachersSec">
+    <div class="toolbar">
+      <h2>المواد والمدرسين</h2>
+      <div class="tools">
+        <button class="chip" type="button" id="bell" aria-label="عرض التنبيه"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 16V11a6 6 0 0 1 12 0v5l2 2H4z"/><path d="M10 20a2 2 0 0 0 4 0"/></svg>التنبيهات</button>
+        <button class="chip solid" type="button" id="subjToggle" aria-expanded="false" aria-controls="subjEdit">حدّث المواد</button>
+      </div>
+    </div>
+    <div class="subj-edit" id="subjEdit" hidden>
+      <p class="sub">أشّر المواد اللي تريدها بجدولك. إذا شلت مادة الجدول يقصر، وإذا أضفت مادة يطول، حسب وقت محاضراتها.</p>
+      <div class="sch-box" id="subjBox"></div>
+      <button class="chip solid" type="button" id="subjApply">طبّق على جدولي</button>
+    </div>
+    <p class="sub">اختار المدرس الرئيسي أو مدرس بديل لكل مادة. توزيع الجدول يبقى نفسه، بس محاضرات المادة تتبدل لمحاضرات المدرس اللي تختاره.</p>
+    <div class="tbl"><table id="teachers"><thead><tr><th>المادة</th><th>المدرس</th><th>القوائم (السنة · عدد المحاضرات)</th></tr></thead><tbody id="tBody"></tbody></table></div>
   </section>
 
   <section>
@@ -126,23 +165,24 @@ a:focus-visible,button:focus-visible,input:focus-visible,summary:focus-visible{o
         <li>لا تشوف محاضرتين ورا بعض بدون ما تحل تمارين الأولى.</li>
       </ul></div>
       <div class="tip"><h3>تنظيم اليوم</h3><ul>
-        <li>المادة الأصعب (رياضيات أو كيمياء) أول الصبح وذهنك صافي.</li>
+        <li>المادة الأصعب (رياضيات أو فيزياء أو كيمياء) أول جلسة وذهنك صافي.</li>
         <li>٥٠ دقيقة دراسة و١٠ استراحة؛ كل ٣ جلسات استراحة طويلة نص ساعة.</li>
         <li>الموبايل بعيد عنك وقت الدراسة، والإشعارات مسكرة.</li>
         <li>نام ٧–٨ ساعات؛ السهر يضيّع الحفظ.</li>
       </ul></div>
       <div class="tip"><h3>المواد العلمية</h3><ul>
         <li>رياضيات: حل كل أمثلة وتمارين الكتاب بنفسك، والأسئلة الوزارية لكل موضوع بنفس اليوم.</li>
-        <li>كيمياء: اكتب القوانين بورقة وحدة والصقها قدامك، وحل المسائل بدون ما تشوف الحل.</li>
+        <li>فيزياء: اكتب القوانين والوحدات بورقة وحدة، وحل المسائل خطوة خطوة بدون ما تشوف الحل.</li>
+        <li>كيمياء: ركّز على المسائل والمعادلات، وارجع للقوانين كل يوم.</li>
         <li>أحياء: ارسم رسوم الكتاب بيدك وأشّر الأجزاء؛ أغلب الأسئلة تجي من الرسوم والتعاريف.</li>
       </ul></div>
       <div class="tip"><h3>اللغات والإسلامية</h3><ul>
-        <li>إنكليزي: دفتر صغير للكلمات الجديدة، راجعه كل يوم ١٠ دقايق، واكتب الإنشاء بإيدك مو بس تشوفه.</li>
+        <li>إنكليزي: دفتر صغير للكلمات الجديدة، راجعه كل يوم ١٠ دقايق، واكتب الإنشاء بإيدك.</li>
         <li>عربي: حفظ الأبيات المقررة على مراحل يومياً، وحل إعراب الأمثلة بنفسك.</li>
         <li>إسلامية: سمّع الآيات والأحاديث بصوت عالي يوم الجمعة.</li>
       </ul></div>
       <div class="tip"><h3>المراجعة</h3><ul>
-        <li>كل ليلة ١٥ دقيقة تراجع ملخص اليوم قبل النوم.</li>
+        <li>آخر كل يوم مراجعة سريعة لملخص اليوم.</li>
         <li>الجمعة: ارجع لكل اللي درسته بالأسبوع وحل أسئلة وزارية عليه.</li>
         <li>سجّل غلطاتك بدفتر خاص وارجعله بأسبوع المراجعة النهائية.</li>
       </ul></div>
@@ -156,25 +196,14 @@ a:focus-visible,button:focus-visible,input:focus-visible,summary:focus-visible{o
 
   <section>
     <h2>يومك الدراسي</h2>
-    <p class="sub">من الكعدة ١٠ الصبح لحد النوم ٢ بالليل. حوالي ١٠ ساعات دراسة، وبعد ١٢ بالليل وقتك للأصدقاء. داخل كل جلسة: ٥٠ دقيقة دراسة و١٠ دقايق استراحة.</p>
-    <div class="tbl"><table class="tt" style="min-width:0"><tbody>
-      <tr><td>١٠:٠٠ – ١٠:٤٥ص</td><td>الكعدة، فطور، ترتيب مكان الدراسة</td></tr>
-      <tr class="study"><td>١٠:٤٥ص – ١:١٥م</td><td>الجلسة ١: المادة الأولى بجدول اليوم (الأصعب، وذهنك صافي)</td></tr>
-      <tr class="free"><td>١:١٥ – ٢:٣٠م</td><td>غداء، صلاة، استراحة</td></tr>
-      <tr class="study"><td>٢:٣٠ – ٥:٠٠م</td><td>الجلسة ٢: المادة الثانية</td></tr>
-      <tr class="free"><td>٥:٠٠ – ٥:٤٥م</td><td>استراحة: مشي أو رياضة خفيفة</td></tr>
-      <tr class="study"><td>٥:٤٥ – ٨:١٥م</td><td>الجلسة ٣: المادة الثالثة</td></tr>
-      <tr class="free"><td>٨:١٥ – ٩:١٥م</td><td>عشاء، صلاة، استراحة</td></tr>
-      <tr class="study"><td>٩:١٥ – ١١:١٥م</td><td>الجلسة ٤: حل تمارين الكتاب والأسئلة الوزارية لمحاضرات اليوم</td></tr>
-      <tr class="study"><td>١١:١٥ – ١٢:٠٠</td><td>مراجعة ملخص اليوم، وتشوف جدول باجر</td></tr>
-      <tr class="free"><td>١٢:٠٠ – ٢:٠٠</td><td>وقت الأصدقاء والراحة</td></tr>
-      <tr class="free"><td>٢:٠٠</td><td>نوم</td></tr>
-    </tbody></table></div>
+    <p class="sub">اختار الساعة اللي تبدي بيها دراستك بالعادة، وأوقات يومك وجلسات الجدول كلها تتحسب عليها. حوالي ١٠ ساعات دراسة، وداخل كل جلسة ٥٠ دقيقة دراسة و١٠ دقايق استراحة.</p>
+    <div class="hour-box" id="hourBox" role="group" aria-label="ساعة بداية الدراسة"></div>
+    <div class="tbl"><table class="tt" style="min-width:0"><tbody id="ttBody"></tbody></table></div>
     <p class="note">كل يوم بالجدول تحت مكتوب جنب كل مادة وقت جلستها. إذا فيديوهات المادة أطول من الجلسة، مكتوب جنبها بأي سرعة تشغلها حتى تلحك. الجمعة نفس الأوقات، والجلسة الثالثة بيها مراجعة الأسبوع.</p>
   </section>
 
   <section>
-    <h2>توزيع الأسبوع</h2>
+    <h2>توزيع المواد</h2>
     <div class="week-key" id="weekKey"></div>
   </section>
 
@@ -188,174 +217,15 @@ a:focus-visible,button:focus-visible,input:focus-visible,summary:focus-visible{o
   </section>
 </div>
 
-<script>
-const PL = id => 'https://www.youtube.com/playlist?list=' + id;
-const V = (v,l) => 'https://www.youtube.com/watch?v=' + v + '&list=' + l;
-// [videoId, title, minutes] in watching order, fetched from each playlist on 29/10/2026
-const DATA = {"m1":[["q_gBQER7vPk","محاضرة 1 (مقدمة الأعداد المركبة)",43],["LlixvMXD9hw","محاضرة 2",47],["hrH_eFQPMEU","محاضرة 3",44],["eeo83MLr41Q","محاضرة 4 (الجمع والطرح)",48],["dxDcl2tWsnI","محاضرة 5 (الضرب ومرافق العدد المركب)",41],["Al44yTWjRSE","محاضرة 6 (قسمة الأعداد المركبة)",46],["4VvLhTgvp68","محاضرة 7 (النظير الضربي والجمعي)",47],["sOPcqYRUMXk","محاضرة 8 (القوس المرفوع إلى أس ج1)",74],["0DrCm9g0zhg","محاضرة 9 (القوس المرفوع إلى أس ج2)",42],["l0zupyJGN3o","محاضرة 10 (أسئلة من نمط آخر)",77],["v8PsRI8siaU","محاضرة 11 (خواص المرافق)",38],["xg09zJCXLco","محاضرة 12 (التحليل في الأعداد المركبة)",43],["9NXoApRomCI","محاضرة 13 (إيجاد قيم x,y ج1)",38],["FSPZyYnvTas","محاضرة 14 (إيجاد قيم x,y ج2)",47],["0TP0qiGACuE","محاضرة 15 (إيجاد قيم x,y ج3)",48],["03wIc6SlNFY","محاضرة 16 (إيجاد قيم x,y ج4)",37],["382hTTHboR0","محاضرة 17 (إيجاد قيم x,y ج5)",48],["jLdbHv8fdYs","محاضرة 18 (إيجاد قيم x,y ج6)",60],["1sKfT6w0JdI","محاضرة 19 (الجذور التربيعية ج1)",52],["J13US-6cDf0","محاضرة 20 (الجذور التربيعية ج2)",56],["-Tle0TyPKcs","محاضرة 21 (الجذور التربيعية ج3)",45],["pcNxuIaTFm8","محاضرة 22 (الجذور التربيعية الأخير)",31],["eqOQeu-NWOQ","محاضرة 23 (تكوين المعادلة التربيعية ج1)",49],["MS2CF9DgmwI","محاضرة 24 (تكوين المعادلة التربيعية ج2)",40],["lIO9HTJJBgY","محاضرة 25 (تكوين المعادلة التربيعية ج3)",39],["t5voeBJgnpw","محاضرة 26 (تكوين المعادلة التربيعية ج4)",72],["GZtzj2Dndho","محاضرة 27 (حل المعادلة بالدستور ج1)",40],["toRSgPIqE_s","محاضرة 28 (حل المعادلة بالدستور ج2)",48],["VHPEUc4yxuU","محاضرة 29 (أشكال أرجاند ج1)",41],["A8Cj4t0PnOY","محاضرة 30 (أشكال أرجاند ج2)",24],["Op2DINBQ754","محاضرة 31 (أساسيات مبرهنة ديموافر)",47],["Aps3xabZmYU","محاضرة 32 (المقياس والسعة والصيغة القطبية)",44],["wjMW5iMsOKo","محاضرة 33 (ديموافر ج1)",46],["HyzEIhIiP1c","محاضرة 34 (ديموافر ج2)",37],["tRUsSE2Vg9U","محاضرة 35 (ديموافر ج3)",53],["R5aW-4Cm5Fw","محاضرة 36 (ديموافر ج4)",39],["508o9D12RqU","محاضرة 37 (ديموافر ج5)",52],["1Z-y-brET2g","محاضرة 38 (ديموافر ج6)",29],["CfV8U62xZsI","محاضرة 39 (ديموافر ج7)",40],["OCR2aTiYyBc","محاضرة 40 (ديموافر ج8)",47],["rIpC2wND7-w","محاضرة 41 (ديموافر ج9 الأخير)",31],["nJ2vc_PyG3I","محاضرة 42 (الجذور التكعيبية - الأوميكا ج1)",39],["TIdKJ0Rf8yw","محاضرة 43 (الأوميكا ج2)",47],["unAmZOhRM08","محاضرة 44 (الأوميكا ج3)",39],["oDHMgWvvDJM","محاضرة 45 (الأوميكا ج4)",49],["q0h0wL6kGhc","محاضرة 46 (الأوميكا ج5 الأخير)",52]],
-"m2":[["ABRU269qtV0","محاضرة 1 (القطع المكافئ ج1)",50],["5xHQavVFwGE","محاضرة 2 (القطع المكافئ ج2)",44],["qs4i8pWGgPo","محاضرة 3 (القطع المكافئ ج3)",39],["UWLqXv3GlOY","محاضرة 4 (القطع المكافئ ج4)",39],["rFZnJaxQGmU","محاضرة 5 (القطع المكافئ ج5)",39],["mV7NowoDiak","محاضرة 6 (القطع المكافئ ج6)",41],["2M9PhojxCT0","محاضرة 7 (أسئلة المجاهيل في القطع المكافئ)",47],["-1vtBSR4vC8","محاضرة 8 (معادلة القطع المكافئ بالتعريف)",42],["gFQqns1TY2M","محاضرة 9 (القطع الناقص ج1)",58],["660fxcJAKdE","محاضرة 10 (القطع الناقص ج2)",43],["q3PQtnB6lRY","محاضرة 11 (القطع الناقص ج3)",52],["rKGfLMwADfg","محاضرة 12 (القطع الناقص)",46],["qeidQqkIq6E","محاضرة 13 (القطع الناقص ج4)",38],["9eAbu0cvvIg","محاضرة 14 (القطع الناقص ج5)",26],["NappYoXVPMU","محاضرة 15 (القطع الناقص ج6)",49],["TlNhf7j9nyo","محاضرة 16 (القطع الناقص ج7)",28],["HxyszPX24Vs","محاضرة 17 (القطع الناقص ج8)",45],["a_i9tHQrxn4","محاضرة 18 (القطع الناقص ج9)",31],["7TiRg9EiTvg","محاضرة 19 (القطع الناقص ج10)",40],["jhmCm40HSKg","محاضرة 20 (القطع الناقص ج11)",37],["WcHhONQ3V4Y","محاضرة 21 (القطع الناقص ج12)",46],["1bf9AY1EEVw","محاضرة 22 (القطع الناقص ج13)",49],["PVyjCwKvjic","محاضرة 23 (القطع الناقص ج14)",40],["TyfopkzJpaM","محاضرة 24 (القطع الناقص ج15)",36],["ff4XqDw1mxI","محاضرة 25 (القطع الناقص ج16)",44],["j15Q64lHM9g","محاضرة 26 (القطع الناقص ج17)",35],["v6VPlsYZj2c","محاضرة 27 (القطع الناقص ج18)",35],["mU097FQXAAM","محاضرة 28 (القطع الزائد ج1)",36],["uiOxbzmfDwU","محاضرة 29 (القطع الزائد ج2)",32],["F-1_nUDaGnQ","محاضرة 30 (القطع الزائد ج3)",36],["lKXZhAllEJ4","محاضرة 31 (القطع الزائد ج4)",34],["-nePzNbLiP0","محاضرة 32 (القطع الزائد ج5)",41],["nOlD3opF7YM","محاضرة 33 (القطع الزائد ج6)",35],["kb3gZLPIzm4","محاضرة 34 (القطع الزائد ج7)",36],["Ng0i7he6kB4","محاضرة 35 (سؤال الدائرة والجسر)",60],["OHO5w1kL-SY","محاضرة 36 (انسحاب القطع المكافئ ج1)",28],["3AWLsJjrFL8","محاضرة 37 (انسحاب القطع المكافئ ج2)",49],["KiALztBl14g","محاضرة 38 (انسحاب القطع الناقص ج1)",49],["YI-4-VtUGw8","محاضرة 39 (انسحاب القطع الناقص ج2)",60],["9ay7Y5tazq4","محاضرة 40 (انسحاب القطع الزائد)",34],["CneQwD7AQ-0","محاضرة 41 (تعريف القطع الناقص والزائد)",65]],
-"m3":[["hEgV8MkKhTM","محاضرة 1 (المشتقات ج1)",50],["JzmtZ_6_Lms","محاضرة 2 (المشتقات ج2)",33],["CIngqH75PSI","محاضرة 3 (المشتقات ج3)",51],["7jfGI0N1nU8","محاضرة 4 (المشتقات ج4)",46],["W12blXb6Pwk","محاضرة 5 (المشتقات ج5)",39],["evyl-LRgabQ","محاضرة 6 (مشتقات الدوال الدائرية والاشتقاق الضمني)",53],["IOpi3KmAAUs","محاضرة 7 (تمارين حول المشتقات)",50],["-fH-_85pdis","محاضرة 8 (المعدلات الزمنية ج1)",40],["gdqrcmUooMk","محاضرة 9 (قوانين الأشكال الهندسية)",32],["v1PhsuP1Wak","محاضرة 10 (المعدلات الزمنية ج2)",59],["t0N5ZvBIppI","محاضرة 11 (المعدلات الزمنية ج3)",54],["ojdSmB_PVaI","محاضرة 12 (المعدلات الزمنية ج4)",62],["dSiGMdTv2zw","محاضرة 13 (المعدلات الزمنية ج5)",67],["aXnDdYdnsek","محاضرة 14 (المعدلات الزمنية ج6)",48],["0iPkZLHAlcc","محاضرة 15 (المعدلات الزمنية ج7)",48],["57-Qq1I2mIc","محاضرة 16 (المعدلات الزمنية ج8)",37],["rYqNUFV-BXI","محاضرة 17 (المعدلات الزمنية ج9)",57],["jww98VooaF4","محاضرة 18 (المعدلات الزمنية ج10)",97],["353A59Pu5N8","محاضرة 19 (مبرهنة رول ج1)",38],["jTIGliusyUA","محاضرة 20 (مبرهنة رول ج2)",29],["opkGsOl7c1c","محاضرة 21 (مبرهنة رول ج3)",55],["6HhRx7zZVos","محاضرة 22 (مبرهنة رول ج4)",47],["U08NRknF-_c","محاضرة 23 (مبرهنة رول ج5)",49],["03Ysd2G0SyM","محاضرة 24 (مبرهنة رول ج6)",65],["YDLWwriX9SQ","محاضرة 25 (مبرهنة رول ج7)",41],["AuH5UkggDvE","محاضرة 26 (القيمة المتوسطة ج1)",66],["1uwyz68p7XQ","محاضرة 27 (القيمة المتوسطة ج2)",75],["WDwwR1iXAgc","محاضرة 28 (التقريب ج1)",53],["TYsJ7tRqmzI","محاضرة 29 (التقريب ج2)",31],["tyuNuqAuq6A","محاضرة 30 (التقريب ج3)",54],["XEa58E8gyWU","محاضرة 31 (التقريب ج4)",42],["1oFOTm9ktdM","محاضرة 32 (التقريب ج5)",40],["m1CeTFYtnrE","محاضرة 33 (التقريب ج6)",41],["e88Y1Jj-eR8","محاضرة 34 (التقريب ج7)",55],["Mgs1Z67rzio","محاضرة 35 (الثوابت في القيمة المتوسطة)",42],["neXwDjIw3uk","محاضرة 36 (النهايات العظمى والصغرى ج1)",52],["m1R7w_aIC5s","محاضرة 37 (النهايات العظمى والصغرى ج2)",84],["qJUYr1buPpI","محاضرة 38 (الانقلاب والتقعر والتحدب ج1)",32],["68KopUjYB1E","محاضرة 39 (الانقلاب والتقعر والتحدب ج2)",47],["znWZTCBkPTI","محاضرة 40 (إيجاد قيم الثوابت ج1)",65],["0RmRnqS43Og","محاضرة 41 (إيجاد قيم الثوابت ج2)",53],["rDrMwwx52-o","محاضرة 42 (إيجاد قيم الثوابت ج3)",32],["f-AM6xpwFLs","محاضرة 43 (إيجاد قيم الثوابت ج4)",55],["wG3r-nfM1S0","محاضرة 44 (إيجاد قيم الثوابت ج5)",32],["oR-ywOst1BU","محاضرة 45 (إيجاد قيم الثوابت ج6)",48],["VWqtQulYaLY","محاضرة 46 (إيجاد قيم الثوابت ج7)",75],["KJSggXyVMRM","محاضرة 47 (إيجاد قيم الثوابت ج8)",42],["pbuAczR0Ab8","محاضرة 48 (رسم الدوال ج1)",41],["cLLLBFgqUQE","محاضرة 49 (رسم الدوال ج2)",43],["mpLIedRVOOI","محاضرة 50 (رسم الدوال ج3)",73],["IVhPaaXQ9Mk","محاضرة 51 (رسم الدوال ج4)",26],["HAGDOrxtzl8","محاضرة 52 (رسم الدوال ج5)",70],["DwJfCgqYIK8","محاضرة 53 (رسم الدوال ج6)",37],["PtiEaa-PCPk","محاضرة 54 (رسم الدوال ج7)",24],["oZs2yPRsI2g","محاضرة 55 (رسم الدوال ج8)",45],["f81JRsvVM0M","محاضرة 56 (تطبيقات النهايات ج1)",63],["9WeQ6DsdLcM","محاضرة 57 (تطبيقات النهايات ج2)",66],["s5Aec5Yo5is","محاضرة 58 (تطبيقات النهايات ج3)",33],["6Pk6R2askNg","محاضرة 59 (تطبيقات النهايات ج4)",50],["QtFr_7wBYRA","محاضرة 60 (تطبيقات النهايات ج5)",35],["i6uUtO7CLsA","محاضرة 61 (تطبيقات النهايات ج6)",66],["IXY_yWD31qE","محاضرة 62 (تطبيقات النهايات ج7)",78]],
-"b1":[["GFmbWNoiMwQ","المحاضرة (1)",71],["NE9RUMZ2lG0","المحاضرة (2)",64],["O7L8NmbKntc","المحاضرة (3)",67],["IqcsYvg5o3E","المحاضرة (4)",70],["ZBwCcS8D5LA","المحاضرة (5) الجزء الأول",50],["YHpx1VjvlQI","المحاضرة (5) الجزء الثاني",46],["X2bM73zcJUE","المحاضرة (6)",72],["iNEistzA1a4","المحاضرة (7)",43],["h-Aj6pAXR2E","المحاضرة (8)",70],["xqcvLQaFyAA","المحاضرة (9)",44],["Pqq7DnaVUlY","المحاضرة (10)",52],["3vVYmuC6FiM","المحاضرة (11)",48],["iFOoBTQEY_Q","المحاضرة (12)",50],["u5v3ExxkBoQ","المحاضرة (13) الجزء الأول",58],["iBDcpfJxAbo","المحاضرة (13) الجزء الثاني",78],["qQDqw8X2wQc","المحاضرة (14) الجزء الأول",62],["J3f8y6JwumE","المحاضرة (14) الجزء الثاني",73],["9t7JNF18lCM","المحاضرة (15) والأخيرة",60]],
-"b2":[["rm107pRouLk","المحاضرة (1) الجزء الأول",47],["UPQWrU_xFsw","المحاضرة (1) الجزء الثاني",35],["rdReWrfibOM","المحاضرة (2)",58],["N4LybT0bImM","المحاضرة (3)",62],["pu5aVRWXYZU","المحاضرة (4)",80],["a38ilVSE4G4","المحاضرة (5)",64],["j9GOKZRDfpQ","المحاضرة (6) الجزء الأول",77],["xC8aCja672Q","المحاضرة (6) الجزء الثاني",30],["towp2Fp23qY","المحاضرة (7)",61],["GZwfTsfUwAg","المحاضرة (8)",64],["4Wxs4THMDeM","المحاضرة (9) الجزء الأول",59],["Lizs4hKAqwk","المحاضرة (9) الجزء الثاني",43],["_FW2lZX4xqI","المحاضرة (10)",63],["4W1aNt03vmI","المحاضرة (11)",57],["Uq1MIV2fQ8k","المحاضرة (12) والاخيرة",58]],
-"b3":[["D4bgqLB9SyA","تعريف وأساس الفصل الثالث",31],["QKb2U6LouDY","المحاضرة (1)",41],["8J78MKBzxOk","المحاضرة (2)",64],["F74QZvMchng","المحاضرة (3) الجزء الأول",56],["1Mf2YOOCxpc","المحاضرة (3) الجزء الثاني",52],["ETdH-vj-qXs","المحاضرة (4) التكاثر في الفايروسات",79],["mh_ScObcGOc","المحاضرة (5) التكاثر في البكتريا",74],["YLYiMAXMt-E","المحاضرة (6) التكاثر في الكلاميدوموناس",53],["Y_fir0Hvlkc","المحاضرة (7) ج1 التكاثر اللاجنسي في البرامسيوم",23],["-k0Zte6veVE","المحاضرة (7) ج2 التكاثر الجنسي في البرامسيوم",63],["JlGMxIVhYCw","المحاضرة (8) التكاثر في اليوغلينا والفطريات",53],["3eqBiAJoy7Q","المحاضرة (9) ظاهرة تعاقب الأجيال",54],["AHw8UMdx0z4","المحاضرة (10) التكاثر في الحزازيات",41],["f4Vo3EDGtq4","المحاضرة (11) التكاثر في السرخسيات",46],["dU1a9z4mOyg","المحاضرة (12) التكاثر في النباتات الزهرية",82],["U2zyYimqskU","المحاضرة (13) المتك وتكوين حبوب اللقاح",55],["wuvLZRRTTog","المحاضرة (14) المبيض وتكوين البويضات",68],["G4kJWZ2PVTU","المحاضرة (15) التلقيح وتكوين انبوب اللقاح",64],["82eczddLP54","المحاضرة (16) الاخصاب وتكوين الجنين",60],["mg8G77wL6e0","المحاضرة (17) تكوين البذرة والثمرة",88],["X20TuEWJZGA","المحاضرة (18) تركيب الثمرة وانواعها وانتشارها",49],["iiRJHY6GyU0","المحاضرة (19) التكاثر في الحشرات",72],["WcpxU5KcWMo","المحاضرة (20) التكاثر في الضفدع",82],["YA0mfwm6uRo","المحاضرة (21) الجهاز التناسلي الذكري للانسان",62],["zRM1ZUUycAo","المحاضرة (22) الجهاز التناسلي الانثوي في الإنسان",44],["YzHVIxeuoKI","المحاضرة (23) الاخصاب والحمل",67],["gPenP7kUCYQ","المحاضرة (24) الدورة الحيضية",100],["7UobSKMgmQs","المحاضرة (25) والاخيرة التكاثر العذري والخنثي",65]],
-"c1":[["XHVrnJrP1IM","المحاضرة 0 (الأساسيات)",86],["lwzGR83mDx0","المحاضرة 1",68],["Vb59k4RV-oo","المحاضرة 2",56],["qE0viZOCeQQ","المحاضرة 3",55],["2Y-ZLSK4vsE","المحاضرة 4",76],["Jj9sJTUcY0s","المحاضرة 5",77],["qFAnI3_8zAM","المحاضرة 6",64],["Sih-q-Zw5DQ","المحاضرة 7",70],["dluIPZpWlGo","المحاضرة 8",77],["Gk1PPSCdHV0","المحاضرة 9",51],["Hss8fw50Wic","المحاضرة 10",57],["hTLMDAqbRz8","المحاضرة 11",66],["XeRWla3GPKc","المحاضرة 12",82],["aU8ytQ6XUuQ","المحاضرة 13",75],["IyH7Ulf6GlY","المحاضرة 14",78],["SOQE_3dgErM","حل وزاريات نهاية الفصل الأول",58],["EXoEV3mEuVM","المحاضرة 15",77],["J2CkZKsaRGU","المحاضرة 16",55],["afb3Ha-_0y8","المحاضرة 17 (المسعر)",72],["LL7EttOrARA","المحاضرة 18 والأخيرة",77]],
-"c2":[["dH8IdyGeHJo","المحاضرة 1",85],["G8YYRfv8llE","المحاضرة 2",78],["9RzysTm_550","المحاضرة 3",61],["0JXl4exOQQw","المحاضرة 4",67],["KYcrYcsj7-k","المحاضرة 5",67],["7A0wSKn3sSM","المحاضرة 6",78],["PzAWgLs_fto","المحاضرة 7",73],["tW1q0N4nM_w","المحاضرة 8",73],["gYu-IlQI1x8","المحاضرة 9",60],["r8K9aWxWeJQ","المحاضرة 10",80],["_a_Ndr9a64I","المحاضرة 11",78],["6lm2udb6UJE","المحاضرة 12",87],["b1pogr_4LIw","المحاضرة 13",69],["-IuNzlgRE_U","المحاضرة 14",79],["LuumZuhOpCw","المحاضرة 15",76],["PMYbWNwYMGI","المحاضرة 16",83],["_HA7eWNsKjY","المحاضرة 17",78],["M0bPDNPY62M","المحاضرة 18",81],["I5csl4UwHMQ","المحاضرة 19 والأخيرة",80]],
-"c3":[["ApJH95dyy1M","المحاضرة 1",76],["-hfoTndG3Ro","المحاضرة 2",97],["Qlb98B9d-m0","المحاضرة 3",68],["10GtpdnDxf8","المحاضرة 4",79],["cG6S6HZ0vUg","المحاضرة 5",67],["80bOGc_Vg6U","المحاضرة 6",73],["ApHNyF66Nv8","المحاضرة 7",87],["lpNpHvFAYgM","المحاضرة 8",73],["uO1gWRb6s9E","المحاضرة 9",76],["8aMwkCza_FU","المحاضرة 10",65],["y7PvWkek8TY","المحاضرة 11",82],["z6gSjsFU_NM","المحاضرة 12",78],["GijtRh0vI4w","المحاضرة 13",71],["dujI89pwy1I","المحاضرة 14",62],["a80L5UwpCkg","المحاضرة 15",83],["iWPRv2N2AWY","المحاضرة 16",61],["7q6EZKt_J9Q","المحاضرة 17",84],["ekLiZjBc2Ek","المحاضرة 18",74],["4TqbXQ9RpQg","المحاضرة 19",69],["Ne13suFbBso","المحاضرة 20",80],["arymFgdhiLU","المحاضرة 21",69],["N1Si6PVJ6jo","المحاضرة 22",85],["bPF0oVucgmE","المحاضرة 23",75],["NTntb0Kpai8","المحاضرة 24",81],["RMAmEFY1-gU","المحاضرة 25",57],["cOVDb105g_g","حل واجبات ووزاريات الذوبانية",147],["KyZDUgXCw6o","المحاضرة 26",85],["q2dbi5DA-xU","المحاضرة 27 والأخيرة",77]],
-"e1":[["NngvEw_IXhI","العلاجات والمفاصل / المحاضرة 1",52],["o87tpsIBUK8","الماضي البسيط والمستمر / المحاضرة 2",48],["dHDlbVrjQBE","قطعة حياة عمار / المحاضرة 3",54],["djqFdon1704","الصفات المنتهية ed و ing / المحاضرة 4",18],["mszvB4QbXBw","الصفات المنتهية fully و ful / المحاضرة 5",11],["Lz-B-eNVqx0","الأفعال المركبة / المحاضرة 6",26],["DeM1Hg6vFB4","إعطاء نصيحة أمرية / المحاضرة 7",34],["RTrs6GqknCI","البادئات / المحاضرة 8",25],["f0cZpoRwbOE","تعبيرات الكمية / المحاضرة 9",20],["OGwtyXge5q0","Used to / المحاضرة 10",37],["06DVYUK7sT4","Used to with than, as..as / المحاضرة 11",16],["LJzke1ZhhCA","عبارات الربط / المحاضرة 12",6],["lXLJYXMP66c","قطعة الدكتور سمير رمزي / المحاضرة 13",32],["rQBrKSQudkY","قطعة القيادة / المحاضرة 14",8],["VJHPexmbtqc","قطعة نجلاء / المحاضرة 15",47],["aadk4DpZT2s","كتابة إنشاء السجائر / المحاضرة 16",36],["G0EPP0Ulr6U","كتابة إنشاء حوادث السيارات / المحاضرة 17",39],["eNKEgCs_WGg","مراجعة اليونت الأول / المحاضرة 18",24],["Xy8I6mPc0qk","حل تمارين الدرس 1 و2 / المحاضرة 19",29],["KXNOVpGk7rI","حل تمارين الدرس 3 و4 / المحاضرة 20",23],["CBzqcVKH2s0","حل تمارين الدرس 5 و6 / المحاضرة 21",27],["PTmjr2rSaog","حل تمارين الدرس 7 و8 / المحاضرة 22",18],["KxMmm83-ngs","حل تمارين الدرس 9 والمراجعة / المحاضرة 23",28],["CepoubEyg6Y","حل تمارين test / المحاضرة 24",24],["D_UKbaMlvhk","حل القطعة الخارجية لليونت الأول",45]],
-"e2":[["caukkJhgAjU","ملخص الأزمنة / المحاضرة 1",18],["q31aZnu0jcU","قطعة واجبات الشرطة / المحاضرة 2",36],["1zGBUr00lOk","الأفعال الناقصة / المحاضرة 3",37],["zoywoF7tZA0","إعطاء وطلب نصيحة / المحاضرة 4",11],["5uwV7G81SnI","الطلبات المهذبة / المحاضرة 5",14],["hwWypKjA6jw","عمل الاقتراحات / المحاضرة 6",9],["Y-l2N7XLhsk","عمل العروض / المحاضرة 7",12],["H54rCqfy2OE","التوقعات / المحاضرة 8",16],["QtPu82n9NWE","قطعة الوظائف العسكرية / المحاضرة 9",10],["XIfuSKA3EB8","قطعة عملية السطو / المحاضرة 10",30],["oRq4gfgdgJU","الأفعال السببية have / get / المحاضرة 11",37],["rcfl9I9XBNE","الأفعال السببية make / المحاضرة 12",9],["lOh5NlaDYVw","قطعة منشور السلامة / المحاضرة 13",21],["Fdb34S0TIl8","قطعة الرادار / المحاضرة 14",34],["hjwxevsR_MY","كتابة مقال أهمية سلامة الطريق / المحاضرة 15",36],["KRTOV70DCjQ","كتابة رسالة إلى أحمد / المحاضرة 16",31],["IEfgspwowPU","مراجعة Round up / المحاضرة 17",12],["36tlcHV4VC8","تمارين الدرس 1 و2 / المحاضرة 18",22],["czVwtXzmG_w","تمارين الدرس 3 و4 / المحاضرة 19",26],["4GXUy433rkw","تمارين الدرس 5 و6 / المحاضرة 20",16],["SXXnUzG1sT8","تمارين الدرس 7 و8 / المحاضرة 21",14],["a4puyqEkXrs","تمارين الدرس 9 وRevision / المحاضرة 22",24],["MWKA29GD3oc","تمارين test / المحاضرة 23",20],["3XEldGhdMow","حل القطعة الخارجية لليونت الثاني",41]],
-"e3":[["xh7wkpxliPs","المهام والوظائف / المحاضرة 1",12],["ucTiK6dkjx4","التعريف Define / المحاضرة 2",10],["Fjt3NZLeerU","محادثة مستشار مهني / المحاضرة 3",9],["TWSpPkcLljM","الحالة الصفرية If / المحاضرة 4",24],["f_t30XdkQkw","الحالة الأولى If / المحاضرة 5",42],["25bRWwiF11Q","الحالة الثانية If / المحاضرة 6",34],["phd1pWbNlTg","قطعة زها حديد / المحاضرة 7",5],["pLLcL6LWzjE","الحالة الثالثة If / المحاضرة 8",28],["DtvLHB6e4Bw","الندم Regret / المحاضرة 9",46],["AverXTgClJw","الإنكليزية في المملكة المتحدة / المحاضرة 10",6],["8SywbXU0Spc","الجملة الخبرية المنقولة / المحاضرة 11",39],["600_-90lNW0","الأسئلة المنقولة / المحاضرة 12",34],["3n5MGD3VIsA","أفعال القول Reporting verbs / المحاضرة 13",21],["rwAfLaYVloo","تمارين الكلام المنقول / المحاضرة 14",11],["NifyWM1cnlA","قطعة مترجم المؤتمرات / المحاضرة 15",37],["jRvy9zwTWjA","كتابة رسالة اليونت الثالث / المحاضرة 16",36],["RMYxBzo1g34","كتابة إنشاء دراسة الإنكليزية في بريطانيا / المحاضرة 17",39],["ATYmF_gNh_4","مراجعة Round up / المحاضرة 18",14],["Tra68Tj3ViM","حل تمارين الدرس 1 و2 / المحاضرة 19",16],["Ct68cYExuRM","حل تمارين الدرس 3 و4 / المحاضرة 20",19],["A_JaqCzuB68","حل تمارين الدرس 5 و6 / المحاضرة 21",17],["sZhXqeLAzls","حل تمارين الدرس 7 و8 / المحاضرة 22",7],["Adfq-uoWZs8","حل تمارين الدرس 9 والمراجعة / المحاضرة 23",24],["7Qg0Kzop8pQ","حل تمارين test / المحاضرة 24",13]],
-"i1":[["9WmxbHFuy7s","سورة البقرة (ج1)",57],["hgvtAHJ5W-A","سورة البقرة (ج2)",66],["E_2H9Q8YYaA","قصة أصحاب الكهف (ج1)",36],["kE4WogyVymE","قصة أصحاب الكهف (ج2)",45],["9ei70TxRTlE","حديث التعاون بين المسلمين",57],["4fWZXsGR_mY","نظام الأسرة في الإسلام (ج1)",43],["AcFN5Z-bm9g","نظام الأسرة في الإسلام (ج2) فقرة التحريم",51],["AnIjLXONf58","ملحق: تكملة فقرة التحريم",41],["LkRMVJsj5fs","نظام الأسرة في الإسلام (ج3)",56],["6wXeeX625Ww","الغضب (ج1)",41],["_Cz9Hw_Kt-0","الغضب (ج2)",45]],
-"i2":[["5nIDPetf_1o","من سورة آل عمران",52],["11hORXYun3U","قصة مريم بنت عمران (ج1)",53],["ciyMz4pEmdc","قصة مريم بنت عمران (ج2)",40],["a4pKYLXmxIo","حديث الناجون يوم القيامة (ج1)",40],["mVCvOKh9cW4","حديث الناجون يوم القيامة (ج2)",49],["O-SoJmJLyxs","حقوق الزوجين وواجباتهما",58],["CkxloyiDWes","تعدد الزوجات",47],["qjOeP-BV-D4","تهذيب (قصص وعبر)",30]],
-"i3":[["r2AoNhXHtf0","من سورة النساء (ج1)",45],["vGMY5VwE5ik","من سورة النساء (ج2)",36],["STQMOj-7B7U","قصة موسى والعبد الصالح (ج1)",44],["C6Q0A-l9gBk","قصة موسى والعبد الصالح (ج2)",41],["m4zwH8ozkoo","حديث محاسبة النفس",41],["cVbXi9qDbf8","مبادئ الاقتصاد الإسلامي (ج1)",46],["tbmrtO5WlHc","مبادئ الاقتصاد الإسلامي (ج2)",40],["8TIa8R_AST4","أسس الاقتصاد الإسلامي (ج1)",33],["uwgxolPSCxU","أسس الاقتصاد الإسلامي (ج2)",35],["3v96CKYEiCw","مراجعة النظام الاقتصادي بمحاضرة واحدة",131],["3EcMjI4OlDk","تهذيب الرجولة (ج1)",40],["mWChmNMZuDc","تهذيب الرجولة (ج2) سمات الرجولة",66]],
-"a1":[["cdn7KrSGg_A","الاستفهام (1)",62],["HbD1k8FZ4JI","الاستفهام (2)",49],["s5KfYD-RPe0","الاستفهام (3)",59],["fXBBdpBmQxQ","الاستفهام (4)",55],["RcaqfPS4jIc","الاستفهام (5)",83],["XN5CwGo6Dpc","الاستفهام (6)",50],["ifv1ssGn17w","الاستفهام (7)",60],["qLUyfhPLRHo","الاستفهام (8)",45],["DaXdhheqViA","الاستفهام (9)",57],["FCjoCXHPgpQ","الاستفهام (10)",60],["n7RGaKVzm6Q","الاستفهام (11)",34],["4-bXRc71CzY","الاستفهام (12)",43],["hfbDUcn3wdE","الاستفهام (13)",46],["xNH18Y0vdtI","الاستفهام (14)",63],["w_dnL7YE9y0","الاستفهام (15)",80],["J0S2W9Qr3lA","الاستفهام (16)",56],["7ahlDRkjcno","الاستفهام (17)",45],["uoRyLuOpRAo","الاستفهام (18) والأخيرة",60]],
-"a2":[["OMsIDbadmPo","الأدب الحديث",38],["b0HqwavhHwI","الشعر الحديث",15],["r2J_swrKXtY","مدرسة الإحياء",27],["jeXaPGPMQbo","الحبوبي (ج1)",24],["lscd5J5ERqM","الحبوبي (ج2)",33],["h-GrL1u0ZWQ","الشاعر علي الشرقي",24],["F61ac5X9aJY","الشاعر حافظ إبراهيم",25],["H4SMRwhSWYg","الشاعر محمد مهدي الجواهري (ج1)",59],["pwMgA4R5VBQ","الشاعر محمد مهدي الجواهري (ج2)",16],["S4vSmn0ycLU","مدرسة المهجر",16],["7kdlGw_BJzc","مدرسة الشعر الحر",19],["eDiBKhooWM4","بدر شاكر السياب (ج1)",33],["q6VNtiv8BP4","بدر شاكر السياب (ج2)",20],["JHcWBYnR-EY","ميخائيل نعيمة",34],["R3BOhgmxDzw","أدونيس",14],["o-lBKGbf2Yw","القضية الفلسطينية",14],["KinluagGS_g","الشاعرة فدوى طوقان",20],["M6XJlOBwOP8","الشاعر محمود درويش",25],["U0iJDtjkGXM","المسرحية",24],["sC8gMMF5eMU","الشاعر محمد علي الخفاجي",32],["3ibZTC3pAUI","النثر وفنونه والخطابة",12],["XLjTEGmW23Q","القصة القصيرة",12],["HxrW-gCi3RE","فؤاد التكرلي",19],["Wjcgp7sDkfs","الرواية",38],["AovG0Uoz60c","المقالة",16],["2GjlSSZy3qU","فن السيرة",12]],
-"a3":[["vUHRcbrvpVI","النفي (1)",51],["CqO256y6N1I","النفي (2)",50],["YviCCrPTqug","النفي (3)",90],["IQk3EX0G_ac","النفي (4)",73],["48Ybv0Q06Hs","النفي (5)",54],["DKCxZ6W6fSM","النفي (6)",34],["0ADUG7FqZhU","النفي (7)",68],["g5LpjWSGjfI","النفي (8)",49],["XaGVcRlXK08","النفي (9)",63],["ndi5Rtyjh2M","النفي (10)",57],["QUr8SIPYHgQ","النفي (11)",48],["zubJFAmc70A","النفي (12)",55],["YsvEAAm72yo","النفي (13)",52],["UPvnyg1CCu4","النفي (14)",51],["djIGOlWuVRw","النفي (15)",53],["HHfLZj5PE14","النفي (16)",56],["-2rHBi5ngpg","النفي (17)",76],["bkun3FUk8uc","النفي (18)",66],["DiJnBvMIYwI","النفي (19) والأخيرة",38]],
-"a4":[["NPxnHfqzSig","التوكيد (1)",68],["T0qbz3Cj9_M","التوكيد (2)",53],["yYSLtoheqck","التوكيد (3)",75],["S6HAUV7AQnE","التوكيد (4)",59],["SGY1lTIOAw4","التوكيد (5)",54],["A5aUk4uppX0","التوكيد (6)",74],["2A49gkpRDqk","التوكيد (7)",72],["IOURSqJvr6A","التوكيد (8) والأخيرة",66]],
-"a5":[["c1nHtwKgvEw","تقديم الخبر (1)",32],["ywA2AkF-p-I","تقديم الخبر (2)",66],["WS4zNz4RynE","تقديم الخبر (3)",78],["tqNw-49zQvk","تقديم الخبر (4)",55],["1R4FiRA3tAs","تقديم الخبر (5)",61],["tNmkiB2QK3w","تقديم الخبر (6)",56],["uTwMMETwDaE","تقديم المفعول به (1)",46],["lcibAaOYSBo","تقديم المفعول به (2)",77],["lS0F9P4U2hE","تقديم المفعول به (3)",55]]};
+<div class="notice" id="notice" role="status" hidden>
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 16V11a6 6 0 0 1 12 0v5l2 2H4z"/><path d="M10 20a2 2 0 0 0 4 0"/></svg>
+  <div><b>تكدر تختار مدرسك</b><span>لكل مادة اختار المدرس الرئيسي أو مدرس بديل، وتكدر تضيف أو تشيل مواد. الجدول يتحدّث على اختيارك.</span></div>
+  <div class="notice-actions"><button class="chip solid" type="button" id="noticeGo">اختار المدرسين</button><button class="chip" type="button" id="noticeX">تمام</button></div>
+</div>
+<div class="toast" id="toast" role="status" hidden></div>
 
-const S = {
-  math:{name:'رياضيات',teacher:'الأستاذ حيدر وليد',lists:[
-    {k:'m1',t:'الفصل الأول: الأعداد المركبة',id:'PLbb8qWewX0vZRLtKJmuQHsjWymQO43ien',y:'تصوير 2025 لدفعة 2026'},
-    {k:'m2',t:'الفصل الثاني: القطوع المخروطية',id:'PLbb8qWewX0vaJ-35KwyL2_Z_OzmzutznS',y:'شرح 2025 لدفعة 2026'},
-    {k:'m3',t:'الفصل الثالث: تطبيقات التفاضل',id:'PLbb8qWewX0vZu1ILqE-oFTT0IG6qaBlkp',y:'2026'}],
-    alt:[['حيدر وليد نفسه، قائمة الفصل الثاني 2027',['PLJisihuDrd0g']]]},
-  bio:{name:'أحياء',teacher:'الأستاذ سالم آل منصور',lists:[
-    {k:'b1',t:'الفصل الأول: الخلية',id:'PLeyGWZfcIDMM',y:'2026'},
-    {k:'b2',t:'الفصل الثاني: الأنسجة',id:'PLT8A1lNLe1z0',y:'2026'},
-    {k:'b3',t:'الفصل الثالث: التكاثر',id:'PLPtvQEOxEUdOG2eJxisGGMGL-Dvf0ntxZ',y:'2026'}],
-    alt:[['حسن فلاح',['PLETpxIY1tyzOlD9FLa5KBWTKljubLTEGf','PLETpxIY1tyzO2SFYOc_hlpmYewlJJ2aNv','PLETpxIY1tyzM59TzpfsicB3lTYTwKUp-i']]]},
-  chem:{name:'كيمياء',teacher:'الأستاذ نور الدين الدليمي',lists:[
-    {k:'c1',t:'الفصل الأول: الثرموداينمك',id:'PLpXUcDWphCEENM7hgeNWwNB6IGpFvKr8E',y:'2026'},
-    {k:'c2',t:'الفصل الثاني: الاتزان الكيميائي',id:'PLpXUcDWphCEEcEfPAz4pOnS83ic8IUxTc',y:'2026'},
-    {k:'c3',t:'الفصل الثالث: الاتزان الأيوني',id:'PLpXUcDWphCEEDnvais_sRN0vdETFVqVy0',y:'2026'}],
-    alt:[['فاضل الهاشمي',['PLp-7zl7VkISQOf17ylJqukbo1L4Y22mnk','PLd6WDtKp4xMA','PLp-7zl7VkISRoxRpLQsG6i-UrXb7OtA4I']]]},
-  eng:{name:'إنكليزي',teacher:'الأستاذ علي الغرابي',lists:[
-    {k:'e1',t:'Unit 1',id:'PLQrL_9nhuPS0fDqtklde2mdj74xitPOZ7',y:'2027 (ما عنده قائمة ٢٠٢٦ للسادس)'},
-    {k:'e2',t:'Unit 2',id:'PLGNrZtrSmSy8',y:'2027'},
-    {k:'e3',t:'Unit 3',id:'PLAmmDuN4rYAQ',y:'2027'}],
-    alt:[['علاء السعداوي (٢٠٢٦)',['PLQvyGEmmGih2cnSneFPgUJkxCnkCF4qLk','PLQvyGEmmGih3Inzo4wChWDlrkEcsmswdc','PLQvyGEmmGih365HL9hI5NFTsIhXFkwTwh']]]},
-  isl:{name:'إسلامية',teacher:'الأستاذ محمد الجنائي',lists:[
-    {k:'i1',t:'الوحدة الأولى',id:'PLcGsSBvHICnBjp8LPNYB3sR1LZBxcVUwO',y:'التصوير الجديد'},
-    {k:'i2',t:'الوحدة الثانية',id:'PLcGsSBvHICnC-45y2jE2d0DJ9_OFoeEK-',y:'التصوير الجديد'},
-    {k:'i3',t:'الوحدة الثالثة',id:'PLcGsSBvHICnCB7h3zF_hMqigSIYsnXq-a',y:'التصوير الجديد'}],
-    alt:[['ياسين الدليمي',['PL62ZT3_geIvfk__sRyld95zxvW5q2nLGL','PL62ZT3_geIvfI6C4E5btITA9DrUw6SHwW']]]},
-  ar:{name:'عربي',teacher:'الأستاذ حمزة الجابري',lists:[
-    {k:'a1',t:'أسلوب الاستفهام',id:'PLtI_vDWdsaWGKSihb_Q4bRRACJNiAtWnX',y:'2026'},
-    {k:'a2',t:'الأدب',id:'PLg2283DxrrjXXhQAzRjvj1SFMZZNlf-Zx',y:'2026',by:'الأستاذ خضر الظاهر'},
-    {k:'a3',t:'أسلوب النفي',id:'PLtI_vDWdsaWFX0hVKesDV8dU8SnyaZwEK',y:'2026'},
-    {k:'a4',t:'أسلوب التوكيد',id:'PLtI_vDWdsaWHZVaC43tMEeMNzyVo_x4Q8',y:'2026'},
-    {k:'a5',t:'التقديم والتأخير',id:'PLtI_vDWdsaWH2v9hY4PR2YqhThSU-CtMm',y:'2026'}],
-    alt:[['خضر الظاهر (قواعد ٢٠٢٦)',['PLg2283DxrrjVqQVhe3AjrYPVP0ixUksn7','PLg2283DxrrjU4F5fYefJL4cW5SVdeVZkL','PLg2283DxrrjUCDIl5P73b7AO2c7F5TkLu','PLg2283DxrrjXpW3-Nrjm1Ha-6go2PcLRI']]]}
-};
-const COLOR={math:'--math',bio:'--bio',chem:'--chem',eng:'--eng',isl:'--isl',ar:'--ar',rev:'--rev'};
-// JS getDay: 0 Sun … 6 Sat. Heavier subjects (math, chem) get more slots.
-const WEEK={6:['math','chem','eng'],0:['math','bio','ar'],1:['math','chem','isl'],2:['math','chem','bio'],3:['math','chem','eng'],4:['math','bio','ar'],5:['isl','ar','rev']};
-const DN=['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'];
-const MN=['كانون الثاني','شباط','آذار','نيسان','أيار','حزيران','تموز','آب','أيلول','تشرين الأول','تشرين الثاني','كانون الأول'];
-const ar=n=>String(n).replace(/\d/g,d=>'٠١٢٣٤٥٦٧٨٩'[d]);
-const dur=m=>m>=60?ar(Math.floor(m/60))+'س '+(m%60?ar(m%60)+'د':''):ar(m)+'د';
-// daily sessions: wake 10:00, study until midnight, friends 12–2, sleep 2:00
-const SESS=['١٠:٤٥ص – ١:١٥م','٢:٣٠ – ٥:٠٠م','٥:٤٥ – ٨:١٥م'];
-const EXTRA=[['٩:١٥ – ١١:١٥م','حل تمارين الكتاب والأسئلة الوزارية لمحاضرات اليوم'],['١١:١٥ – ١٢:٠٠','مراجعة ملخص اليوم وتشوف جدول باجر']];
-const START=new Date(2026,10,1), STUDY_END=new Date(2026,11,30), END=new Date(2027,0,5);
-const days=[];for(let d=new Date(START);d<=END;d.setDate(d.getDate()+1))days.push(new Date(d));
-const kk=d=>d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate();
-
-// flatten each subject into one ordered queue and split it over the subject's slots by video time
-const Q={};for(const s in S){Q[s]=[];S[s].lists.forEach((l,li)=>DATA[l.k].forEach(v=>Q[s].push({v:v[0],t:v[1],m:v[2],li})))}
-// already watched before the plan restarted: الاستفهام (1) و(2)
-const DONE_BEFORE={};for(const s in DONE_BEFORE)Q[s].splice(0,DONE_BEFORE[s]);
-const slots={};days.filter(d=>d<=STUDY_END).forEach(d=>WEEK[d.getDay()].forEach(s=>{if(S[s])slots[s]=(slots[s]||0)+1}));
-const cur={},used={};
-function take(s){const q=Q[s],tot=q.reduce((a,x)=>a+x.m,0),i=used[s]||0;used[s]=i+1;const target=tot*(i+1)/slots[s];
-  let p=cur[s]||0,acc=q.slice(0,p).reduce((a,x)=>a+x.m,0);const out=[];
-  while(p<q.length&&(i+1===slots[s]||acc+q[p].m/2<=target)){out.push(q[p]);acc+=q[p].m;p++}
-  cur[s]=p;return out}
-
-const REVIEW={
-  '2026-12-31':[['math','مراجعة الأعداد المركبة وحل الأسئلة الوزارية'],['chem','مراجعة الفصل الأول وقوانينه + أسئلة وزارية']],
-  '2027-1-1':[['bio','مراجعة الخلية والأنسجة + رسوم الكتاب'],['isl','تسميع الآيات والأحاديث المقررة للوحدات ١–٣']],
-  '2027-1-2':[['math','حل وزاري القطوع المخروطية والتفاضل'],['eng','مراجعة Grammar وVocabulary لليونتات ١–٣']],
-  '2027-1-3':[['chem','مراجعة الاتزان الكيميائي والأيوني + مسائل'],['ar','مراجعة القواعد الأربعة + حفظ نصوص الأدب']],
-  '2027-1-4':[['bio','مراجعة التكاثر + أسئلة وزارية'],['eng','حل أسئلة وزارية Reading وWriting']],
-  '2027-1-5':[['rev','امتحان شامل لنفسك: ورقة وزارية لكل مادة بوقت محدد، وسجّل أخطاءك']]
-};
-let totalL=0,totalM=0;
-const plan=days.map(d=>{
-  if(d>STUDY_END)return {d,review:true,blocks:(REVIEW[kk(d)]||[]).map(([s,w])=>({s,plain:w}))};
-  const blocks=WEEK[d.getDay()].map(s=>{
-    if(s==='rev')return {s,plain:'مراجعة الأسبوع: ارجع لملخصات كل مادة وحل ١٠ أسئلة وزارية منها'};
-    const lecs=take(s);totalL+=lecs.length;lecs.forEach(x=>totalM+=x.m);return {s,lecs}});
-  return {d,blocks};
-});
-window.PLAN={plan,S,kk};
-
-// teachers
-const tb=document.querySelector('#teachers tbody');
-for(const s in S){const o=S[s];const tr=document.createElement('tr');
-  tr.innerHTML=`<td><span class="tag" style="--c:var(${COLOR[s]})"><span class="dot"></span>${o.name}</span></td><td>${o.teacher}${o.lists.some(l=>l.by)?'<br><span class="alt">الأدب: '+o.lists.find(l=>l.by).by+'</span>':''}</td><td>${o.lists.map(l=>`<a href="${PL(l.id)}" target="_blank" rel="noopener">${l.t}</a> <span class="alt">(${l.y} · ${ar(DATA[l.k].length)})</span>`).join('<br>')}</td><td class="alt">${o.alt.map(([n,ids])=>n+': '+ids.map((id,i)=>`<a href="${PL(id)}" target="_blank" rel="noopener">${ar(i+1)}</a>`).join(' · ')).join('<br>')}</td>`;
-  tb.appendChild(tr)}
-
-// week key
-const wkEl=document.getElementById('weekKey');
-[6,0,1,2,3,4,5].forEach(g=>{const e=document.createElement('div');e.className='wk';e.innerHTML='<b>'+DN[g]+'</b>'+WEEK[g].map(s=>s==='rev'?'مراجعة الأسبوع':S[s].name).join(' · ');wkEl.appendChild(e)});
-
-// progress state (per browser)
-const SK='plan6sci-v3';let done={};try{done=JSON.parse(localStorage.getItem(SK)||'{}')}catch(e){}
-const save=()=>{try{localStorage.setItem(SK,JSON.stringify(done))}catch(e){}};
-const allIds=[];
-const today=new Date();today.setHours(0,0,0,0);
-const host=document.getElementById('plan');
-let weekEl=null,wn=0,todayEl=null;
-function check(row,id){const cb=row.querySelector('input');cb.checked=!!done[id];row.classList.toggle('checked',cb.checked);
-  cb.addEventListener('change',()=>{if(cb.checked)done[id]=1;else delete done[id];row.classList.toggle('checked',cb.checked);save();progress();
-    document.dispatchEvent(new CustomEvent('plancheck',{detail:{checked:cb.checked}}))})}
-plan.forEach((p,i)=>{
-  if(i===0||p.d.getDay()===6||(p.review&&!plan[i-1].review)){
-    weekEl=document.createElement('div');weekEl.className='week';const h=document.createElement('h3');
-    if(p.review)h.innerHTML='<span class="phase">أسبوع المراجعة النهائية</span>';else{wn++;h.textContent='الأسبوع '+ar(wn)}
-    weekEl.appendChild(h);host.appendChild(weekEl)}
-  const mins=p.blocks.reduce((a,b)=>a+(b.lecs||[]).reduce((x,l)=>x+l.m,0),0);
-  const day=document.createElement('div');day.className='day'+(p.d.getDay()===5?' fri':'');
-  const isToday=p.d.getTime()===today.getTime();if(isToday){day.classList.add('today');todayEl=day}
-  day.innerHTML=`<div class="date"><span class="dn">${DN[p.d.getDay()]}</span><span class="dd">${ar(p.d.getDate())}</span><span class="dm">${MN[p.d.getMonth()]}</span>${mins?`<span class="hrs">${dur(mins)} فيديو</span>`:''}${isToday?'<span class="tlabel">اليوم</span>':''}</div><div class="subjs"></div>`;
-  const box=day.querySelector('.subjs');
-  p.blocks.forEach((b,j)=>{
-    const el=document.createElement('div');el.className='subj';el.dataset.s=b.s;el.style.setProperty('--c','var('+COLOR[b.s]+')');
-    const nm=b.s==='rev'?'مراجعة':S[b.s].name;
-    const tm=`<span class="tm">${SESS[j]}</span>`;
-    if(b.plain){const id='p'+kk(p.d)+'-'+j;allIds.push(id);
-      el.innerHTML=`<div class="subj-h">${tm}</div><div class="lec"><input type="checkbox" id="${id}"><label for="${id}" class="plain"><span class="subj-h"><span class="s">${nm}</span></span> <span class="t">${b.plain}</span></label><span></span></div>`;
-      check(el.querySelector('.lec'),id)}
-    else{const lists=[...new Set(b.lecs.map(l=>l.li))].map(li=>S[b.s].lists[li]);
-      const bm=b.lecs.reduce((a,l)=>a+l.m,0);
-      const speed=bm>190?' · شغّلها بسرعة ١.٥':bm>150?' · شغّلها بسرعة ١.٢٥':'';
-      el.innerHTML=`<div class="subj-h">${tm}<span class="s">${nm}</span><span class="w">${lists.map(l=>l.t).join(' ← ')} · ${lists[0].by||S[b.s].teacher}${speed}</span></div>`;
-      b.lecs.forEach(l=>{const L=S[b.s].lists[l.li];const id='v'+l.v;allIds.push(id);
-        const r=document.createElement('div');r.className='lec';
-        r.innerHTML=`<input type="checkbox" id="${id}" aria-label="أنجزت ${l.t}"><label for="${id}"><a href="${V(l.v,L.id)}" target="_blank" rel="noopener">${l.t}</a></label><span class="m">${dur(l.m)}</span>`;
-        check(r,id);el.appendChild(r)})}
-    box.appendChild(el)});
-  EXTRA.forEach(([t,w])=>{const el=document.createElement('div');el.className='subj extra';el.dataset.s='extra';
-    el.innerHTML=`<div class="subj-h"><span class="tm">${t}</span><span class="w">${w}</span></div>`;box.appendChild(el)});
-  weekEl.appendChild(day)});
-function progress(){const n=allIds.filter(i=>done[i]).length;const pc=Math.round(100*n/allIds.length);document.getElementById('sDone').textContent=ar(pc)+'٪';document.getElementById('pbar').style.width=pc+'%';
-  window.PLAN_PCT=pc;document.dispatchEvent(new CustomEvent('planprogress',{detail:{pct:pc}}))}
-document.getElementById('sDays').textContent=ar(days.length);
-document.getElementById('sLect').textContent=ar(totalL);
-document.getElementById('sHrs').textContent=ar(Math.round(totalM/60));
-progress();
-
-// filters
-const fl=document.getElementById('filters');
-[['all','الكل'],...Object.keys(S).map(s=>[s,S[s].name])].forEach(([s,n],i)=>{const b=document.createElement('button');b.type='button';b.textContent=n;b.setAttribute('aria-pressed',i===0);
-  b.onclick=()=>{fl.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed','false'));b.setAttribute('aria-pressed','true');
-    document.querySelectorAll('.subj').forEach(t=>t.hidden=!(s==='all'||t.dataset.s===s));
-    document.querySelectorAll('.day').forEach(d=>d.hidden=![...d.querySelectorAll('.subj')].some(t=>!t.hidden))};fl.appendChild(b)});
-const jump=document.getElementById('jump');
-if(!todayEl&&today<START)todayEl=host.querySelector('.day');
-if(todayEl)jump.onclick=()=>todayEl.scrollIntoView({behavior:'smooth',block:'center'});else jump.hidden=true;
-</script>
+<script src="data.js"></script>
+<script src="plan.js"></script>
 <script src="dream.js"></script>
 
 </body>

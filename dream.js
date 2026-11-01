@@ -68,10 +68,55 @@ function render(){
   panel.innerHTML=`<div class="dream-top"><div><p class="eyebrow">${esc(goalText())}</p><h2>${hello()}، كل محاضرة تقربك من حلمك</h2></div>
     <div class="dream-actions"><button class="chip solid" type="button" id="dShare">${shareIcon}شارك تقدمك</button><button class="chip" type="button" id="dChange">غيّر الحلم</button>${socials()}</div></div>
     <div class="meter" id="meter"></div><p class="milestone" id="mile"></p>
-    <div class="minis"><div class="mini" id="mNow"></div><div class="mini" id="mStreak"></div><div class="mini" id="mQuote"></div></div>`;
+    <div class="minis"><div class="mini" id="mNow"></div><div class="mini" id="mStreak"></div><div class="mini" id="mQuote"></div></div>
+    <div class="badges" id="badges"></div>`;
   panel.querySelector('#dChange').onclick=()=>openOnb();
   panel.querySelector('#dShare').onclick=()=>openStory();
-  meter(true);nowCard();streakCard();quoteCard();
+  meter(true);nowCard();streakCard();quoteCard();badgeShelf();
+}
+
+/* ---------- badges: earned from lectures done, full weeks, streak and finished subjects; drawn with the dream's own icon ---------- */
+const SEEN='plan6sci-badges';
+let showAll=false;
+function badgeList(){
+  const S=window.PLAN_STATS||{done:0,total:0,fullWeeks:0},n=streakN(),d=S.done,left=(k,u)=>'باقي '+ar(k)+' '+u,dl=k=>'باقي '+(k===1?'يوم':k===2?'يومين':ar(k)+(k<11?' أيام':' يوم'))+' التزام';
+  const L=[
+    {id:'first',t:'أول خطوة',s:'خلصت أول محاضرة',ok:d>=1,h:'أشّر أول محاضرة تخلصها'},
+    {id:'s3',t:'٣ أيام ورا بعض',s:'التزمت ٣ أيام بدون انقطاع',ok:n>=3,h:dl(3-n)},
+    {id:'week',t:'أسبوع كامل',s:'خلصت كل محاضرات أسبوع',ok:S.fullWeeks>=1,h:'خلّص كل محاضرات أسبوع واحد'},
+    {id:'l50',t:'٥٠ محاضرة',s:'خلصت ٥٠ محاضرة',ok:d>=50,h:left(50-d,'محاضرة')},
+    {id:'s7',t:'أسبوع التزام',s:'التزمت ٧ أيام ورا بعض',ok:n>=7,h:dl(7-n)},
+    {id:'l100',t:'١٠٠ محاضرة',s:'خلصت ١٠٠ محاضرة',ok:d>=100,h:left(100-d,'محاضرة')},
+    {id:'half',t:'نص الطريق',s:'خلصت نص المنهج',ok:pct>=50,h:left(50-pct,'٪')},
+    {id:'w4',t:'شهر كامل',s:'٤ أسابيع كاملة بدون نقص',ok:S.fullWeeks>=4,h:4-S.fullWeeks===1?'باقي أسبوع كامل واحد':'باقي '+ar(4-S.fullWeeks)+' أسابيع كاملة'},
+    {id:'s30',t:'٣٠ يوم التزام',s:'التزمت ٣٠ يوم ورا بعض',ok:n>=30,h:dl(30-n)},
+    {id:'l250',t:'٢٥٠ محاضرة',s:'خلصت ٢٥٠ محاضرة',ok:d>=250,h:left(250-d,'محاضرة')},
+    ...(window.PLAN_SUBJ||[]).map(x=>({id:'sub-'+x.s,t:'خلصت '+x.name,s:'خلصت كل محاضرات '+x.name,ok:x.pct>=100,h:ar(x.pct)+'٪ من '+x.name})),
+    {id:'all',t:'خلصت المنهج',s:'خلصت الخطة كلها',ok:pct>=100,h:left(100-pct,'٪')}
+  ];
+  return L;
+}
+const medal=(cls='')=>`<span class="medal ${cls}">${svg(FAM[famOf()].icon)}</span>`;
+function badgeShelf(){
+  const el=document.getElementById('badges');if(!el)return;
+  const L=badgeList(),got=L.filter(b=>b.ok),next=L.filter(b=>!b.ok),shown=showAll?L:got.concat(next.slice(0,3));
+  el.innerHTML=`<div class="bdg-h"><b>أوسمتك</b><span>${ar(got.length)} من ${ar(L.length)}</span>${L.length>shown.length||showAll?`<button class="linkbtn" type="button" id="bdgAll" aria-expanded="${showAll}">${showAll?'خلي اللي جاي بس':'شوف كل الأوسمة'}</button>`:''}</div>
+    <div class="bdg-row">${shown.map(b=>`<div class="bdg${b.ok?' on':''}" title="${esc(b.ok?b.s:b.h)}">${medal()}<b>${esc(b.t)}</b><small>${esc(b.ok?b.s:b.h)}</small></div>`).join('')}</div>`;
+  const a=document.getElementById('bdgAll');if(a)a.onclick=()=>{showAll=!showAll;badgeShelf()};
+}
+function checkBadges(){
+  if(!prof)return;
+  const got=badgeList().filter(b=>b.ok),seen=get(SEEN);
+  if(!Array.isArray(seen)){put(SEEN,got.map(b=>b.id));return} // first visit with this feature: count what's there without a popup
+  const fresh=got.filter(b=>!seen.includes(b.id));if(!fresh.length)return;
+  put(SEEN,[...new Set(seen.concat(fresh.map(b=>b.id)))]);
+  const b=fresh[fresh.length-1];document.querySelector('.bdg-pop')?.remove();
+  const box=document.createElement('div');box.className='story-pop bdg-pop';box.setAttribute('role','dialog');box.setAttribute('aria-modal','true');box.setAttribute('aria-label','وسام جديد');
+  box.innerHTML=`<div class="story-card bdg-card">${medal('big')}<p class="eyebrow">وسام جديد</p><h2>${esc(b.t)}</h2><p class="story-s">${esc(b.s)}${fresh.length>1?' (و'+ar(fresh.length-1)+' غيره)':''}. ${esc(hello())}، كمل.</p>
+    <div class="story-acts"><button class="chip solid" type="button" data-a="share">${shareIcon}شاركه ستوري</button><button class="chip" type="button" data-a="x">تمام</button></div></div>`;
+  document.body.appendChild(box);
+  box.addEventListener('click',e=>{if(e.target===box||e.target.closest('[data-a="x"]'))box.remove();else if(e.target.closest('[data-a="share"]')){box.remove();openStory()}});
+  box.querySelector('[data-a="share"]').focus();
 }
 
 /* ---------- meters ---------- */
@@ -154,16 +199,21 @@ async function drawStory(){
   txt(goalText(),540,320,'600 46px '+B,acc);
   txt(title+prof.name,540,430,'800 112px '+K,ink);
   // progress ring
-  const cx=540,cy=770,r=230;x.lineCap='round';
+  const cx=540,cy=740,r=215;x.lineCap='round';
   x.lineWidth=46;x.strokeStyle=line;x.beginPath();x.arc(cx,cy,r,0,Math.PI*2);x.stroke();
   if(pct>0){x.strokeStyle=acc;x.beginPath();x.arc(cx,cy,r,-Math.PI/2,-Math.PI/2+Math.PI*2*pct/100);x.stroke()}
   txt(ar(pct)+'٪',cx,cy-14,'800 170px '+K,ink);
-  txt('من المنهج خلصته',cx,cy+112,'500 42px '+B,mut);
+  txt('من المنهج خلصته',cx,cy+105,'500 42px '+B,mut);
   // streak and exam countdown
   const bits=[],n=streakN();if(n)bits.push(ar(n)+(n===1?' يوم':n<11?' أيام':' يوم')+' ملتزم ورا بعض');if(window.PLAN_EXAM)bits.push('باقي '+ar(window.PLAN_EXAM)+' يوم للامتحان');
-  if(bits.length)txt(bits.join('  ·  '),540,1080,'600 42px '+B,acc);
+  if(bits.length)txt(bits.join('  ·  '),540,1030,'600 40px '+B,acc);
+  // latest badges as pills
+  const won=badgeList().filter(b=>b.ok).slice(-3).reverse();
+  if(won.length){x.font='600 34px '+B;const ws=won.map(b=>x.measureText(b.t).width+92),tw=ws.reduce((a,b)=>a+b,0)+(won.length-1)*18;let px=540+tw/2;
+    won.forEach((b,i)=>{const w=ws[i],X=px-w;x.fillStyle=card;x.strokeStyle=acc;x.lineWidth=3;x.beginPath();x.roundRect(X,1082,w,64,32);x.fill();x.stroke();
+      x.fillStyle=acc;x.beginPath();x.arc(px-34,1114,15,0,Math.PI*2);x.fill();txt(b.t,px-60,1114,'600 34px '+B,ink,'right',w);px-=w+18})}
   // one bar per subject
-  const subj=window.PLAN_SUBJ||[],y0=1170,rowH=Math.min(64,420/Math.max(1,subj.length));
+  const subj=window.PLAN_SUBJ||[],y0=1200,rowH=Math.min(54,370/Math.max(1,subj.length));
   subj.forEach((s,i)=>{const y=y0+i*rowH,col=v(s.color,acc);
     txt(s.name,960,y,'600 40px '+B,col,'right',220);
     x.fillStyle=line;x.beginPath();x.roundRect(250,y-11,480,22,11);x.fill();
@@ -193,8 +243,8 @@ async function openStory(){
   const sh=box.querySelector('[data-a="share"]');
   if(navigator.canShare&&navigator.canShare({files:[file]})){sh.hidden=false;sh.onclick=()=>navigator.share({files:[file]}).catch(()=>{})}
 }
-document.addEventListener('planprogress',e=>{pct=e.detail.pct;meter(false)});
-document.addEventListener('plancheck',e=>{if(e.detail.checked){const a=new Set(get(DAYS)||[]);a.add(dayKey());put(DAYS,[...a].slice(-120));streakCard()}});
+document.addEventListener('planprogress',e=>{pct=e.detail.pct;meter(false);badgeShelf();checkBadges()});
+document.addEventListener('plancheck',e=>{if(e.detail.checked){const a=new Set(get(DAYS)||[]);a.add(dayKey());put(DAYS,[...a].slice(-120));streakCard();badgeShelf();checkBadges()}});
 setInterval(nowCard,60000);
 document.addEventListener('planbuilt',nowCard);
 
@@ -356,6 +406,6 @@ const fx=(()=>{
 })();
 
 /* ---------- boot ---------- */
-setFam(famOf());render();
+setFam(famOf());render();checkBadges();
 if(!prof)openOnb();
 })();

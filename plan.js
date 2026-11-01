@@ -220,6 +220,9 @@ function progress(){const ids=P?P.ids:[],n=ids.filter(i=>done[i]).length,pc=ids.
   const subj=P?P.act.map(s=>{const a=P.idsBy[s],k=a.filter(i=>done[i]).length;return {s,name:C[s].name,color:COLOR[s],pct:a.length?Math.round(100*k/a.length):0}}):[];
   window.PLAN_SUBJ=subj;
   $('sBars').innerHTML=subj.map(x=>`<div class="sb" style="--c:var(${x.color})"><span class="sb-n">${x.name}</span><span class="sb-t" role="progressbar" aria-label="${x.name}" aria-valuenow="${x.pct}" aria-valuemin="0" aria-valuemax="100"><i style="width:${x.pct}%"></i></span><span class="sb-p">${ar(x.pct)}٪</span></div>`).join('');
+  // numbers the badges in dream.js are earned from: lectures done and weeks finished in full
+  let full=0;if(P)for(let ws=weekStart(START);;ws.setDate(ws.getDate()+7)){const we=new Date(ws);we.setDate(we.getDate()+6);if(we>=TODAY)break;const st=weekStats(ws,we);if(st.all&&st.got===st.all)full++}
+  window.PLAN_STATS={done:n,total:ids.length,fullWeeks:full};
   report();document.dispatchEvent(new CustomEvent('planprogress',{detail:{pct:pc}}))}
 
 /* ---------- weekly report: this week so far and last week (weeks start on Saturday like the plan) ---------- */

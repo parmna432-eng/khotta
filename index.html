@@ -172,13 +172,19 @@ body:not(.m-view) .monthly{display:none}
 .m-entry{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center}
 .m-count{background:var(--card);color:var(--ink);border-radius:99px;min-width:20px;padding:0 6px;font-size:12px;text-align:center}
 .m-banner-top{margin:0;font-size:14px;color:var(--today);font-weight:600}
-.m-form{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px 14px;align-items:end;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px}
-.m-form label{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--muted)}
-.m-form select,.m-form input[type=date]{font:inherit;font-size:15px;color:var(--ink);background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:7px 10px}
-.m-form fieldset{grid-column:1/-1;border:0;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
-.m-form legend{font-size:13px;color:var(--muted);padding:0;margin-bottom:6px}
-.m-form #mAdd{justify-self:start}
-.m-form .sch{flex-direction:row;color:var(--ink);font-size:14px}
+.m-form{display:flex;flex-direction:column;gap:10px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+.m-form-h{margin:0;font-size:14px;color:var(--muted)}
+.m-rows{display:flex;flex-direction:column}
+.m-row{display:grid;grid-template-columns:6em minmax(0,11em) 1fr;gap:6px 12px;align-items:center;padding:8px 0;border-bottom:1px dashed var(--line)}
+.m-row:last-child{border-bottom:0}
+.m-row>b{color:var(--c);font-family:var(--display);font-size:15px}
+.m-row input[type=date]{font:inherit;font-size:15px;color:var(--ink);background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:6px 8px;min-width:0}
+.m-row details{font-size:13px;color:var(--muted)}
+.m-row summary{cursor:pointer}
+.m-row .sch-box{margin-top:6px}
+.m-row .sch{font-size:13px;color:var(--ink)}
+@media (max-width:560px){.m-row{grid-template-columns:5.5em 1fr}.m-row details{grid-column:1/-1}}
+#mSave{align-self:flex-start}
 .m-exams{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:10px}
 .m-card{background:var(--card);border:1px solid var(--line);border-inline-start:4px solid var(--c);border-radius:10px;padding:12px 14px;display:flex;flex-direction:column;gap:6px;font-size:14px}
 .m-card .sb-t i{background:var(--c)}
@@ -199,7 +205,7 @@ body:not(.m-view) .monthly{display:none}
 .fontsz button:nth-of-type(1){font-size:13px}.fontsz button:nth-of-type(2){font-size:16px}.fontsz button:nth-of-type(3){font-size:19px}
 .fontsz button[aria-pressed="true"]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
 </style>
-<link rel="stylesheet" href="dream.css?v=18">
+<link rel="stylesheet" href="dream.css?v=19">
 <script>try{const p=JSON.parse(localStorage.getItem('plan6sci-dream'));if(p&&p.fam&&p.fam!=='other')document.documentElement.dataset.dream=p.fam}catch(e){}</script>
 <script>try{const z=+localStorage.getItem('plan6sci-font');if(z>1)document.documentElement.style.setProperty('--zoom',z)}catch(e){}</script>
 
@@ -309,7 +315,7 @@ body:not(.m-view) .monthly{display:none}
 
   <section>
     <h2>يومك الدراسي</h2>
-    <p class="sub">اختار الساعة اللي تبدي بيها دراستك بالعادة، وأوقات يومك وجلسات الجدول كلها تتحسب عليها. حوالي ١٠ ساعات دراسة، وداخل كل جلسة ٥٠ دقيقة دراسة و١٠ دقايق استراحة.</p>
+    <p class="sub">اختار الساعة اللي تبدي بيها دراستك بالعادة، وأوقات يومك وجلسات الجدول كلها تتحسب عليها. إذا عندك دوام الصبح اختار ١ أو ٢ الظهر، ويومك يترتب بعد الدوام باستراحات أقصر. حوالي ٩ إلى ١٠ ساعات دراسة، وداخل كل جلسة ٥٠ دقيقة دراسة و١٠ دقايق استراحة.</p>
     <div class="hour-box" id="hourBox" role="group" aria-label="ساعة بداية الدراسة"></div>
     <div class="ics"><button class="chip solid" type="button" id="icsBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4M12 13v5M9.5 15.5h5"/></svg>أضف جلساتي لتقويم الجوال</button>
       <span class="alt">ينزل ملف بكل جلسات دراستك من اليوم لآخر الخطة، وكل جلسة يجيك تنبيه قبلها بـ ٥ دقايق حتى لو الموقع مسدود. افتح الملف واختار التقويم. إذا غيّرت ساعة البداية أو المدرسين أو رتبت جدولك من جديد، احذف التقويم القديم ونزّل ملف جديد.</span></div>
@@ -336,10 +342,9 @@ body:not(.m-view) .monthly{display:none}
   <div class="toolbar"><h2 id="mH">الامتحانات الشهرية</h2><button class="chip" type="button" id="mBack">رجوع للجدول الرئيسي</button></div>
   <p class="sub">ضيف كل امتحان شهري: المادة وموعده والفصول اللي يشملها. الجدول هنا يخلّص محاضرات الامتحان قبل موعده ويخلي اليوم اللي قبله للمراجعة، وهي أول شي بيومك. باقي المواد تمشي على جدولك الرئيسي، وكل محاضرة تأشرها هنا تنحسب هناك.</p>
   <div class="m-form">
-    <label>المادة<select id="mSubj"></select></label>
-    <label>موعد الامتحان<input type="date" id="mDate"></label>
-    <fieldset><legend>الفصول اللي يشملها</legend><div class="sch-box" id="mLists"></div></fieldset>
-    <button class="chip solid" type="button" id="mAdd">ضيف الامتحان</button>
+    <p class="m-form-h">اكتب موعد الامتحان الشهري لكل مادة. المادة اللي ما عندها امتحان اتركها فارغة. الفصول تتأشر لحالها حسب وين يوصل جدولك قبل الامتحان، وتكدر تغيّرها.</p>
+    <div class="m-rows" id="mRows"></div>
+    <button class="chip solid" type="button" id="mSave">احفظ المواعيد ورتب الجدول</button>
   </div>
   <div class="m-exams" id="mExams"></div>
   <h3 id="mPlanH" hidden>جدول الامتحانات</h3>
@@ -353,9 +358,9 @@ body:not(.m-view) .monthly{display:none}
 </div>
 <div class="toast" id="toast" role="status" hidden></div>
 
-<script src="data.js?v=18"></script>
-<script src="plan.js?v=18"></script>
-<script src="dream.js?v=18"></script>
+<script src="data.js?v=19"></script>
+<script src="plan.js?v=19"></script>
+<script src="dream.js?v=19"></script>
 
 </body>
 </html>

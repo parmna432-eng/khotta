@@ -262,7 +262,7 @@ function openOnb(){
     <p class="lbl" id="deptL" hidden>اختار القسم</p><div class="dept" id="dept"></div>
     <div id="otherW" hidden><label for="onbOther">اكتب حلمك</label><input id="onbOther" maxlength="30" value="${prof&&prof.custom?esc(prof.custom):''}"></div>
     <p class="lbl">بأي ساعة تبدي دراستك بالعادة؟</p>
-    <div class="hours-pick" id="onbHours">${(window.PLANAPP?PLANAPP.HOURS:[7,8,9,10]).map(h=>`<button type="button" data-h="${h}" aria-pressed="${prof&&window.PLANAPP&&PLANAPP.getHour()===h}">${ar(h)} الصبح</button>`).join('')}</div>
+    <div class="hours-pick" id="onbHours">${(window.PLANAPP?PLANAPP.HOURS:[7,8,9,10]).map(h=>`<button type="button" data-h="${h}" aria-pressed="${prof&&window.PLANAPP&&PLANAPP.getHour()===h}">${window.PLANAPP?PLANAPP.hourLabel(h):ar(h)+' الصبح'}</button>`).join('')}</div>
     <p class="onb-err" id="onbErr" hidden></p>
     <button type="submit" class="go">يلا نبدي</button>
     ${prof?'<button type="button" class="chip" id="onbX" style="align-self:center">إلغاء</button>':''}</form>`;

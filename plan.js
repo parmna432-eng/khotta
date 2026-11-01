@@ -182,7 +182,7 @@ function render(){
   jump.hidden=!todayEl;jump.onclick=()=>todayEl&&todayEl.scrollIntoView({behavior:'smooth',block:'center'});
 
   window.PLAN={plan:days,S:Object.fromEntries(ORDER.map(s=>[s,{name:C[s].name}])),kk,timeline:TL};
-  progress();exam();updateLate();document.dispatchEvent(new CustomEvent('planbuilt'));
+  progress();exam();updateLate();mBanner();document.dispatchEvent(new CustomEvent('planbuilt'));
 }
 
 /* ---------- falling behind: offer to re-plan from today or tomorrow ---------- */
@@ -210,7 +210,7 @@ $('lateOpen').onclick=()=>{lateManual=true;updateLate();$('lateBox').scrollIntoV
 function applyFilter(){document.querySelectorAll('.subj').forEach(t=>t.hidden=!(filter==='all'||t.dataset.s===filter));
   document.querySelectorAll('.day').forEach(d=>d.hidden=![...d.querySelectorAll('.subj')].some(t=>!t.hidden))}
 function check(row,id){const cb=row.querySelector('input');cb.checked=!!done[id];row.classList.toggle('checked',cb.checked);
-  cb.addEventListener('change',()=>{if(cb.checked)done[id]=1;else delete done[id];row.classList.toggle('checked',cb.checked);saveDone();progress();updateLate();
+  cb.addEventListener('change',()=>{if(cb.checked)done[id]=1;else delete done[id];row.classList.toggle('checked',cb.checked);saveDone();progress();updateLate();if(mView())mCards();
     document.dispatchEvent(new CustomEvent('plancheck',{detail:{checked:cb.checked}}))})}
 function flagHard(id){const on=!hard[id];if(on)hard[id]=1;else delete hard[id];put(HARD,hard);
   rerender(on?'علّمتها صعبة، وتطلعلك أول شي بأسبوع المراجعة':'شلت علامة الصعبة')}
@@ -314,9 +314,104 @@ function fontSize(z,say){document.documentElement.style.setProperty('--zoom',z);
 document.querySelectorAll('.fontsz button').forEach(b=>b.onclick=()=>fontSize(+b.dataset.z,true));
 fontSize((()=>{const z=+get('plan6sci-font');return [1,1.12,1.25].includes(z)?z:1})(),false);
 
+/* ---------- monthly exams: a separate page whose schedule puts each exam's chapters first and keeps the main plan going for the other subjects ---------- */
+const MKEY='plan6sci-monthly';
+let monthly=(get(MKEY)||[]).filter(e=>e&&C[e.s]&&parseKey(e.d)&&Array.isArray(e.li));
+const saveM=()=>put(MKEY,monthly);
+const mView=()=>document.body.classList.contains('m-view');
+const daysWord=n=>n===1?'يوم':n===2?'يومين':ar(n)+(n<11?' أيام':' يوم');
+// the subject's lectures in the chosen chapters, from the teacher the student picked
+function mLectures(s,lis){const t=P.T[s],ok=new Set(P.idsBy[s]),out=[];
+  lis.forEach(li=>{const L=t.lists[li];if(L)L.v.forEach(v=>{if(ok.has('v'+v[0]))out.push({v:v[0],t:v[1],m:v[2],li})})});return out}
+// default chapters: the ones the main plan reaches before the exam day
+function mDefaultLists(s,ex){const set=new Set();for(const x of P.days){if(x.d>=ex)break;for(const b of x.blocks)if(b.s===s)(b.lecs||[]).forEach(l=>set.add(l.li))}
+  return set.size?[...set].sort((a,b)=>a-b):[0]}
+function mPlan(){
+  const from=new Date(Math.max(TODAY,START));
+  const ex=monthly.filter(e=>P.act.includes(e.s)).map(e=>({...e,date:parseKey(e.d)})).filter(e=>e.date>=from).sort((a,b)=>a.date-b.date);
+  if(!ex.length)return {ex,days:[]};
+  const days=[];for(const d=new Date(from);d<=ex[ex.length-1].date;d.setDate(d.getDate()+1))days.push({d:new Date(d),prep:[],exams:[]});
+  for(const e of ex){
+    const n=Math.round((e.date-from)/864e5),L=mLectures(e.s,e.li),R=L.filter(l=>!done['v'+l.v]);
+    e.total=L.length;e.left=R.length;e.mins=R.reduce((a,l)=>a+l.m,0);days[n].exams.push(e);
+    // the day before is for review when there are at least 3 days; the rest share the remaining lectures by video time
+    const review=n>=3,study=days.slice(0,review?n-1:n);e.studyDays=study.length;
+    e.perDay=study.length?Math.round(e.mins/study.length):e.mins;
+    let p=0,acc=0;study.forEach((x,i)=>{const target=e.mins*(i+1)/study.length,out=[];
+      while(p<R.length&&(i+1===study.length||acc+R[p].m/2<=target)){out.push(R[p]);acc+=R[p].m;p++}if(out.length)x.prep.push({e,lecs:out})});
+    if(review)days[n-1].prep.push({e,plain:'مراجعة '+C[e.s].name+' كاملة للامتحان: ملخصاتك، الأسئلة الوزارية، والمحاضرات اللي علّمتها صعبة'});
+  }
+  // the main plan carries on for every subject that has no exam coming in these days
+  const main=new Map(P.days.map(x=>[x.d.getTime(),x]));
+  for(const x of days){const m=main.get(x.d.getTime()),busy=new Set(ex.filter(e=>e.date>=x.d).map(e=>e.s));x.other=m?m.blocks.map((b,j)=>({...b,j})).filter(b=>!busy.has(b.s)):[]}
+  return {ex,days};
+}
+function mCards(){
+  const {ex}=mPlan();
+  $('mExams').innerHTML=ex.length?ex.map(e=>{const n=Math.round((e.date-TODAY)/864e5),pc=e.total?Math.round(100*(e.total-e.left)/e.total):0,t=P.T[e.s];
+    const heavy=e.perDay>240;
+    return `<div class="m-card" style="--c:var(${COLOR[e.s]})"><div class="m-top"><b>${C[e.s].name}</b><span class="m-when">${n>0?'بعد '+daysWord(n):'اليوم'} · ${DN[e.date.getDay()]} ${dstr(e.date)}</span>
+      <button class="linkbtn" type="button" data-del="${e.id}">احذف</button></div>
+      <span class="alt">${e.li.map(li=>t.lists[li]?esc(t.lists[li].t):'').filter(Boolean).join('، ')}</span>
+      <span class="sb-t"><i style="width:${pc}%"></i></span>
+      <span>${e.left?`باقي ${ar(e.left)} محاضرة (${dur(e.mins)} فيديو)${e.studyDays?' على '+daysWord(e.studyDays)+'، يعني تقريباً '+dur(e.perDay)+' باليوم':''}`:'خلصت كل محاضراته، ركّز على المراجعة والأسئلة'}</span>
+      ${heavy?`<span class="m-heavy">الحمل ثقيل. شغّل المحاضرات بسرعة ١.٥ أو قلل الفصول إذا الامتحان ما يشملها.</span>`:''}</div>`}).join(''):'<p class="note">ما ضفت امتحانات بعد. اختار المادة والموعد والفصول وضيفه، والجدول ينبني لحاله.</p>';
+  $('mExams').querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>{monthly=monthly.filter(e=>e.id!==b.dataset.del);saveM();mRender();mBanner();toast('انحذف الامتحان')});
+}
+function mRender(){
+  mCards();
+  const {days}=mPlan(),TL=timeline(),slots=[0,1,2].map(i=>TL.find(r=>r[2]===i)).concat([TL.find(r=>r[2]==='practice')]),RV=TL.find(r=>r[2]==='review');
+  const host=$('mPlan');host.innerHTML='';
+  if(!days.length){host.innerHTML='';$('mPlanH').hidden=true;return}
+  $('mPlanH').hidden=false;
+  for(const x of days){
+    const day=document.createElement('div');day.className='day'+(x.exams.length?' m-exam':'')+(x.d.getTime()===TODAY.getTime()?' today':'');
+    day.innerHTML=`<div class="date"><span class="dn">${DN[x.d.getDay()]}</span><span class="dd">${ar(x.d.getDate())}</span><span class="dm">${MN[x.d.getMonth()]}</span>${x.d.getTime()===TODAY.getTime()?'<span class="tlabel">اليوم</span>':''}</div><div class="subjs"></div>`;
+    const box=day.querySelector('.subjs');let k=0;
+    const slot=()=>{const r=slots[k++];return r?`<span class="tm">${range(r[0],r[1])}</span>`:'<span class="tm">إذا عندك وقت</span>'};
+    x.exams.forEach(e=>{const el=document.createElement('div');el.className='subj m-banner';el.style.setProperty('--c','var('+COLOR[e.s]+')');
+      el.innerHTML=`<div class="subj-h"><span class="s">اليوم امتحان ${C[e.s].name} الشهري</span><span class="w">بالتوفيق. راجع ملخصك الصبح وادخل الامتحان مرتاح.</span></div>`;box.appendChild(el)});
+    const blocks=x.prep.map(p=>({...p,s:p.e.s,pri:1})).concat(x.other);
+    for(const b of blocks){const el=document.createElement('div');el.className='subj'+(b.pri?' m-pri':'');el.dataset.s=b.s;el.style.setProperty('--c','var('+COLOR[b.s]+')');
+      const nm=b.s==='rev'?'مراجعة':C[b.s].name,tag=b.pri?'<span class="m-tag">امتحان شهري</span>':'';
+      if(b.plain){const id=b.pri?'m'+kk(x.d)+'-'+b.s:'p'+kk(x.d)+'-'+b.j;
+        el.innerHTML=`<div class="subj-h">${slot()}${tag}</div><div class="lec"><input type="checkbox" id="${id}"><label for="${id}" class="plain"><span class="subj-h"><span class="s">${nm}</span></span> <span class="t">${esc(b.plain)}</span></label><span></span></div>`;check(el.querySelector('.lec'),id)}
+      else{const t=P.T[b.s];el.innerHTML=`<div class="subj-h">${slot()}${tag}<span class="s">${nm}</span><span class="w">${esc(t.name)}</span></div>`;
+        b.lecs.forEach(l=>{const id='v'+l.v,r=document.createElement('div');r.className='lec';
+          r.innerHTML=`<input type="checkbox" id="${id}" aria-label="أنجزت ${esc(l.t)}"><label for="${id}"><a href="${V(l.v,t.lists[l.li].id)}" target="_blank" rel="noopener">${esc(l.t)}</a></label><span class="m">${dur(l.m)}</span>`;check(r,id);el.appendChild(r)})}
+      box.appendChild(el)}
+    if(blocks.length){const el=document.createElement('div');el.className='subj extra';el.innerHTML=`<div class="subj-h"><span class="tm">${range(RV[0],RV[1])}</span><span class="w">مراجعة ملخص اليوم وتشوف جدول باجر</span></div>`;box.appendChild(el)}
+    host.appendChild(day)}
+}
+// add-exam form
+function mFormLists(){const s=$('mSubj').value,v=$('mDate').value;if(!s){$('mLists').innerHTML='';return}
+  const t=P.T[s],ex=v?parseKey(v.split('-').map(Number).join('-')):null,def=ex?mDefaultLists(s,ex):[0];
+  $('mLists').innerHTML=t.lists.map((l,i)=>`<label class="sch"><input type="checkbox" value="${i}"${def.includes(i)?' checked':''}> ${esc(l.t)}</label>`).join('')}
+function mForm(){
+  const sel=$('mSubj'),cur=sel.value;sel.innerHTML='<option value="">اختار المادة</option>'+P.act.map(s=>`<option value="${s}">${C[s].name}</option>`).join('');
+  if(P.act.includes(cur))sel.value=cur;const t=new Date(Math.max(TODAY,START));$('mDate').min=t.getFullYear()+'-'+String(t.getMonth()+1).padStart(2,'0')+'-'+String(t.getDate()).padStart(2,'0');mFormLists()}
+$('mSubj').onchange=mFormLists;$('mDate').onchange=mFormLists;
+$('mAdd').onclick=()=>{const s=$('mSubj').value,v=$('mDate').value,li=[...$('mLists').querySelectorAll('input:checked')].map(i=>+i.value);
+  if(!s){toast('اختار المادة');$('mSubj').focus();return}if(!v){toast('اختار موعد الامتحان');$('mDate').focus();return}if(!li.length){toast('أشّر الفصول اللي يشملها الامتحان');return}
+  const d=v.split('-').map(Number).join('-'),ex=parseKey(d);if(ex<new Date(Math.max(TODAY,START))){toast('الموعد لازم يكون من اليوم وبعده');return}
+  monthly=monthly.filter(e=>!(e.s===s&&e.d===d));monthly.push({id:Date.now().toString(36),s,d,li});saveM();mRender();mBanner();
+  toast('انضاف امتحان '+C[s].name+' '+dstr(ex)+'، والجدول ترتب عليه')};
+// main page banner and switching between the two pages
+function mBanner(){const {ex}=mPlan(),b=$('mBanner'),n=ex.length;$('mCount').textContent=n?ar(n):'';$('mCount').hidden=!n;
+  if(!n){b.hidden=true;return}const e=ex[0],d=Math.round((e.date-TODAY)/864e5);b.hidden=false;
+  b.querySelector('span').textContent=(d>0?'امتحان '+C[e.s].name+' الشهري بعد '+daysWord(d):'اليوم امتحان '+C[e.s].name+' الشهري')+(e.left?'، باقي '+ar(e.left)+' محاضرة':'');}
+function mShow(on){document.body.classList.toggle('m-view',on);if(on){mForm();mRender()}else render();scrollTo(0,0)}
+const mHash=()=>mShow(location.hash==='#monthly');
+// opening pushes a history entry so the phone's back button returns to the main plan; a page opened straight on #monthly just drops the hash
+let mPushed=false;
+const mGo=()=>{mPushed=true;location.hash='monthly'};
+$('mOpen').onclick=mGo;$('mBannerGo').onclick=mGo;
+$('mBack').onclick=()=>{if(mPushed){mPushed=false;history.back()}else{history.replaceState(null,'',location.pathname+location.search);mShow(false)}};
+addEventListener('hashchange',mHash);
+
 // the first-visit card (dream.js) saves the start hour here
 window.PLANAPP={setHour(h){if(HOURS.includes(h)){prefs.hour=h;savePrefs();render()}},getHour:()=>prefs.hour,HOURS};
 document.addEventListener('dreamsaved',()=>setTimeout(()=>notice(false),900));
 
-render();notice(false);
+render();notice(false);if(location.hash==='#monthly')mShow(true);
 })();

@@ -165,6 +165,33 @@ tr.off td{opacity:.55}
 .rep-m{font-size:13px;color:var(--muted)}
 .ics{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center}
 .ics .alt{flex:1 1 280px}
+/* monthly exams page */
+body.m-view .wrap{display:none}
+body:not(.m-view) .monthly{display:none}
+.monthly{max-width:980px;margin:0 auto;padding-block:28px 60px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));zoom:var(--zoom,1)}
+.m-entry{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center}
+.m-count{background:var(--card);color:var(--ink);border-radius:99px;min-width:20px;padding:0 6px;font-size:12px;text-align:center}
+.m-banner-top{margin:0;font-size:14px;color:var(--today);font-weight:600}
+.m-form{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px 14px;align-items:end;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+.m-form label{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--muted)}
+.m-form select,.m-form input[type=date]{font:inherit;font-size:15px;color:var(--ink);background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:7px 10px}
+.m-form fieldset{grid-column:1/-1;border:0;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.m-form legend{font-size:13px;color:var(--muted);padding:0;margin-bottom:6px}
+.m-form #mAdd{justify-self:start}
+.m-form .sch{flex-direction:row;color:var(--ink);font-size:14px}
+.m-exams{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:10px}
+.m-card{background:var(--card);border:1px solid var(--line);border-inline-start:4px solid var(--c);border-radius:10px;padding:12px 14px;display:flex;flex-direction:column;gap:6px;font-size:14px}
+.m-card .sb-t i{background:var(--c)}
+.m-top{display:flex;flex-wrap:wrap;gap:4px 10px;align-items:baseline}
+.m-top b{font-family:var(--display);font-size:17px;color:var(--c)}
+.m-when{color:var(--today);font-weight:600;font-size:13px}
+.m-top .linkbtn{margin-inline-start:auto;color:var(--muted)}
+.m-heavy{font-size:13px;color:var(--today)}
+.m-plan{display:flex;flex-direction:column;gap:8px}
+.m-pri{background:var(--warn-soft)}
+.m-tag{font-size:11px;font-weight:600;color:var(--today);border:1px solid var(--today);border-radius:99px;padding:0 8px}
+.day.m-exam{border-color:var(--c,var(--today))}
+.m-banner{background:var(--accent-soft)}
 .wrap{zoom:var(--zoom,1)}
 .fontsz{display:flex;align-items:center;gap:4px;align-self:flex-end;font-size:12px;color:var(--muted)}
 .fontsz span{margin-inline-end:4px}
@@ -172,7 +199,7 @@ tr.off td{opacity:.55}
 .fontsz button:nth-of-type(1){font-size:13px}.fontsz button:nth-of-type(2){font-size:16px}.fontsz button:nth-of-type(3){font-size:19px}
 .fontsz button[aria-pressed="true"]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
 </style>
-<link rel="stylesheet" href="dream.css?v=17">
+<link rel="stylesheet" href="dream.css?v=18">
 <script>try{const p=JSON.parse(localStorage.getItem('plan6sci-dream'));if(p&&p.fam&&p.fam!=='other')document.documentElement.dataset.dream=p.fam}catch(e){}</script>
 <script>try{const z=+localStorage.getItem('plan6sci-font');if(z>1)document.documentElement.style.setProperty('--zoom',z)}catch(e){}</script>
 
@@ -199,6 +226,10 @@ tr.off td{opacity:.55}
     <p class="note warn" id="examWarn" hidden></p>
     <div class="bar" aria-hidden="true"><i id="pbar"></i></div>
     <div class="sbars" id="sBars" aria-label="المنجز لكل مادة"></div>
+    <div class="m-entry">
+      <button class="chip solid" type="button" id="mOpen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>الامتحانات الشهرية<span class="m-count" id="mCount" hidden></span></button>
+      <p class="m-banner-top" id="mBanner" hidden><span></span> <button class="linkbtn" type="button" id="mBannerGo">شوف جدوله</button></p>
+    </div>
   </header>
 
   <section class="late" id="lateBox" hidden aria-live="polite">
@@ -301,6 +332,20 @@ tr.off td{opacity:.55}
   </section>
 </div>
 
+<section class="monthly" id="monthly" aria-labelledby="mH">
+  <div class="toolbar"><h2 id="mH">الامتحانات الشهرية</h2><button class="chip" type="button" id="mBack">رجوع للجدول الرئيسي</button></div>
+  <p class="sub">ضيف كل امتحان شهري: المادة وموعده والفصول اللي يشملها. الجدول هنا يخلّص محاضرات الامتحان قبل موعده ويخلي اليوم اللي قبله للمراجعة، وهي أول شي بيومك. باقي المواد تمشي على جدولك الرئيسي، وكل محاضرة تأشرها هنا تنحسب هناك.</p>
+  <div class="m-form">
+    <label>المادة<select id="mSubj"></select></label>
+    <label>موعد الامتحان<input type="date" id="mDate"></label>
+    <fieldset><legend>الفصول اللي يشملها</legend><div class="sch-box" id="mLists"></div></fieldset>
+    <button class="chip solid" type="button" id="mAdd">ضيف الامتحان</button>
+  </div>
+  <div class="m-exams" id="mExams"></div>
+  <h3 id="mPlanH" hidden>جدول الامتحانات</h3>
+  <div id="mPlan" class="m-plan"></div>
+</section>
+
 <div class="notice" id="notice" role="status" hidden>
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 16V11a6 6 0 0 1 12 0v5l2 2H4z"/><path d="M10 20a2 2 0 0 0 4 0"/></svg>
   <div><b>تكدر تختار مدرسك</b><span>لكل مادة اختار المدرس الرئيسي أو مدرس بديل، وتكدر تضيف أو تشيل مواد. الجدول يتحدّث على اختيارك.</span></div>
@@ -308,9 +353,9 @@ tr.off td{opacity:.55}
 </div>
 <div class="toast" id="toast" role="status" hidden></div>
 
-<script src="data.js?v=17"></script>
-<script src="plan.js?v=17"></script>
-<script src="dream.js?v=17"></script>
+<script src="data.js?v=18"></script>
+<script src="plan.js?v=18"></script>
+<script src="dream.js?v=18"></script>
 
 </body>
 </html>

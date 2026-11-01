@@ -207,6 +207,7 @@ body:not(.m-view) .monthly{display:none}
 .m-load.ok{color:var(--done)}
 .m-load.mid{color:var(--accent)}
 .m-load.high{color:var(--today)}
+.m-acts{display:flex;flex-wrap:wrap;gap:8px}
 .m-opt{opacity:.7;background:repeating-linear-gradient(-45deg,transparent 0 8px,var(--accent-soft) 8px 9px)}
 .m-why{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 14px;font-size:14px}
 .chaps{min-width:300px}
@@ -236,7 +237,7 @@ body:not(.m-view) .monthly{display:none}
 .fontsz button:nth-of-type(1){font-size:13px}.fontsz button:nth-of-type(2){font-size:16px}.fontsz button:nth-of-type(3){font-size:19px}
 .fontsz button[aria-pressed="true"]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
 </style>
-<link rel="stylesheet" href="dream.css?v=28">
+<link rel="stylesheet" href="dream.css?v=29">
 <script>try{const p=JSON.parse(localStorage.getItem('plan6sci-dream'));const r=document.documentElement;if(p&&p.fam&&p.fam!=='other')r.dataset.dream=p.fam==='engineer'&&p.dept==='هندسة الطائرات المسيّرة'?'drone':p.fam;if(p&&p.gender==='f')r.dataset.gender='f'}catch(e){}</script>
 <script>try{const z=+localStorage.getItem('plan6sci-font');if([1.12,1.25].includes(z))document.documentElement.style.setProperty('--zoom',z)}catch(e){}</script>
 
@@ -377,7 +378,8 @@ body:not(.m-view) .monthly{display:none}
   <div class="m-form">
     <p class="m-form-h">اكتب موعد الامتحان الشهري لكل مادة. المادة اللي ما عندها امتحان اتركها فارغة. الفصول تتأشر لحالها حسب وين يوصل جدولك قبل الامتحان، وتكدر تغيّرها.</p>
     <div class="m-rows" id="mRows"></div>
-    <button class="chip solid" type="button" id="mSave">احفظ المواعيد ورتب الجدول</button>
+    <div class="m-acts"><button class="chip solid" type="button" id="mSave">احفظ المواعيد ورتب الجدول</button>
+    <button class="chip" type="button" id="mReset">إعادة تعيين أيام الامتحانات</button></div>
   </div>
   <div class="m-exams" id="mExams"></div>
   <details class="m-why" id="mWhy" hidden>
@@ -403,9 +405,9 @@ body:not(.m-view) .monthly{display:none}
 </div>
 <div class="toast" id="toast" role="status" hidden></div>
 
-<script src="data.js?v=28"></script>
-<script src="plan.js?v=28"></script>
-<script src="dream.js?v=28"></script>
+<script src="data.js?v=29"></script>
+<script src="plan.js?v=29"></script>
+<script src="dream.js?v=29"></script>
 
 </body>
 </html>

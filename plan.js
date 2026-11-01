@@ -457,6 +457,10 @@ $('mSave').onclick=()=>{const from=mFrom();let n=0,bad=0;
     monthly.push({id:s+'-'+kk(ex),s,d:kk(ex),li:li.length?li:[0]});n++});
   saveM();mForm();mRender();mBanner();
   toast(bad?'في موعد قبل اليوم وما انحفظ، صححه':n?'انحفظت مواعيد '+ar(n)+' امتحانات وترتب الجدول عليها':'ما حددت أي موعد')};
+// start over: removes every monthly exam date (asks first, since it can't be undone)
+$('mReset').onclick=()=>{if(!monthly.length){toast('ما عندك مواعيد امتحانات محفوظة');return}
+  if(!confirm('تمسح كل مواعيد الامتحانات الشهرية وترجع تدخلها من جديد؟'))return;
+  monthly=[];saveM();mForm();mRender();mBanner();toast('انمسحت كل المواعيد، دخّلها من جديد')};
 // main page banner and switching between the two pages
 function mBanner(){const {ex}=mPlan(),b=$('mBanner'),n=ex.length;$('mCount').textContent=n?ar(n):'';$('mCount').hidden=!n;
   if(!n){b.hidden=true;return}const e=ex[0],d=Math.round((e.date-TODAY)/864e5);b.hidden=false;

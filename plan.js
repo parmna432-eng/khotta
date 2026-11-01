@@ -220,7 +220,60 @@ function progress(){const ids=P?P.ids:[],n=ids.filter(i=>done[i]).length,pc=ids.
   const subj=P?P.act.map(s=>{const a=P.idsBy[s],k=a.filter(i=>done[i]).length;return {s,name:C[s].name,color:COLOR[s],pct:a.length?Math.round(100*k/a.length):0}}):[];
   window.PLAN_SUBJ=subj;
   $('sBars').innerHTML=subj.map(x=>`<div class="sb" style="--c:var(${x.color})"><span class="sb-n">${x.name}</span><span class="sb-t" role="progressbar" aria-label="${x.name}" aria-valuenow="${x.pct}" aria-valuemin="0" aria-valuemax="100"><i style="width:${x.pct}%"></i></span><span class="sb-p">${ar(x.pct)}٪</span></div>`).join('');
-  document.dispatchEvent(new CustomEvent('planprogress',{detail:{pct:pc}}))}
+  report();document.dispatchEvent(new CustomEvent('planprogress',{detail:{pct:pc}}))}
+
+/* ---------- weekly report: this week so far and last week (weeks start on Saturday like the plan) ---------- */
+const weekStart=d=>{const s=new Date(d);s.setDate(s.getDate()-((s.getDay()+1)%7));s.setHours(0,0,0,0);return s};
+function weekStats(from,to){
+  const per={};let all=0,got=0;
+  for(const x of P.days){if(x.d<from||x.d>to)continue;
+    for(const b of x.blocks)for(const l of b.lecs||[]){const k=per[b.s]||(per[b.s]={n:0,d:0});k.n++;all++;if(done['v'+l.v]){k.d++;got++}}}
+  const list=Object.entries(per).map(([s,k])=>({s,...k,r:k.d/k.n})).sort((a,b)=>b.r-a.r||b.n-a.n);
+  return {all,got,best:list[0],weak:list.length>1?list[list.length-1]:null};
+}
+function repCard(title,st,soFar){
+  if(!st.all)return `<div class="rep"><span class="rep-k">${title}</span><span class="rep-v">ما بيه محاضرات</span></div>`;
+  const pc=Math.round(100*st.got/st.all);
+  const msg=pc>=90?'ممتاز، كمل هيج.':pc>=60?(soFar?'زين، بس لا تخلي الباقي يتكدس.':'زين، والباقي عوّضه الجمعة.'):soFar?'متأخر شوية، عوّض اليوم أو استعمل «تأخرت؟».':'كان أسبوع ثقيل. استعمل «تأخرت؟» حتى ينرتب الباقي.';
+  const nm=x=>C[x.s].name;
+  return `<div class="rep"><span class="rep-k">${title}</span><span class="rep-v">${ar(st.got)} من ${ar(st.all)} محاضرة</span>
+    <span class="sb-t"><i style="width:${pc}%;background:var(--done)"></i></span>
+    ${st.best&&st.best.d?`<span class="rep-l">أقوى مادة: <b style="color:var(${COLOR[st.best.s]})">${nm(st.best)}</b> (${ar(st.best.d)} من ${ar(st.best.n)})</span>`:''}
+    ${st.weak&&st.weak.r<1&&st.weak!==st.best?`<span class="rep-l">تحتاج تركيز: <b style="color:var(${COLOR[st.weak.s]})">${nm(st.weak)}</b> (${ar(st.weak.d)} من ${ar(st.weak.n)})</span>`:''}
+    <span class="rep-m">${msg}</span></div>`;
+}
+function report(){
+  const el=$('weekRep');if(!P)return;
+  if(TODAY<START){el.innerHTML='<p class="sub">التقرير يبدي من أول أسبوع بالخطة.</p>';return}
+  const ws=weekStart(TODAY),lw=new Date(ws);lw.setDate(lw.getDate()-7);const lwEnd=new Date(ws);lwEnd.setDate(lwEnd.getDate()-1);
+  const cards=[repCard('هذا الأسبوع لحد اليوم',weekStats(ws,TODAY),true)];
+  if(lwEnd>=START)cards.push(repCard('الأسبوع الماضي ('+dstr(lw<START?START:lw)+' – '+dstr(lwEnd)+')',weekStats(lw,lwEnd),false));
+  el.innerHTML=cards.join('');
+}
+
+/* ---------- calendar file: every study session from today as an event with a reminder ---------- */
+function icsText(){
+  const TL=timeline(),S=[0,1,2].map(i=>TL.find(r=>r[2]===i)),PR=TL.find(r=>r[2]==='practice');
+  const pad=n=>String(n).padStart(2,'0'),stamp=(d,m)=>d.getFullYear()+pad(d.getMonth()+1)+pad(d.getDate())+'T'+pad(Math.floor(m/60))+pad(m%60)+'00';
+  const e=s=>String(s).replace(/\\/g,'\\\\').replace(/;/g,'\\;').replace(/,/g,'\\,').replace(/\n/g,'\\n');
+  const enc=new TextEncoder();
+  const fold=line=>{let out='',cur='',n=0;for(const ch of line){const b=enc.encode(ch).length;if(n+b>73){out+=cur+'\r\n ';cur='';n=1}cur+=ch;n+=b}return out+cur};
+  const now=new Date(),dt=now.getUTCFullYear()+pad(now.getUTCMonth()+1)+pad(now.getUTCDate())+'T'+pad(now.getUTCHours())+pad(now.getUTCMinutes())+'00Z';
+  const L=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//khotta//plan6sci//AR','CALSCALE:GREGORIAN','X-WR-CALNAME:خطة السادس العلمي'];
+  const ev=(d,a,b,title,desc,uid)=>L.push('BEGIN:VEVENT','UID:'+uid+'@khotta','DTSTAMP:'+dt,'DTSTART:'+stamp(d,a),'DTEND:'+stamp(d,b),'SUMMARY:'+e(title),'DESCRIPTION:'+e(desc),
+    'BEGIN:VALARM','ACTION:DISPLAY','DESCRIPTION:'+e(title),'TRIGGER:-PT5M','END:VALARM','END:VEVENT');
+  let n=0;
+  for(const p of P.days){if(p.past||p.d<TODAY)continue;const k=kk(p.d);
+    p.blocks.forEach((b,j)=>{const r=S[j]||S[2],nm=b.s==='rev'?'مراجعة':C[b.s].name;
+      const desc=b.plain?b.plain:(b.lecs||[]).map(l=>'- '+l.t+' ('+l.m+' د)\n'+V(l.v,P.T[b.s].lists[l.li].id)).join('\n');
+      ev(p.d,r[0],r[1],'دراسة: '+nm,desc,k+'-'+j);n++});
+    if(!p.review){ev(p.d,PR[0],PR[1],'حل تمارين وأسئلة وزارية','حل تمارين الكتاب والأسئلة الوزارية لمحاضرات اليوم',k+'-p');n++}}
+  L.push('END:VCALENDAR');
+  return {text:L.map(fold).join('\r\n')+'\r\n',n};
+}
+$('icsBtn').onclick=()=>{const {text,n}=icsText();if(!n){toast('ماكو أيام جاية بجدولك');return}
+  const url=URL.createObjectURL(new Blob([text],{type:'text/calendar;charset=utf-8'})),a=document.createElement('a');a.href=url;a.download='khotta-plan.ics';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),4000);
+  toast('نزل ملف بيه '+ar(n)+' جلسة. افتحه حتى ينضاف لتقويم جوالك')};
 
 /* ---------- exam countdown ---------- */
 function exam(){
@@ -251,6 +304,12 @@ function notice(force){if(!force&&get(NOTICE))return;if(!force&&!get('plan6sci-d
 $('noticeGo').onclick=()=>{$('notice').hidden=true;put(NOTICE,1);$('teachersSec').scrollIntoView({behavior:'smooth',block:'start'});setTimeout(()=>{const s=document.querySelector('.tsel:not([disabled])');s&&s.focus()},500)};
 $('noticeX').onclick=()=>{$('notice').hidden=true;put(NOTICE,1)};
 $('bell').onclick=()=>notice(true);
+
+/* ---------- font size (saved in this browser, applied before paint by the inline script) ---------- */
+function fontSize(z,say){document.documentElement.style.setProperty('--zoom',z);document.querySelectorAll('.fontsz button').forEach(b=>b.setAttribute('aria-pressed',+b.dataset.z===z));
+  try{localStorage.setItem('plan6sci-font',z)}catch(e){}if(say)toast(z>1?'كبّرنا الخط':'رجع الخط لحجمه العادي')}
+document.querySelectorAll('.fontsz button').forEach(b=>b.onclick=()=>fontSize(+b.dataset.z,true));
+fontSize((()=>{const z=+get('plan6sci-font');return [1,1.12,1.25].includes(z)?z:1})(),false);
 
 // the first-visit card (dream.js) saves the start hour here
 window.PLANAPP={setHour(h){if(HOURS.includes(h)){prefs.hour=h;savePrefs();render()}},getHour:()=>prefs.hour,HOURS};

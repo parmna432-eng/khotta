@@ -157,14 +157,30 @@ tr.off td{opacity:.55}
 .hl-t{display:flex;align-items:center;gap:6px;color:var(--today);font-weight:600;font-size:13px}
 .hl-t svg{width:15px;height:15px}
 @media (prefers-reduced-motion:reduce){.sb-t i{transition:none}}
+.reps{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:10px}
+.rep{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px 16px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.rep-k{font-size:13px;color:var(--muted)}
+.rep-v{font-family:var(--display);font-size:20px;font-weight:800}
+.rep-l{font-size:14px}
+.rep-m{font-size:13px;color:var(--muted)}
+.ics{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center}
+.ics .alt{flex:1 1 280px}
+.wrap{zoom:var(--zoom,1)}
+.fontsz{display:flex;align-items:center;gap:4px;align-self:flex-end;font-size:12px;color:var(--muted)}
+.fontsz span{margin-inline-end:4px}
+.fontsz button{font-family:var(--display);font-weight:800;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:8px;min-width:34px;height:34px;padding:0 6px;cursor:pointer;line-height:1}
+.fontsz button:nth-of-type(1){font-size:13px}.fontsz button:nth-of-type(2){font-size:16px}.fontsz button:nth-of-type(3){font-size:19px}
+.fontsz button[aria-pressed="true"]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
 </style>
-<link rel="stylesheet" href="dream.css?v=12">
+<link rel="stylesheet" href="dream.css?v=14">
 <script>try{const p=JSON.parse(localStorage.getItem('plan6sci-dream'));if(p&&p.fam&&p.fam!=='other')document.documentElement.dataset.dream=p.fam}catch(e){}</script>
+<script>try{const z=+localStorage.getItem('plan6sci-font');if(z>1)document.documentElement.style.setProperty('--zoom',z)}catch(e){}</script>
 
 </head>
 <body>
 <div class="wrap">
   <header>
+    <div class="fontsz" role="group" aria-label="حجم الخط"><span>حجم الخط</span><button type="button" data-z="1" aria-label="خط عادي">أ</button><button type="button" data-z="1.12" aria-label="خط أكبر">أ</button><button type="button" data-z="1.25" aria-label="خط كبير">أ</button></div>
     <h1 id="hTitle">خطة السادس العلمي</h1>
     <p class="sub">كل محاضرة مكتوبة باسمها ومدتها ورابطها، ومرتبة على الأيام حسب وقت الفيديو حتى يتوزع الحمل بالتساوي. الفصول ١–٣ للرياضيات والفيزياء والأحياء والكيمياء، اليونتات ١–٣ للإنكليزي، الوحدات ١–٣ للإسلامية، وكتاب العربي كامل. آخر ستة أيام مراجعة نهائية. تكدر تختار مدرس بديل لأي مادة، وتضيف أو تشيل مواد، والجدول ينبني من جديد على اختيارك.</p>
     <div class="stats">
@@ -198,6 +214,11 @@ tr.off td{opacity:.55}
       </div>
     </div>
     <button class="chip" type="button" id="lateUndo" hidden>تراجع للترتيب الأصلي</button>
+  </section>
+
+  <section aria-labelledby="repH">
+    <h2 id="repH">تقرير الأسبوع</h2>
+    <div class="reps" id="weekRep"></div>
   </section>
 
   <section id="teachersSec">
@@ -259,6 +280,8 @@ tr.off td{opacity:.55}
     <h2>يومك الدراسي</h2>
     <p class="sub">اختار الساعة اللي تبدي بيها دراستك بالعادة، وأوقات يومك وجلسات الجدول كلها تتحسب عليها. حوالي ١٠ ساعات دراسة، وداخل كل جلسة ٥٠ دقيقة دراسة و١٠ دقايق استراحة.</p>
     <div class="hour-box" id="hourBox" role="group" aria-label="ساعة بداية الدراسة"></div>
+    <div class="ics"><button class="chip solid" type="button" id="icsBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4M12 13v5M9.5 15.5h5"/></svg>أضف جلساتي لتقويم الجوال</button>
+      <span class="alt">ينزل ملف بكل جلسات دراستك من اليوم لآخر الخطة، وكل جلسة يجيك تنبيه قبلها بـ ٥ دقايق حتى لو الموقع مسدود. افتح الملف واختار التقويم. إذا غيّرت ساعة البداية أو المدرسين أو رتبت جدولك من جديد، احذف التقويم القديم ونزّل ملف جديد.</span></div>
     <div class="tbl"><table class="tt" style="min-width:0"><tbody id="ttBody"></tbody></table></div>
     <p class="note">كل يوم بالجدول تحت مكتوب جنب كل مادة وقت جلستها. إذا فيديوهات المادة أطول من الجلسة، مكتوب جنبها بأي سرعة تشغلها حتى تلحك. الجمعة نفس الأوقات، والجلسة الثالثة بيها مراجعة الأسبوع.</p>
   </section>
@@ -285,9 +308,9 @@ tr.off td{opacity:.55}
 </div>
 <div class="toast" id="toast" role="status" hidden></div>
 
-<script src="data.js?v=12"></script>
-<script src="plan.js?v=12"></script>
-<script src="dream.js?v=12"></script>
+<script src="data.js?v=14"></script>
+<script src="plan.js?v=14"></script>
+<script src="dream.js?v=14"></script>
 
 </body>
 </html>

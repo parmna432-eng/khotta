@@ -22,7 +22,7 @@ const FAM={
   engineer:{label:'هندسة',icon:'<path d="M12 3l-8 18M12 3l8 18M7 14h10"/><circle cx="12" cy="3" r="1.5"/>',depts:[
     ['هندسة مدنية','كلية الهندسة','م.'],['هندسة معمارية','كلية الهندسة','م.'],['هندسة كهربائية','كلية الهندسة','م.'],['هندسة ميكانيكية','كلية الهندسة','م.'],
     ['هندسة نفط','كلية هندسة النفط','م.'],['هندسة كيمياوية','كلية الهندسة','م.'],['هندسة الاتصالات','كلية الهندسة','م.'],['هندسة طبية','الهندسة الطبية الحياتية','م.'],
-    ['هندسة المواد','كلية هندسة المواد','م.'],['هندسة البيئة','كلية الهندسة','م.'],['هندسة المساحة','كلية الهندسة','م.'],['هندسة الطيران','كلية الهندسة','م.']]},
+    ['هندسة المواد','كلية هندسة المواد','م.'],['هندسة البيئة','كلية الهندسة','م.'],['هندسة المساحة','كلية الهندسة','م.'],['هندسة الطيران','كلية الهندسة','م.'],['هندسة الطائرات المسيّرة','كلية الهندسة','م.']]},
   coder:{label:'حاسوب وبرمجة',icon:'<path d="M8 7l-5 5 5 5M16 7l5 5-5 5M14 4l-4 16"/>',depts:[
     ['هندسة الحاسوب','كلية الهندسة','م.'],['هندسة البرمجيات','كلية الهندسة','م.'],['علوم الحاسوب','كلية علوم الحاسوب',''],
     ['تكنولوجيا المعلومات','كلية تكنولوجيا المعلومات',''],['الذكاء الاصطناعي','قسم الذكاء الاصطناعي',''],['الأمن السيبراني','قسم الأمن السيبراني','']]},
@@ -59,6 +59,11 @@ const socials=()=>`<a class="chip" href="${IG}" target="_blank" rel="noopener">$
 foot.innerHTML=`<span>تابعنا للتحديثات والملازم:</span>${socials()}<small class="foot-note">الموقع يحسب عدد الزيارات بس، بدون أي معلومات شخصية. تقدمك وحلمك ينحفظون بجهازك وما يطلعون منه.</small>`;
 
 function famOf(){return prof&&Object.prototype.hasOwnProperty.call(FAM,prof.fam)?prof.fam:'other'}
+// drone engineering is a department of the engineering family, but it gets a world of its own
+const DRONE='هندسة الطائرات المسيّرة';
+const themeFor=(fam,dept)=>fam==='engineer'&&dept===DRONE?'drone':fam;
+function themeOf(){return themeFor(famOf(),prof&&prof.dept)}
+const DRONE_ICON='<rect x="9" y="9" width="6" height="6" rx="1.5"/><path d="M9.5 9.5 7 7M14.5 9.5 17 7M9.5 14.5 7 17M14.5 14.5 17 17"/><circle cx="5" cy="5" r="3"/><circle cx="19" cy="5" r="3"/><circle cx="5" cy="19" r="3"/><circle cx="19" cy="19" r="3"/>';
 function goalText(){if(!prof)return'';const d=FAM[famOf()].depts.find(x=>x[0]===prof.dept);if(prof.dept==='حلم ثاني')return prof.custom||'حلمك';return d&&d[1]?prof.dept+' · '+d[1]:prof.dept}
 function hello(){if(!prof)return'';const d=FAM[famOf()].depts.find(x=>x[0]===prof.dept);const t=d&&d[2]?d[2]+' ':'';return 'هلا '+t+esc(prof.name)}
 
@@ -96,7 +101,7 @@ function badgeList(){
   ];
   return L;
 }
-const medal=(cls='')=>`<span class="medal ${cls}">${svg(FAM[famOf()].icon)}</span>`;
+const medal=(cls='')=>`<span class="medal ${cls}">${svg(themeOf()==='drone'?DRONE_ICON:FAM[famOf()].icon)}</span>`;
 function badgeShelf(){
   const el=document.getElementById('badges');if(!el)return;
   const L=badgeList(),got=L.filter(b=>b.ok),next=L.filter(b=>!b.ok),shown=showAll?L:got.concat(next.slice(0,3));
@@ -122,7 +127,12 @@ function checkBadges(){
 /* ---------- meters ---------- */
 const MILES=[[100,'خلصت الخطة كلها. هذا تعبك وهذا حلمك.'],[75,'قربت هواية، بس ثلاث أرباع الطريق خلصت.'],[50,'نص الطريق خلص. هسه لا توكف.'],[25,'ربع الطريق خلص. كمل بنفس الهمة.'],[1,'بديت، وهذا أهم شي.'],[0,'أول محاضرة هي أصعب وحدة. يلا نبدي.']];
 function meterHTML(p){
-  const f=famOf();
+  const f=themeOf();
+  if(f==='drone'){ // the drone flies its route from the base to the target as the plan gets done
+    return `<div class="row"><div class="big"><span id="num">${ar(p)}</span>٪</div><div style="flex:1;min-width:0"><div class="flight"><span class="fpath"></span><span class="fdone" style="width:${p}%"></span>
+      <svg class="ftarget" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/><path d="M12 1v5M12 18v5M1 12h5M18 12h5"/></svg>
+      <svg class="fdrone" style="right:${p}%" viewBox="0 0 48 26" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M2 5h13M33 5h13M8 5v4M40 5v4M5 9h38"/><rect x="14" y="9" width="20" height="8" rx="4" fill="currentColor"/><path d="M17 21h9l3 1.5-3 1.5h-9z" fill="currentColor"/><path d="M20 17v4"/></svg></div>
+      <p style="margin:6px 0 0;color:var(--muted);font-size:13px">المسيّرة توصل للهدف لمن تخلص المنهج</p></div></div>`}
   if(f==='doctor')return `<div class="mon"><div class="mon-h"><span>DREAM · HR</span><span>نبض حلمك</span></div><svg class="ecg" viewBox="0 0 420 56" preserveAspectRatio="none"><path d="M0 30H50l6-4 6 4h10l6-22 7 42 6-26h18l10-6 10 6h40l6-4 6 4h10l6-22 7 42 6-26h18l10-6 10 6h40l6-4 6 4h10l6-22 7 42 6-26h18l10-6 10 6H420"/></svg><div class="mon-v"><b id="num">${ar(p)}</b><small>%</small></div><div class="mon-bar"><i style="width:${p}%"></i></div></div>`;
   if(f==='dentist'){const on=Math.round(p/100*16);let t='';for(let i=0;i<16;i++)t+=`<svg viewBox="0 0 24 28" class="${i<on?'on':''}"><path d="M7 2c-3 0-5 3-4 7 1 3 1 6 2 11 1 4 4 4 4 0l1-4h4l1 4c0 4 3 4 4 0 1-5 1-8 2-11 1-4-1-7-4-7-2 0-3 1-5 1S9 2 7 2z"/></svg>`;
     return `<div class="row"><div class="big"><span id="num">${ar(p)}</span>٪</div><div style="flex:1;min-width:0"><div class="teeth">${t}</div><p class="s" style="margin:6px 0 0;color:var(--muted);font-size:13px">كل سن يتلوّن يعني خلصت جزء من المنهج</p></div></div>`}
@@ -257,6 +267,7 @@ function openOnb(){
   onb.innerHTML=`<form class="onb-card" role="dialog" aria-modal="true" aria-labelledby="onbT" novalidate>
     <p class="eyebrow">خطة السادس العلمي</p><h2 id="onbT">قبل لا نبدي، عرّفنا بنفسك</h2>
     <label for="onbName">اسمك</label><input id="onbName" maxlength="24" autocomplete="given-name" value="${prof?esc(prof.name):''}">
+    <p class="lbl" id="onbGL">الجنس</p><div class="hours-pick" id="onbGender" role="group" aria-labelledby="onbGL"><button type="button" data-g="m" aria-pressed="${prof&&prof.gender==='m'}">ذكر</button><button type="button" data-g="f" aria-pressed="${prof&&prof.gender==='f'}">أنثى</button></div>
     <p class="lbl">شنو حلمك؟</p>
     <div class="dream-grid">${Object.entries(FAM).map(([k,f])=>`<button type="button" data-f="${k}" aria-pressed="${k===fam}">${svg(f.icon)}<span>${f.label}</span></button>`).join('')}</div>
     <p class="lbl" id="deptL" hidden>اختار القسم</p><div class="dept" id="dept"></div>
@@ -269,19 +280,21 @@ function openOnb(){
   document.body.appendChild(onb);
   const $=s=>onb.querySelector(s);
   const drawDept=()=>{const box=$('#dept');$('#deptL').hidden=!fam;box.innerHTML=fam?FAM[fam].depts.map(d=>`<button type="button" aria-pressed="${d[0]===dept}">${d[0]}</button>`).join(''):'';
-    box.querySelectorAll('button').forEach(b=>b.onclick=()=>{dept=b.textContent;box.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',x===b));$('#otherW').hidden=dept!=='حلم ثاني'});
+    box.querySelectorAll('button').forEach(b=>b.onclick=()=>{dept=b.textContent;box.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',x===b));$('#otherW').hidden=dept!=='حلم ثاني';previewFam(themeFor(fam,dept))});
     $('#otherW').hidden=dept!=='حلم ثاني'};
   onb.querySelectorAll('.dream-grid button').forEach(b=>b.onclick=()=>{fam=b.dataset.f;dept='';onb.querySelectorAll('.dream-grid button').forEach(x=>x.setAttribute('aria-pressed',x===b));drawDept();previewFam(fam)});
   drawDept();
+  let gender=prof&&(prof.gender==='m'||prof.gender==='f')?prof.gender:'';
+  onb.querySelectorAll('#onbGender button').forEach(b=>b.onclick=()=>{gender=b.dataset.g;onb.querySelectorAll('#onbGender button').forEach(x=>x.setAttribute('aria-pressed',x===b));setGender(gender)});
   let hour=prof&&window.PLANAPP?PLANAPP.getHour():0;
   onb.querySelectorAll('#onbHours button').forEach(b=>b.onclick=()=>{hour=+b.dataset.h;onb.querySelectorAll('#onbHours button').forEach(x=>x.setAttribute('aria-pressed',x===b))});
-  if($('#onbX'))$('#onbX').onclick=()=>{closeOnb();applyTheme(famOf())};
+  if($('#onbX'))$('#onbX').onclick=()=>{closeOnb();setGender(prof.gender);applyTheme(themeOf())};
   $('form').onsubmit=e=>{e.preventDefault();
     const name=$('#onbName').value.trim(),other=$('#onbOther').value.trim(),err=$('#onbErr');
-    const msg=!name?'اكتب اسمك حتى نبدي':!fam?'اختار مجال حلمك':!dept?'اختار القسم اللي تحلم بيه':(dept==='حلم ثاني'&&!other)?'اكتب حلمك':!hour?'اختار الساعة اللي تبدي بيها دراستك':'';
+    const msg=!name?'اكتب اسمك حتى نبدي':!gender?'اختار ذكر لو أنثى':!fam?'اختار مجال حلمك':!dept?'اختار القسم اللي تحلم بيه':(dept==='حلم ثاني'&&!other)?'اكتب حلمك':!hour?'اختار الساعة اللي تبدي بيها دراستك':'';
     if(msg){err.textContent=msg;err.hidden=false;return}
-    prof={name,fam,dept,custom:dept==='حلم ثاني'?other:''};put(KEY,prof);
-    const r=$('.go').getBoundingClientRect();transition(()=>{closeOnb();setFam(fam);if(window.PLANAPP)PLANAPP.setHour(hour);render();document.dispatchEvent(new CustomEvent('dreamsaved'))},r.left+r.width/2,r.top+r.height/2)};
+    prof={name,gender,fam,dept,custom:dept==='حلم ثاني'?other:''};put(KEY,prof);
+    const r=$('.go').getBoundingClientRect();transition(()=>{closeOnb();setGender(gender);setFam(themeOf());if(window.PLANAPP)PLANAPP.setHour(hour);render();document.dispatchEvent(new CustomEvent('dreamsaved'))},r.left+r.width/2,r.top+r.height/2)};
   setTimeout(()=>$('#onbName').focus(),50);
 }
 function closeOnb(){if(onb){onb.remove();onb=null}}
@@ -294,6 +307,8 @@ function transition(run,x,y){
   if(document.startViewTransition&&!reduce)document.startViewTransition(run);else run();
 }
 function applyTheme(f){setFam(f)}
+// every world has a male and a female palette (dream.css); the background redraws with the new colours
+function setGender(g){if(g==='f')root.dataset.gender='f';else delete root.dataset.gender;if(typeof fx!=='undefined')fx.start(root.dataset.dream||'other')}
 
 /* ---------- interactive backgrounds ---------- */
 const fx=(()=>{
@@ -363,6 +378,30 @@ const fx=(()=>{
         for(let i=0;i<3;i++){const ang=a.t*(1+i*.3)+i*2,rot=i*Math.PI/3,ex=Math.cos(ang)*a.R,ey=Math.sin(ang)*a.R*.38;
           ctx.beginPath();ctx.arc(a.x+ex*Math.cos(rot)-ey*Math.sin(rot),a.y+ex*Math.sin(rot)+ey*Math.cos(rot),2.6,0,7);ctx.fill()}}
       ctx.globalAlpha=1},
+    drone(){ // drones crossing the sky with blinking lights; now and then one fires a missile, and a tap sends one at that spot
+      if(!st.d){st.c=col('--accent');st.k=col('--ink');st.d=[];st.m=[];st.sp=[];st.rings=[];st.next=0;st.f=0}
+      st.f++;const n=W<700?3:5;
+      if(st.d.length<n&&--st.next<=0){const dir=Math.random()<.5?1:-1;st.d.push({x:dir>0?-60:W+60,y:rnd(H*.12,H*.7),dir,v:rnd(.5,1.1),s:rnd(.8,1.3),b:rnd(0,6.3),cool:rnd(120,400)});st.next=rnd(60,180)}
+      const fire=(d,tx,ty)=>{const a=Math.atan2(ty-d.y,tx-d.x);st.m.push({x:d.x,y:d.y+8*d.s,a,v:1.5,tx,ty})};
+      if(ptr.tap){ptr.tap=false;let best=null,bd=1e9;for(const d of st.d){const k=Math.hypot(d.x-ptr.x,d.y-ptr.y);if(k<bd){bd=k;best=d}}if(best)fire(best,ptr.x,ptr.y)}
+      ctx.clearRect(0,0,W,H);
+      st.d=st.d.filter(d=>{d.x+=d.v*d.dir;d.b+=.05;const y=d.y+Math.sin(d.b)*4;
+        if(--d.cool<=0){d.cool=rnd(300,700);fire(d,d.x+d.dir*rnd(250,500),Math.min(H-20,y+rnd(80,220)))}
+        ctx.save();ctx.translate(d.x,y);ctx.scale(d.s*d.dir,d.s);ctx.globalAlpha=.38;ctx.strokeStyle=st.k;ctx.fillStyle=st.k;ctx.lineWidth=2;ctx.lineCap='round';
+        ctx.beginPath();ctx.moveTo(-24,-6);ctx.lineTo(24,-6);ctx.moveTo(-20,-6);ctx.lineTo(-20,-11);ctx.moveTo(20,-6);ctx.lineTo(20,-11);ctx.stroke();
+        const sw=13*Math.abs(Math.sin(st.f*.6));ctx.beginPath();ctx.ellipse(-20,-12,sw+1,1.6,0,0,7);ctx.ellipse(20,-12,sw+1,1.6,0,0,7);ctx.fill();
+        ctx.beginPath();ctx.roundRect(-11,-6,22,9,4.5);ctx.fill();ctx.beginPath();ctx.roundRect(-7,5,13,3,1.5);ctx.fill();
+        const on=Math.floor(st.f/24)%2;ctx.globalAlpha=on?.9:.25;ctx.fillStyle='#ff3b3b';ctx.beginPath();ctx.arc(-24,-6,2,0,7);ctx.fill();ctx.fillStyle='#3bff7a';ctx.beginPath();ctx.arc(24,-6,2,0,7);ctx.fill();
+        ctx.restore();return d.x>-80&&d.x<W+80});
+      st.m=st.m.filter(m=>{m.v=Math.min(7,m.v+.12);m.x+=Math.cos(m.a)*m.v;m.y+=Math.sin(m.a)*m.v;
+        st.sp.push({x:m.x-Math.cos(m.a)*10,y:m.y-Math.sin(m.a)*10,a:.5,r:rnd(1.5,3),fire:true},{x:m.x-Math.cos(m.a)*14,y:m.y-Math.sin(m.a)*14,a:.25,r:rnd(3,5)});
+        ctx.save();ctx.translate(m.x,m.y);ctx.rotate(m.a);ctx.globalAlpha=.75;ctx.fillStyle=st.k;ctx.beginPath();ctx.roundRect(-8,-2,14,4,2);ctx.fill();
+        ctx.fillStyle=st.c;ctx.beginPath();ctx.moveTo(6,-2);ctx.lineTo(11,0);ctx.lineTo(6,2);ctx.fill();ctx.fillRect(-8,-4,3,8);ctx.restore();
+        const hit=Math.hypot(m.tx-m.x,m.ty-m.y)<8;if(hit)st.rings.push({x:m.tx,y:m.ty,r:4,a:.8});return !hit&&m.x>-40&&m.x<W+40&&m.y>-40&&m.y<H+40});
+      st.sp=st.sp.filter(p=>{p.a-=.015;p.r+=p.fire?0:.12;ctx.globalAlpha=Math.max(0,p.a);ctx.fillStyle=p.fire?'#ffb347':st.k;if(!p.fire)ctx.globalAlpha*=.35;ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,7);ctx.fill();return p.a>0});
+      st.rings=st.rings.filter(r=>{r.r+=1.6;r.a-=.02;ctx.globalAlpha=Math.max(0,r.a);ctx.strokeStyle=st.c;ctx.lineWidth=2;ctx.beginPath();ctx.arc(r.x,r.y,r.r,0,7);ctx.stroke();
+        ctx.beginPath();ctx.moveTo(r.x-r.r-6,r.y);ctx.lineTo(r.x-r.r+4,r.y);ctx.moveTo(r.x+r.r-4,r.y);ctx.lineTo(r.x+r.r+6,r.y);ctx.stroke();return r.a>0});
+      ctx.globalAlpha=1},
     politics(){ // the Iraqi flag drawn in LED dots waving at the top, rockets launching from the bottom; a tap launches one from that spot
       const kufi=!!(document.fonts&&document.fonts.check('800 15px "Noto Kufi Arabic"'));
       if(!st.led||(kufi&&!st.kufi)){st.kufi=kufi;
@@ -406,6 +445,6 @@ const fx=(()=>{
 })();
 
 /* ---------- boot ---------- */
-setFam(famOf());render();checkBadges();
-if(!prof)openOnb();
+setGender(prof&&prof.gender);setFam(themeOf());render();checkBadges();
+if(!prof||(prof.gender!=='m'&&prof.gender!=='f'))openOnb();
 })();

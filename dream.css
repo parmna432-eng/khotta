@@ -33,6 +33,30 @@ body,.day,.tip,.stat,.tbl,.wk,.note,.subj,.date,.dream,.mini{transition:backgrou
 :root[data-dream="coder"] body{background-image:none}
 :root[data-dream="coder"] .dd,:root[data-dream="coder"] .stat b{font-family:"IBM Plex Mono",ui-monospace,monospace}
 
+/* مهندس طائرات مسيّرة: سماء ليلية وشعلة المحرك */
+:root[data-dream="drone"]{--paper:#0e1622;--grid:rgba(255,255,255,.04);--card:#152132;--ink:#e8eef6;--muted:#93a4ba;--line:#26364c;--accent:#ff8a3d;--accent-soft:#2a2018;--done:#6fd39a;--today:#ffcf5a;--warn-soft:#2b2214;
+  --math:#8fc1ff;--phys:#ff9fcf;--bio:#6fd39a;--chem:#c9a4ff;--eng:#ffc58a;--isl:#5fd6cc;--ar:#ff98ab;--rev:#a9b5c4;color-scheme:dark}
+:root[data-dream="drone"] body{background-image:radial-gradient(rgba(255,255,255,.08) 1px,transparent 1px);background-size:38px 38px}
+.flight{position:relative;height:60px}
+.fpath{position:absolute;inset-inline:14px 0;top:50%;border-top:2px dashed var(--line)}
+.fdone{position:absolute;right:0;top:50%;height:2px;margin-top:-1px;background:var(--accent);transition:width .8s ease}
+.fdrone{position:absolute;top:50%;width:46px;height:25px;color:var(--accent);transform:translate(50%,-50%);transition:right .8s ease}
+.ftarget{position:absolute;left:0;top:50%;width:26px;height:26px;color:var(--muted);transform:translateY(-50%)}
+
+/* الإناث: نفس عالم كل حلم بألوان وردية وبنفسجية */
+:root[data-gender="f"]:not([data-dream]){--paper:#fbf5f8;--grid:#f1e3ea;--card:#ffffff;--ink:#331b29;--muted:#7a5c6c;--line:#ecd8e2;--accent:#b03f78;--accent-soft:#f7e1ec;--done:#2f7d4f;--today:#c9582b;--warn-soft:#fbeee6;--math:#b03f78}
+@media (prefers-color-scheme: dark){:root[data-gender="f"]:not([data-dream]):not([data-theme="light"]){--paper:#17111a;--grid:#221a26;--card:#1e1622;--ink:#f1e8ef;--muted:#b49fb0;--line:#382a3c;--accent:#ec8cbf;--accent-soft:#33202d;--done:#5fc28a;--today:#f08a5d;--warn-soft:#2d2219;--math:#ec8cbf}}
+:root[data-gender="f"][data-dream="doctor"]{--paper:#fbf3f5;--grid:#f2e2e7;--card:#ffffff;--ink:#3a1824;--muted:#7a5866;--line:#ecd6dd;--accent:#c2416f;--accent-soft:#f9e3ea;--done:#2f8a6e;--today:#d0512f;--warn-soft:#fcebe6}
+:root[data-gender="f"][data-dream="dentist"]{--paper:#f8f5fc;--grid:#ebe4f5;--card:#ffffff;--ink:#2a1f3d;--muted:#6c6182;--line:#e2d9ef;--accent:#8b5cc4;--accent-soft:#efe6fa;--done:#2f8f86;--today:#d9694c;--warn-soft:#fcefe9}
+:root[data-gender="f"][data-dream="pharma"]{--paper:#fbf6f3;--grid:#f1e6df;--card:#ffffff;--ink:#33221c;--muted:#7a645a;--line:#ead9cf;--accent:#c0566e;--accent-soft:#f7e4e6;--done:#4f8a5a;--today:#c0442e;--warn-soft:#f8ebe7}
+:root[data-gender="f"][data-dream="science"]{--paper:#fcf4f2;--grid:#f1e1dc;--card:#fffbfa;--ink:#33201d;--muted:#7a5f59;--line:#ead6cf;--accent:#c0507a;--accent-soft:#f8e2ea;--done:#4f8a5a;--today:#b23b2a;--warn-soft:#f8ebe2}
+:root[data-gender="f"][data-dream="engineer"]{--paper:#3b1d55;--card:#48256a;--ink:#f7eefc;--muted:#cdb5df;--line:#6a4590;--accent:#ffb3d9;--accent-soft:#55307a;--done:#a6e3b0;--today:#ffc27a;--warn-soft:#57355f;--math:#a9cbff;--phys:#ffb8d8;--bio:#a3e0a0;--chem:#d6b8ff;--eng:#f7c88f;--isl:#86ddd1;--ar:#ffa4b5;--rev:#cbbfd0;color-scheme:dark}
+:root[data-gender="f"][data-dream="coder"]{--paper:#120c14;--card:#1a1220;--ink:#ecdcef;--muted:#a28aa8;--line:#33243a;--accent:#ff7ac8;--accent-soft:#2b1626;--done:#ff7ac8;--today:#f2be4e;--warn-soft:#261d12;--math:#a9cbff;--phys:#ffb8d8;--bio:#a3e0a0;--chem:#d6b8ff;--eng:#f7c88f;--isl:#86ddd1;--ar:#ffa4b5;--rev:#cbbfd0;color-scheme:dark}
+:root[data-gender="f"][data-dream="politics"]{--paper:#120b12;--card:#1c121b;--ink:#f3e9f0;--muted:#b39aad;--line:#3a2536;--accent:#f0506e;--accent-soft:#33161f;--math:#a9cbff;--phys:#ffb8d8;--bio:#a3e0a0;--chem:#d6b8ff;--eng:#f7c88f;--isl:#86ddd1;--ar:#ffa4b5;--rev:#cbbfd0;color-scheme:dark}
+:root[data-gender="f"][data-dream="military"]{--paper:#2f2530;--card:#3b2e3c;--ink:#f1e6ee;--muted:#c3aebd;--line:#574456;--accent:#e8b4c8;--accent-soft:#4a3a4b;--done:#b8d99a;--today:#f0a070;--warn-soft:#463a33;--math:#a9cbff;--phys:#ffb8d8;--bio:#a3e0a0;--chem:#d6b8ff;--eng:#f7c88f;--isl:#86ddd1;--ar:#ffa4b5;--rev:#cbbfd0;color-scheme:dark}
+:root[data-gender="f"][data-dream="teacher"]{--paper:#3a2440;--card:#452c4c;--ink:#f8eff6;--muted:#d1bccc;--line:#634468;--accent:#ffd1e6;--accent-soft:#50345a;--done:#c5ecbd;--today:#f6ac7d;--warn-soft:#4b3a45;--math:#a9cbff;--phys:#ffb8d8;--bio:#a3e0a0;--chem:#d6b8ff;--eng:#f7c88f;--isl:#86ddd1;--ar:#ffa4b5;--rev:#cbbfd0;color-scheme:dark}
+:root[data-gender="f"][data-dream="drone"]{--paper:#1a1024;--card:#24173a;--ink:#f3ecf8;--muted:#b7a5c9;--line:#3b2a52;--accent:#ff6fae;--accent-soft:#3a1f37;--done:#7fdcae;--today:#ffcf5a;--warn-soft:#33222c;--math:#a9cbff;--phys:#ffb8d8;--bio:#a3e0a0;--chem:#d6b8ff;--eng:#f7c88f;--isl:#86ddd1;--ar:#ffa4b5;--rev:#cbbfd0;color-scheme:dark}
+
 /* theme switch: the new world opens as a circle from where the student tapped */
 ::view-transition-old(root),::view-transition-new(root){animation:none;mix-blend-mode:normal}
 ::view-transition-new(root){animation:dream-reveal .9s cubic-bezier(.7,0,.2,1)}

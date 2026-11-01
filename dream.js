@@ -56,7 +56,7 @@ const tgIcon=svg('<path d="M21 4L3 11l6 2 2 6 3-4 5 4z"/><path d="M9 13l10-7"/>'
 const shareIcon=svg('<path d="M12 15V3M7 8l5-5 5 5"/><path d="M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/>');
 const SITE='parmna432-eng.github.io/khotta';
 const socials=()=>`<a class="chip" href="${IG}" target="_blank" rel="noopener">${igIcon}انستغرام</a>${TG?`<a class="chip" href="${TG}" target="_blank" rel="noopener">${tgIcon}قناة التليكرام</a>`:''}`;
-foot.innerHTML=`<span>تابعنا للتحديثات والملازم:</span>${socials()}`;
+foot.innerHTML=`<span>تابعنا للتحديثات والملازم:</span>${socials()}<small class="foot-note">الموقع يحسب عدد الزيارات بس، بدون أي معلومات شخصية. تقدمك وحلمك ينحفظون بجهازك وما يطلعون منه.</small>`;
 
 function famOf(){return prof&&FAM[prof.fam]?prof.fam:'other'}
 function goalText(){if(!prof)return'';const d=FAM[famOf()].depts.find(x=>x[0]===prof.dept);if(prof.dept==='حلم ثاني')return prof.custom||'حلمك';return d&&d[1]?prof.dept+' · '+d[1]:prof.dept}

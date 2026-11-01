@@ -145,3 +145,4 @@ body,.day,.tip,.stat,.tbl,.wk,.note,.subj,.date,.dream,.mini{transition:backgrou
 .bdg-card .story-acts{justify-content:center}
 @keyframes bdg-in{from{transform:scale(.4);opacity:0}to{transform:none;opacity:1}}
 @media (prefers-reduced-motion:reduce){.medal.big{animation:none}}
+.foot-note{flex-basis:100%;text-align:center;font-size:12px;opacity:.85}

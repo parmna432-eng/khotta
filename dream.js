@@ -53,6 +53,8 @@ const header=document.querySelector('header');header.after(panel);
 const foot=document.createElement('footer');foot.className='foot';document.querySelector('.wrap').appendChild(foot);
 const igIcon=svg('<rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.3" cy="6.7" r=".8"/>');
 const tgIcon=svg('<path d="M21 4L3 11l6 2 2 6 3-4 5 4z"/><path d="M9 13l10-7"/>');
+const shareIcon=svg('<path d="M12 15V3M7 8l5-5 5 5"/><path d="M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/>');
+const SITE='parmna432-eng.github.io/khotta';
 const socials=()=>`<a class="chip" href="${IG}" target="_blank" rel="noopener">${igIcon}انستغرام</a>${TG?`<a class="chip" href="${TG}" target="_blank" rel="noopener">${tgIcon}قناة التليكرام</a>`:''}`;
 foot.innerHTML=`<span>تابعنا للتحديثات والملازم:</span>${socials()}`;
 
@@ -64,10 +66,11 @@ function render(){
   if(!prof){panel.innerHTML=`<div class="dream-top"><div><p class="eyebrow">حلمك</p><h2>اكتب اسمك واختار حلمك</h2></div><div class="dream-actions"><button class="chip solid" type="button" id="dStart">ابدأ</button>${socials()}</div></div>`;
     panel.querySelector('#dStart').onclick=()=>openOnb();return}
   panel.innerHTML=`<div class="dream-top"><div><p class="eyebrow">${esc(goalText())}</p><h2>${hello()}، كل محاضرة تقربك من حلمك</h2></div>
-    <div class="dream-actions"><button class="chip" type="button" id="dChange">غيّر الحلم</button>${socials()}</div></div>
+    <div class="dream-actions"><button class="chip solid" type="button" id="dShare">${shareIcon}شارك تقدمك</button><button class="chip" type="button" id="dChange">غيّر الحلم</button>${socials()}</div></div>
     <div class="meter" id="meter"></div><p class="milestone" id="mile"></p>
     <div class="minis"><div class="mini" id="mNow"></div><div class="mini" id="mStreak"></div><div class="mini" id="mQuote"></div></div>`;
   panel.querySelector('#dChange').onclick=()=>openOnb();
+  panel.querySelector('#dShare').onclick=()=>openStory();
   meter(true);nowCard();streakCard();quoteCard();
 }
 
@@ -118,17 +121,77 @@ function nowCard(){
   }
   el.innerHTML=`<span class="k">هسه وقت</span><span class="v">${esc(v)}</span>${s?`<span class="s">${esc(s)}</span>`:''}`;
 }
-function streakCard(){
-  const el=document.getElementById('mStreak');if(!el)return;
+function streakN(){
   const days=new Set(get(DAYS)||[]);let n=0;const d=new Date();
   if(!days.has(dayKey(d)))d.setDate(d.getDate()-1);
   while(days.has(dayKey(d))){n++;d.setDate(d.getDate()-1)}
+  return n;
+}
+function streakCard(){
+  const el=document.getElementById('mStreak');if(!el)return;
+  const n=streakN();
   el.innerHTML=`<span class="k">أيام الالتزام ورا بعض</span><span class="v">${n?ar(n)+(n===1?' يوم':n<11?' أيام':' يوم'):'ابدأ اليوم'}</span><span class="s">${n?'أشّر محاضرة اليوم حتى ما ينقطع العداد':'أشّر أول محاضرة تخلصها'}</span>`;
 }
 function quoteCard(){
   const el=document.getElementById('mQuote');if(!el)return;
   const s=new Date(),i=Math.floor((s-new Date(s.getFullYear(),0,0))/864e5)%QUOTES.length;
   el.innerHTML=`<span class="k">جملة اليوم</span><span class="v">${QUOTES[i]}</span>`;
+}
+/* ---------- story image: a 1080x1920 card of the student's progress in their dream colours, to post on Instagram ---------- */
+async function drawStory(){
+  const W=1080,H=1920,c=document.createElement('canvas');c.width=W;c.height=H;const x=c.getContext('2d');
+  const cs=getComputedStyle(root),v=(n,f)=>cs.getPropertyValue(n).trim()||f;
+  const paper=v('--paper','#111821'),card=v('--card','#17212d'),ink=v('--ink','#e6edf5'),mut=v('--muted','#9aabbe'),acc=v('--accent','#6aa5ec'),line=v('--line','#2a3848');
+  const K='"Noto Kufi Arabic", "Segoe UI", Tahoma, sans-serif',B='"IBM Plex Sans Arabic", "Segoe UI", Tahoma, sans-serif';
+  try{await Promise.all(['800 60px "Noto Kufi Arabic"','600 40px "IBM Plex Sans Arabic"','500 40px "IBM Plex Sans Arabic"'].map(f=>document.fonts.load(f)))}catch(e){}
+  x.fillStyle=paper;x.fillRect(0,0,W,H);
+  x.strokeStyle=line;x.globalAlpha=.35;x.lineWidth=2;for(let i=48;i<W;i+=48){x.beginPath();x.moveTo(i,0);x.lineTo(i,H);x.stroke()}for(let j=48;j<H;j+=48){x.beginPath();x.moveTo(0,j);x.lineTo(W,j);x.stroke()}x.globalAlpha=1;
+  x.direction='rtl';x.textBaseline='middle';
+  const txt=(s,X,Y,font,col,al='center',max=940)=>{x.font=font;x.fillStyle=col;x.textAlign=al;let f=font;
+    while(x.measureText(s).width>max){const m=f.match(/(\d+)px/);if(!m||+m[1]<24)break;f=f.replace(/\d+px/,(+m[1]-4)+'px');x.font=f}x.fillText(s,X,Y)};
+  const d=FAM[famOf()].depts.find(z=>z[0]===prof.dept),title=d&&d[2]?d[2]+' ':'';
+  txt('خطة السادس العلمي',540,230,'600 42px '+B,mut);
+  txt(goalText(),540,320,'600 46px '+B,acc);
+  txt(title+prof.name,540,430,'800 112px '+K,ink);
+  // progress ring
+  const cx=540,cy=770,r=230;x.lineCap='round';
+  x.lineWidth=46;x.strokeStyle=line;x.beginPath();x.arc(cx,cy,r,0,Math.PI*2);x.stroke();
+  if(pct>0){x.strokeStyle=acc;x.beginPath();x.arc(cx,cy,r,-Math.PI/2,-Math.PI/2+Math.PI*2*pct/100);x.stroke()}
+  txt(ar(pct)+'٪',cx,cy-14,'800 170px '+K,ink);
+  txt('من المنهج خلصته',cx,cy+112,'500 42px '+B,mut);
+  // streak and exam countdown
+  const bits=[],n=streakN();if(n)bits.push(ar(n)+(n===1?' يوم':n<11?' أيام':' يوم')+' ملتزم ورا بعض');if(window.PLAN_EXAM)bits.push('باقي '+ar(window.PLAN_EXAM)+' يوم للامتحان');
+  if(bits.length)txt(bits.join('  ·  '),540,1080,'600 42px '+B,acc);
+  // one bar per subject
+  const subj=window.PLAN_SUBJ||[],y0=1170,rowH=Math.min(64,420/Math.max(1,subj.length));
+  subj.forEach((s,i)=>{const y=y0+i*rowH,col=v(s.color,acc);
+    txt(s.name,960,y,'600 40px '+B,col,'right',220);
+    x.fillStyle=line;x.beginPath();x.roundRect(250,y-11,480,22,11);x.fill();
+    if(s.pct>0){const w=Math.max(22,480*s.pct/100);x.fillStyle=col;x.beginPath();x.roundRect(730-w,y-11,w,22,11);x.fill()}
+    txt(ar(s.pct)+'٪',120,y,'600 38px '+B,mut,'left',120)});
+  // call to action
+  x.fillStyle=card;x.strokeStyle=acc;x.lineWidth=4;x.beginPath();x.roundRect(110,1600,860,190,28);x.fill();x.stroke();
+  txt('سوّي خطتك ببلاش',540,1650,'800 56px '+K,ink);
+  x.direction='ltr';txt(SITE,540,1720,'600 38px '+B,acc);txt('@_gfya',540,1765,'500 32px '+B,mut);
+  return new Promise(res=>c.toBlob(b=>res(b),'image/png'));
+}
+async function openStory(){
+  const box=document.createElement('div');box.className='story-pop';box.setAttribute('role','dialog');box.setAttribute('aria-modal','true');box.setAttribute('aria-label','صورة تقدمك');
+  box.innerHTML=`<div class="story-card"><p class="story-h">صورتك جاهزة للستوري</p><div class="story-img"><span>لحظة...</span></div>
+    <div class="story-acts"><button class="chip solid" type="button" data-a="share" hidden>${shareIcon}شاركها</button><a class="chip solid" data-a="save" download="khotta-progress.png">نزّل الصورة</a><button class="chip" type="button" data-a="x">سد</button></div>
+    <p class="story-s">نزّلها وحطها ستوري وأشّر <bdi dir="ltr">@_gfya</bdi> حتى أصدقائك يسوون خطتهم.</p></div>`;
+  document.body.appendChild(box);
+  const close=()=>{box.remove();if(url)URL.revokeObjectURL(url)};let url='';
+  box.addEventListener('click',e=>{if(e.target===box||e.target.closest('[data-a="x"]'))close()});
+  document.addEventListener('keydown',function k(e){if(e.key==='Escape'){close();document.removeEventListener('keydown',k)}});
+  box.querySelector('[data-a="x"]').focus();
+  const blob=await drawStory();if(!blob||!box.isConnected)return;
+  url=URL.createObjectURL(blob);
+  box.querySelector('.story-img').innerHTML=`<img src="${url}" alt="صورة تقدمك: ${esc(prof.name)}، ${pct}٪">`;
+  box.querySelector('[data-a="save"]').href=url;
+  const file=new File([blob],'khotta-progress.png',{type:'image/png'});
+  const sh=box.querySelector('[data-a="share"]');
+  if(navigator.canShare&&navigator.canShare({files:[file]})){sh.hidden=false;sh.onclick=()=>navigator.share({files:[file]}).catch(()=>{})}
 }
 document.addEventListener('planprogress',e=>{pct=e.detail.pct;meter(false)});
 document.addEventListener('plancheck',e=>{if(e.detail.checked){const a=new Set(get(DAYS)||[]);a.add(dayKey());put(DAYS,[...a].slice(-120));streakCard()}});

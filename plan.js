@@ -1,7 +1,7 @@
 // Plan engine: builds each student's schedule from their chosen subjects, teachers and start hour (saved in this browser)
 (function(){
 const C=window.CATALOG, ORDER=Object.keys(C);
-const PREF='plan6sci-prefs', DONE='plan6sci-v3', NOTICE='plan6sci-notice-alt';
+const PREF='plan6sci-prefs', DONE='plan6sci-v3', NOTICE='plan6sci-notice-alt', HARD='plan6sci-hard';
 const DONE_BEFORE=window.PLAN_DONE_BEFORE||{}; // lectures already watched before the plan started, per subject (main teacher only)
 const START=new Date(2026,10,1), SLOT=145, REVIEW_DAYS=6;
 const HOURS=[7,8,9,10];
@@ -25,6 +25,7 @@ function loadPrefs(){
   for(const s of ORDER){out.subjects[s]=p.subjects&&s in p.subjects?!!p.subjects[s]:true;
     const t=p.teacher&&p.teacher[s];out.teacher[s]=C[s].teachers.some(x=>x.id===t)?t:mainOf(s).id}
   if(p.shift&&p.shift.from)out.shift={from:p.shift.from,mode:p.shift.mode==='fit'?'fit':'extend'};
+  if(/^\d{4}-\d{1,2}-\d{1,2}$/.test(p.exam||''))out.exam=p.exam;
   return out;
 }
 let prefs=loadPrefs();
@@ -91,19 +92,23 @@ function build(){
     days=past.concat(allocate(live,R,RQ,need2));
   }
   const d=new Date(days[days.length-1].d);d.setDate(d.getDate()+1);
-  // final review week
-  const rv=[];const pairs=act.slice();for(let i=0;i<REVIEW_DAYS-1;i++){const a=pairs[(i*2)%pairs.length],b=pairs[(i*2+1)%pairs.length];
-    const bl=[{s:a,plain:'مراجعة '+C[a].name+' كاملة وحل أسئلة وزارية'}];if(b&&b!==a)bl.push({s:b,plain:'مراجعة '+C[b].name+' كاملة وحل أسئلة وزارية'});rv.push(bl)}
+  // final review week: subjects with the most lectures marked hard come first, and each review block lists those lectures
+  const hardOf={};for(const s of act)hardOf[s]=Q[s].filter(l=>hard['v'+l.v]);
+  const rb=s=>({s,plain:'مراجعة '+C[s].name+' كاملة وحل أسئلة وزارية',hard:hardOf[s]});
+  const rv=[];const pairs=act.slice().sort((a,b)=>hardOf[b].length-hardOf[a].length);for(let i=0;i<REVIEW_DAYS-1;i++){const a=pairs[(i*2)%pairs.length],b=pairs[(i*2+1)%pairs.length];
+    const bl=[rb(a)];if(b&&b!==a)bl.push(rb(b));rv.push(bl)}
   rv.push([{s:'rev',plain:'امتحان شامل لنفسك: ورقة وزارية لكل مادة بوقت محدد، وسجّل أخطاءك'}]);
   for(const bl of rv){days.push({d:new Date(d),blocks:bl,review:true});d.setDate(d.getDate()+1)}
   const slots={};days.forEach(x=>!x.past&&x.blocks.forEach(b=>{if(b.lecs)slots[b.s]=(slots[b.s]||0)+1}));
-  const ids=[];for(const s of act)Q[s].forEach(l=>ids.push('v'+l.v));
-  return {act,T,days,tot,slots,ids};
+  const ids=[],idsBy={};for(const s of act){idsBy[s]=Q[s].map(l=>'v'+l.v);ids.push(...idsBy[s])}
+  return {act,T,days,tot,slots,ids,idsBy};
 }
 
 /* ---------- render ---------- */
 let done={};try{done=JSON.parse(localStorage.getItem(DONE)||'{}')}catch(e){}
 const saveDone=()=>{try{localStorage.setItem(DONE,JSON.stringify(done))}catch(e){}};
+let hard=get(HARD)||{};
+const FLAG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 21V4M5 4h11l-2 4 2 4H5"/></svg>';
 let P=null,allIds=[],todayEl=null,filter='all';
 const $=id=>document.getElementById(id);
 
@@ -152,12 +157,15 @@ function render(){
       const el=document.createElement('div');el.className='subj';el.dataset.s=b.s;el.style.setProperty('--c','var('+COLOR[b.s]+')');
       const nm=b.s==='rev'?'مراجعة':C[b.s].name,tm=`<span class="tm">${SESS[j]||SESS[2]}</span>`;
       if(b.plain){const id='p'+kk(p.d)+'-'+j;allIds.push(id);
-        el.innerHTML=`<div class="subj-h">${tm}</div><div class="lec"><input type="checkbox" id="${id}"><label for="${id}" class="plain"><span class="subj-h"><span class="s">${nm}</span></span> <span class="t">${esc(b.plain)}</span></label><span></span></div>`;check(el.querySelector('.lec'),id)}
+        el.innerHTML=`<div class="subj-h">${tm}</div><div class="lec"><input type="checkbox" id="${id}"><label for="${id}" class="plain"><span class="subj-h"><span class="s">${nm}</span></span> <span class="t">${esc(b.plain)}</span></label><span></span></div>`;check(el.querySelector('.lec'),id);
+        if(b.hard&&b.hard.length){const t=T[b.s],h=document.createElement('div');h.className='hard-list';
+          h.innerHTML=`<span class="hl-t">${FLAG}ابدأ بالمحاضرات اللي علّمتها صعبة (${ar(b.hard.length)})</span>`+b.hard.map(l=>`<a href="${V(l.v,t.lists[l.li].id)}" target="_blank" rel="noopener">${esc(l.t)}</a>`).join('');el.appendChild(h)}}
       else{const t=T[b.s],lists=[...new Set(b.lecs.map(l=>l.li))].map(li=>t.lists[li]);const bm=b.lecs.reduce((a,l)=>a+l.m,0);
         const speed=bm>190?' · شغّلها بسرعة ١.٥':bm>150?' · شغّلها بسرعة ١.٢٥':'';
         el.innerHTML=`<div class="subj-h">${tm}<span class="s">${nm}</span><span class="w">${lists.map(l=>esc(l.t)).join(' ← ')} · ${esc(lists[0]&&lists[0].by||t.name)}${speed}</span></div>`;
         b.lecs.forEach(l=>{const L=t.lists[l.li],id='v'+l.v;allIds.push(id);const r=document.createElement('div');r.className='lec';
-          r.innerHTML=`<input type="checkbox" id="${id}" aria-label="أنجزت ${esc(l.t)}"><label for="${id}"><a href="${V(l.v,L.id)}" target="_blank" rel="noopener">${esc(l.t)}</a></label><span class="m">${dur(l.m)}</span>`;check(r,id);el.appendChild(r)})}
+          r.innerHTML=`<input type="checkbox" id="${id}" aria-label="أنجزت ${esc(l.t)}"><label for="${id}"><a href="${V(l.v,L.id)}" target="_blank" rel="noopener">${esc(l.t)}</a></label><span class="m">${dur(l.m)}</span><button type="button" class="flag" aria-pressed="${!!hard[id]}" aria-label="صعبة عليّ: ${esc(l.t)}" title="صعبة عليّ">${FLAG}</button>`;
+          check(r,id);r.querySelector('.flag').onclick=()=>flagHard(id);el.appendChild(r)})}
       box.appendChild(el)});
     if(p.past){const el=document.createElement('div');el.className='subj extra';el.dataset.s='extra';
       el.innerHTML=`<div class="subj-h"><span class="w">${p.blocks.some(b=>b.lecs)?'هذا اللي خلصته بهذا اليوم. الباقي انتقل لقدام.':'ما خلصت محاضرات بهذا اليوم، ومحاضراته انتقلت لقدام.'}</span></div>`;box.appendChild(el);weekEl.appendChild(day);return}
@@ -174,7 +182,7 @@ function render(){
   jump.hidden=!todayEl;jump.onclick=()=>todayEl&&todayEl.scrollIntoView({behavior:'smooth',block:'center'});
 
   window.PLAN={plan:days,S:Object.fromEntries(ORDER.map(s=>[s,{name:C[s].name}])),kk,timeline:TL};
-  progress();updateLate();document.dispatchEvent(new CustomEvent('planbuilt'));
+  progress();exam();updateLate();document.dispatchEvent(new CustomEvent('planbuilt'));
 }
 
 /* ---------- falling behind: offer to re-plan from today or tomorrow ---------- */
@@ -204,8 +212,30 @@ function applyFilter(){document.querySelectorAll('.subj').forEach(t=>t.hidden=!(
 function check(row,id){const cb=row.querySelector('input');cb.checked=!!done[id];row.classList.toggle('checked',cb.checked);
   cb.addEventListener('change',()=>{if(cb.checked)done[id]=1;else delete done[id];row.classList.toggle('checked',cb.checked);saveDone();progress();updateLate();
     document.dispatchEvent(new CustomEvent('plancheck',{detail:{checked:cb.checked}}))})}
+function flagHard(id){const on=!hard[id];if(on)hard[id]=1;else delete hard[id];put(HARD,hard);
+  rerender(on?'علّمتها صعبة، وتطلعلك أول شي بأسبوع المراجعة':'شلت علامة الصعبة')}
 function progress(){const ids=P?P.ids:[],n=ids.filter(i=>done[i]).length,pc=ids.length?Math.round(100*n/ids.length):0;
-  $('sDone').textContent=ar(pc)+'٪';$('pbar').style.width=pc+'%';window.PLAN_PCT=pc;document.dispatchEvent(new CustomEvent('planprogress',{detail:{pct:pc}}))}
+  $('sDone').textContent=ar(pc)+'٪';$('pbar').style.width=pc+'%';window.PLAN_PCT=pc;
+  // progress per subject, so the student sees where they are behind
+  const subj=P?P.act.map(s=>{const a=P.idsBy[s],k=a.filter(i=>done[i]).length;return {s,name:C[s].name,color:COLOR[s],pct:a.length?Math.round(100*k/a.length):0}}):[];
+  window.PLAN_SUBJ=subj;
+  $('sBars').innerHTML=subj.map(x=>`<div class="sb" style="--c:var(${x.color})"><span class="sb-n">${x.name}</span><span class="sb-t" role="progressbar" aria-label="${x.name}" aria-valuenow="${x.pct}" aria-valuemin="0" aria-valuemax="100"><i style="width:${x.pct}%"></i></span><span class="sb-p">${ar(x.pct)}٪</span></div>`).join('');
+  document.dispatchEvent(new CustomEvent('planprogress',{detail:{pct:pc}}))}
+
+/* ---------- exam countdown ---------- */
+function exam(){
+  const end=P.days[P.days.length-1].d,ex=prefs.exam&&parseKey(prefs.exam),to=ex||end,n=Math.round((to-TODAY)/864e5);
+  $('sExam').textContent=n>0?ar(n):ex&&n===0?'اليوم':'—';
+  $('sExamL').textContent=ex?(n>=0?'يوم للامتحان':'الامتحان فات، بالتوفيق'):'يوم لنهاية خطتك';
+  $('examBtn').textContent=ex?'غيّر الموعد':'حدد موعد امتحانك';
+  window.PLAN_EXAM=ex&&n>0?n:null;
+  const late=ex?Math.round((end-ex)/864e5):0,w=$('examWarn');w.hidden=!(late>=0&&ex&&n>0);
+  if(!w.hidden)w.textContent='جدولك يخلص '+dstr(end)+'، '+(late?'بعد موعد امتحانك بـ '+(late===1?'يوم':late===2?'يومين':ar(late)+(late<11?' أيام':' يوم')):'بنفس يوم امتحانك')+'. إذا تأخرت محاضرات اختار «وزّعها على الأيام الباقية» بدل «طوّل الجدول»، وشغّل المحاضرات بسرعة أعلى حتى تلحك.';
+}
+$('examBtn').onclick=()=>{const e=$('examEdit');e.hidden=!e.hidden;$('examBtn').setAttribute('aria-expanded',!e.hidden);if(!e.hidden){$('examDate').value=prefs.exam?prefs.exam.split('-').map((x,i)=>i?x.padStart(2,'0'):x).join('-'):'';$('examDate').focus()}};
+$('examSave').onclick=()=>{const v=$('examDate').value;if(!v)return;const [y,m,d]=v.split('-').map(Number);prefs.exam=y+'-'+m+'-'+d;savePrefs();$('examEdit').hidden=true;$('examBtn').setAttribute('aria-expanded','false');
+  rerender('انحفظ موعد امتحانك '+dstr(new Date(y,m-1,d)))};
+$('examClear').onclick=()=>{delete prefs.exam;savePrefs();$('examEdit').hidden=true;$('examBtn').setAttribute('aria-expanded','false');rerender('شلت موعد الامتحان')};
 
 function toast(msg){const t=$('toast');t.textContent=msg;t.hidden=false;clearTimeout(toast.h);toast.h=setTimeout(()=>t.hidden=true,3200)}
 function rerender(msg){const y=scrollY;render();scrollTo(0,y);if(msg)toast(msg)}

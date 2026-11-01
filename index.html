@@ -135,8 +135,30 @@ tr.off td{opacity:.55}
 .hours-pick{display:flex;flex-wrap:wrap;gap:6px}
 .hours-pick button{font:inherit;font-size:13px;border:1px solid var(--line);background:var(--paper);color:var(--ink);border-radius:99px;padding:5px 12px;cursor:pointer}
 .hours-pick button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--card)}
+/* exam countdown, per-subject progress, hard-lecture flag */
+.stat.exam{border-color:var(--today)}
+.stat.exam b{color:var(--today)}
+.linkbtn{font:inherit;font-size:12px;background:none;border:0;padding:0;color:var(--accent);text-decoration:underline;cursor:pointer;align-self:flex-start}
+.exam-edit{display:flex;flex-wrap:wrap;gap:8px;align-items:center;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 14px;font-size:14px}
+.exam-edit input{font:inherit;border:1px solid var(--line);border-radius:8px;padding:5px 10px;background:var(--paper);color:var(--ink)}
+.sbars{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:6px 18px}
+.sb{display:grid;grid-template-columns:5.2em 1fr 3em;gap:8px;align-items:center;font-size:13px}
+.sb-n{color:var(--c);font-weight:600}
+.sb-t{height:7px;background:var(--line);border-radius:99px;overflow:hidden}
+.sb-t i{display:block;height:100%;background:var(--c);transition:width .3s}
+.sb-p{color:var(--muted);font-variant-numeric:tabular-nums;text-align:left}
+.lec{grid-template-columns:auto 1fr auto auto}
+.flag{width:26px;height:26px;margin:-1px 0;display:grid;place-items:center;border:0;border-radius:6px;background:none;color:var(--muted);opacity:.45;cursor:pointer;padding:0}
+.flag svg{width:16px;height:16px}
+.flag:hover{opacity:.9}
+.flag[aria-pressed="true"]{opacity:1;color:var(--today);background:var(--warn-soft)}
+.flag[aria-pressed="true"] svg path{fill:currentColor}
+.hard-list{display:flex;flex-direction:column;gap:2px;margin:6px 0 2px;padding:8px 12px;border-radius:8px;background:var(--warn-soft);font-size:14px}
+.hl-t{display:flex;align-items:center;gap:6px;color:var(--today);font-weight:600;font-size:13px}
+.hl-t svg{width:15px;height:15px}
+@media (prefers-reduced-motion:reduce){.sb-t i{transition:none}}
 </style>
-<link rel="stylesheet" href="dream.css?v=11">
+<link rel="stylesheet" href="dream.css?v=12">
 <script>try{const p=JSON.parse(localStorage.getItem('plan6sci-dream'));if(p&&p.fam&&p.fam!=='other')document.documentElement.dataset.dream=p.fam}catch(e){}</script>
 
 </head>
@@ -150,8 +172,17 @@ tr.off td{opacity:.55}
       <div class="stat"><b id="sLect">—</b><span>محاضرة</span></div>
       <div class="stat"><b id="sHrs">—</b><span>ساعة فيديو</span></div>
       <div class="stat"><b id="sDone">٠٪</b><span>المنجز</span></div>
+      <div class="stat exam"><b id="sExam">—</b><span id="sExamL">يوم للامتحان</span><button type="button" class="linkbtn" id="examBtn" aria-expanded="false" aria-controls="examEdit">حدد موعد امتحانك</button></div>
     </div>
+    <div class="exam-edit" id="examEdit" hidden>
+      <label for="examDate">موعد أول امتحان</label>
+      <input type="date" id="examDate" min="2026-11-01" max="2027-12-31">
+      <button class="chip solid" type="button" id="examSave">احفظ</button>
+      <button class="chip" type="button" id="examClear">شيل الموعد</button>
+    </div>
+    <p class="note warn" id="examWarn" hidden></p>
     <div class="bar" aria-hidden="true"><i id="pbar"></i></div>
+    <div class="sbars" id="sBars" aria-label="المنجز لكل مادة"></div>
   </header>
 
   <section class="late" id="lateBox" hidden aria-live="polite">
@@ -254,9 +285,9 @@ tr.off td{opacity:.55}
 </div>
 <div class="toast" id="toast" role="status" hidden></div>
 
-<script src="data.js?v=11"></script>
-<script src="plan.js?v=11"></script>
-<script src="dream.js?v=11"></script>
+<script src="data.js?v=12"></script>
+<script src="plan.js?v=12"></script>
+<script src="dream.js?v=12"></script>
 
 </body>
 </html>

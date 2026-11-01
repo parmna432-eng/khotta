@@ -20,14 +20,19 @@ const put=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}};
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const mainOf=s=>C[s].teachers.find(t=>t.main)||C[s].teachers[0];
 
+// strict Y-M-D near the school year: a bad ?today or a year-9999 exam used to loop forever
+const parseKey=k=>{if(!/^\d{4}-\d{1,2}-\d{1,2}$/.test(String(k)))return null;const [y,m,d]=String(k).split('-').map(Number);const t=new Date(y,m-1,d);
+  return y>=2025&&y<=2028&&t.getMonth()===m-1&&t.getDate()===d?t:null};
 function loadPrefs(){
   const p=get(PREF)||{};
   const out={subjects:{},teacher:{},chap:{},hour:HOURS.includes(p.hour)?p.hour:10};
-  for(const s of ORDER){out.subjects[s]=p.subjects&&s in p.subjects?!!p.subjects[s]:true;
+  for(const s of ORDER){out.subjects[s]=p.subjects&&typeof p.subjects==='object'&&s in p.subjects?!!p.subjects[s]:true;
     const t=p.teacher&&p.teacher[s];out.teacher[s]=C[s].teachers.some(x=>x.id===t)?t:mainOf(s).id;
     // per-chapter teacher overrides: {chapterIndex: teacherId}
     const ch=p.chap&&p.chap[s]||{};out.chap[s]={};for(const li in ch)if(C[s].teachers.some(x=>x.id===ch[li]&&x.lists[li]))out.chap[s][li]=ch[li]}
-  if(p.shift&&p.shift.from)out.shift={from:p.shift.from,mode:p.shift.mode==='fit'?'fit':'extend'};
+  // a plan needs at least one subject
+  if(!ORDER.some(s=>out.subjects[s]))ORDER.forEach(s=>out.subjects[s]=true);
+  if(p.shift&&parseKey(p.shift.from))out.shift={from:p.shift.from,mode:p.shift.mode==='fit'?'fit':'extend'};
   if(/^\d{4}-\d{1,2}-\d{1,2}$/.test(p.exam||''))out.exam=p.exam;
   return out;
 }
@@ -49,7 +54,6 @@ function timeline(){
 const range=(a,b)=>clock(a)+' – '+clock(b);
 
 /* ---------- schedule ---------- */
-const parseKey=k=>{const [y,m,d]=String(k).split('-').map(Number);return y?new Date(y,m-1,d):null};
 // today can be overridden with ?today=2026-11-05 to preview how the plan looks later on
 const TODAY=(()=>{const q=new URLSearchParams(location.search).get('today');const d=q&&parseKey(q);const t=d||new Date();t.setHours(0,0,0,0);return t})();
 // hand out each subject's sessions day by day from `from` so subjects stay spread evenly, then split its lectures over them by video time
@@ -120,7 +124,7 @@ function build(){
 }
 
 /* ---------- render ---------- */
-let done={};try{done=JSON.parse(localStorage.getItem(DONE)||'{}')}catch(e){}
+let done={};try{done=JSON.parse(localStorage.getItem(DONE)||'{}')}catch(e){}if(!done||typeof done!=='object'||Array.isArray(done))done={};
 const saveDone=()=>{try{localStorage.setItem(DONE,JSON.stringify(done))}catch(e){}};
 let hard=get(HARD)||{};
 const FLAG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 21V4M5 4h11l-2 4 2 4H5"/></svg>';
@@ -318,7 +322,7 @@ function rerender(msg){const y=scrollY;render();scrollTo(0,y);if(msg)toast(msg)}
 
 /* ---------- subjects editor ---------- */
 $('subjToggle').onclick=()=>{const box=$('subjEdit');box.hidden=!box.hidden;$('subjToggle').setAttribute('aria-expanded',!box.hidden)};
-$('subjApply').onclick=()=>{const before=P.days.length;document.querySelectorAll('#subjBox input').forEach(i=>prefs.subjects[i.dataset.s]=i.checked);savePrefs();
+$('subjApply').onclick=()=>{if(![...document.querySelectorAll('#subjBox input')].some(i=>i.checked)){toast('اختار مادة وحدة على الأقل');return}const before=P.days.length;document.querySelectorAll('#subjBox input').forEach(i=>prefs.subjects[i.dataset.s]=i.checked);savePrefs();
   render();const diff=P.days.length-before;$('subjEdit').hidden=true;$('subjToggle').setAttribute('aria-expanded','false');
   toast(diff>0?'الجدول طال '+ar(diff)+' يوم':diff<0?'الجدول قصر '+ar(-diff)+' يوم':'الجدول تحدّث')};
 
@@ -336,7 +340,8 @@ fontSize((()=>{const z=+get('plan6sci-font');return [1,1.12,1.25].includes(z)?z:
 
 /* ---------- monthly exams: a separate page whose schedule puts each exam's chapters first and keeps the main plan going for the other subjects ---------- */
 const MKEY='plan6sci-monthly';
-let monthly=(get(MKEY)||[]).filter(e=>e&&C[e.s]&&parseKey(e.d)&&Array.isArray(e.li));
+// saved exams are re-checked: id goes into markup and li indexes the chapter lists
+let monthly=(Array.isArray(get(MKEY))?get(MKEY):[]).filter(e=>e&&Object.prototype.hasOwnProperty.call(C,e.s)&&parseKey(e.d)&&Array.isArray(e.li)&&/^[a-z]+-[0-9-]+$/.test(e.id)&&e.li.every(li=>Number.isInteger(li)&&li>=0&&li<mainOf(e.s).lists.length));
 const saveM=()=>put(MKEY,monthly);
 const mView=()=>document.body.classList.contains('m-view');
 const daysWord=n=>n===1?'يوم':n===2?'يومين':ar(n)+(n<11?' أيام':' يوم');
@@ -389,7 +394,7 @@ function mCards(){
   const {ex}=mPlan();
   $('mExams').innerHTML=ex.length?ex.map(e=>{const n=Math.round((e.date-TODAY)/864e5),pc=e.total?Math.round(100*(e.total-e.left)/e.total):0,t=P.T[e.s],[lv,cls]=mLoad(e.perDay);
     return `<div class="m-card" style="--c:var(${COLOR[e.s]})"><div class="m-top"><b>${C[e.s].name}</b><span class="m-when">${n>0?'بعد '+daysWord(n):'اليوم'} · ${DN[e.date.getDay()]} ${dstr(e.date)}</span>
-      <button class="linkbtn" type="button" data-del="${e.id}">احذف</button></div>
+      <button class="linkbtn" type="button" data-del="${esc(e.id)}">احذف</button></div>
       <span class="alt">${e.li.map(li=>t.lists[li]?esc(t.lists[li].t):'').filter(Boolean).join('، ')}</span>
       <span class="sb-t"><i style="width:${pc}%"></i></span>
       <span>${e.left?`باقي ${ar(e.left)} محاضرة (${dur(e.mins)} فيديو)${e.studyDays?' على '+daysWord(e.studyDays)+'، تقريباً '+dur(e.perDay)+' باليوم':''}`:'خلصت كل محاضراته، ركّز على الأسئلة والمراجعة'}</span>
@@ -434,7 +439,7 @@ const mUpcoming=s=>monthly.find(e=>e.s===s&&parseKey(e.d)>=mFrom());
 function mForm(){
   const minV=iso(mFrom());
   $('mRows').innerHTML=P.act.map(s=>{const e=mUpcoming(s);
-    return `<div class="m-row" data-s="${s}" style="--c:var(${COLOR[s]})"><b>${C[s].name}</b><input type="date" min="${minV}" value="${e?iso(parseKey(e.d)):''}" aria-label="موعد امتحان ${C[s].name} الشهري">
+    return `<div class="m-row" data-s="${s}" style="--c:var(${COLOR[s]})"><b>${C[s].name}</b><input type="date" min="${minV}" max="2027-12-31" value="${e?iso(parseKey(e.d)):''}" aria-label="موعد امتحان ${C[s].name} الشهري">
       <details><summary>الفصول اللي يشملها</summary><div class="sch-box"></div></details></div>`}).join('');
   $('mRows').querySelectorAll('.m-row').forEach(r=>{const s=r.dataset.s,inp=r.querySelector('input[type=date]'),box=r.querySelector('.sch-box'),e=mUpcoming(s);
     const fill=li=>{box.innerHTML=P.T[s].lists.map((l,i)=>`<label class="sch"><input type="checkbox" value="${i}"${li.includes(i)?' checked':''}> ${esc(l.t)}</label>`).join('')};
@@ -445,7 +450,7 @@ function mForm(){
 $('mSave').onclick=()=>{const from=mFrom();let n=0,bad=0;
   $('mRows').querySelectorAll('.m-row').forEach(r=>{const s=r.dataset.s,v=r.querySelector('input[type=date]').value;
     monthly=monthly.filter(e=>!(e.s===s&&parseKey(e.d)>=from));if(!v)return;
-    const ex=fromIso(v);if(ex<from){bad++;return}
+    const ex=fromIso(v);if(ex<from||!parseKey(kk(ex))){bad++;return}
     const li=[...r.querySelectorAll('.sch-box input:checked')].map(i=>+i.value);
     monthly.push({id:s+'-'+kk(ex),s,d:kk(ex),li:li.length?li:[0]});n++});
   saveM();mForm();mRender();mBanner();

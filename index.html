@@ -2,8 +2,12 @@
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-AKJ3WNPN8STK0Vvxox/lWSLaM3LZXf3g+h42XsZ3SzQ=' 'sha256-kOKLmDLH6gkYRi347pBS/ldmH0uKKZBOTdptKVqBfIQ=' 'sha256-3TAYKtIuL4wvuFkb8TlHeFkZHUp4PBB/f/+966YbDcE=' https://gc.zgo.at/count.v4.js; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' blob: https://gpu.goatcounter.com; connect-src https://gpu.goatcounter.com; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="description" content="خطة دراسية للسادس العلمي بمحاضرات يوتيوب: اختار مدرسك وموادك ووقت دراستك">
+<style id="antiframe">html{display:none}</style>
+<script>if(window.top===window.self){document.getElementById('antiframe').remove()}else{try{window.top.location.href=location.href}catch(e){}}</script>
 <title>خطة السادس العلمي</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Kufi+Arabic:wght@600;800&family=IBM+Plex+Sans+Arabic:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap">
 <style>
@@ -231,11 +235,11 @@ body:not(.m-view) .monthly{display:none}
 .fontsz button:nth-of-type(1){font-size:13px}.fontsz button:nth-of-type(2){font-size:16px}.fontsz button:nth-of-type(3){font-size:19px}
 .fontsz button[aria-pressed="true"]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
 </style>
-<link rel="stylesheet" href="dream.css?v=23">
+<link rel="stylesheet" href="dream.css?v=25">
 <script>try{const p=JSON.parse(localStorage.getItem('plan6sci-dream'));if(p&&p.fam&&p.fam!=='other')document.documentElement.dataset.dream=p.fam}catch(e){}</script>
-<script>try{const z=+localStorage.getItem('plan6sci-font');if(z>1)document.documentElement.style.setProperty('--zoom',z)}catch(e){}</script>
+<script>try{const z=+localStorage.getItem('plan6sci-font');if([1.12,1.25].includes(z))document.documentElement.style.setProperty('--zoom',z)}catch(e){}</script>
 
-<script data-goatcounter="https://gpu.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
+<script data-goatcounter="https://gpu.goatcounter.com/count" async src="https://gc.zgo.at/count.v4.js" crossorigin="anonymous" integrity="sha384-nRw6qfbWyJha9LhsOtSb2YJDyZdKvvCFh0fJYlkquSFjUxp9FVNugbfy8q1jdxI+"></script>
 </head>
 <body>
 <div class="wrap">
@@ -397,9 +401,9 @@ body:not(.m-view) .monthly{display:none}
 </div>
 <div class="toast" id="toast" role="status" hidden></div>
 
-<script src="data.js?v=23"></script>
-<script src="plan.js?v=23"></script>
-<script src="dream.js?v=23"></script>
+<script src="data.js?v=25"></script>
+<script src="plan.js?v=25"></script>
+<script src="dream.js?v=25"></script>
 
 </body>
 </html>

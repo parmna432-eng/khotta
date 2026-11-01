@@ -58,7 +58,7 @@ const SITE='parmna432-eng.github.io/khotta';
 const socials=()=>`<a class="chip" href="${IG}" target="_blank" rel="noopener">${igIcon}انستغرام</a>${TG?`<a class="chip" href="${TG}" target="_blank" rel="noopener">${tgIcon}قناة التليكرام</a>`:''}`;
 foot.innerHTML=`<span>تابعنا للتحديثات والملازم:</span>${socials()}<small class="foot-note">الموقع يحسب عدد الزيارات بس، بدون أي معلومات شخصية. تقدمك وحلمك ينحفظون بجهازك وما يطلعون منه.</small>`;
 
-function famOf(){return prof&&FAM[prof.fam]?prof.fam:'other'}
+function famOf(){return prof&&Object.prototype.hasOwnProperty.call(FAM,prof.fam)?prof.fam:'other'}
 function goalText(){if(!prof)return'';const d=FAM[famOf()].depts.find(x=>x[0]===prof.dept);if(prof.dept==='حلم ثاني')return prof.custom||'حلمك';return d&&d[1]?prof.dept+' · '+d[1]:prof.dept}
 function hello(){if(!prof)return'';const d=FAM[famOf()].depts.find(x=>x[0]===prof.dept);const t=d&&d[2]?d[2]+' ':'';return 'هلا '+t+esc(prof.name)}
 
@@ -112,7 +112,7 @@ function checkBadges(){
   put(SEEN,[...new Set(seen.concat(fresh.map(b=>b.id)))]);
   const b=fresh[fresh.length-1];document.querySelector('.bdg-pop')?.remove();
   const box=document.createElement('div');box.className='story-pop bdg-pop';box.setAttribute('role','dialog');box.setAttribute('aria-modal','true');box.setAttribute('aria-label','وسام جديد');
-  box.innerHTML=`<div class="story-card bdg-card">${medal('big')}<p class="eyebrow">وسام جديد</p><h2>${esc(b.t)}</h2><p class="story-s">${esc(b.s)}${fresh.length>1?' (و'+ar(fresh.length-1)+' غيره)':''}. ${esc(hello())}، كمل.</p>
+  box.innerHTML=`<div class="story-card bdg-card">${medal('big')}<p class="eyebrow">وسام جديد</p><h2>${esc(b.t)}</h2><p class="story-s">${esc(b.s)}${fresh.length>1?' (و'+ar(fresh.length-1)+' غيره)':''}. ${hello()}، كمل.</p>
     <div class="story-acts"><button class="chip solid" type="button" data-a="share">${shareIcon}شاركه ستوري</button><button class="chip" type="button" data-a="x">تمام</button></div></div>`;
   document.body.appendChild(box);
   box.addEventListener('click',e=>{if(e.target===box||e.target.closest('[data-a="x"]'))box.remove();else if(e.target.closest('[data-a="share"]')){box.remove();openStory()}});
@@ -167,7 +167,7 @@ function nowCard(){
   el.innerHTML=`<span class="k">هسه وقت</span><span class="v">${esc(v)}</span>${s?`<span class="s">${esc(s)}</span>`:''}`;
 }
 function streakN(){
-  const days=new Set(get(DAYS)||[]);let n=0;const d=new Date();
+  const days=new Set(Array.isArray(get(DAYS))?get(DAYS):[]);let n=0;const d=new Date();
   if(!days.has(dayKey(d)))d.setDate(d.getDate()-1);
   while(days.has(dayKey(d))){n++;d.setDate(d.getDate()-1)}
   return n;
@@ -244,7 +244,7 @@ async function openStory(){
   if(navigator.canShare&&navigator.canShare({files:[file]})){sh.hidden=false;sh.onclick=()=>navigator.share({files:[file]}).catch(()=>{})}
 }
 document.addEventListener('planprogress',e=>{pct=e.detail.pct;meter(false);badgeShelf();checkBadges()});
-document.addEventListener('plancheck',e=>{if(e.detail.checked){const a=new Set(get(DAYS)||[]);a.add(dayKey());put(DAYS,[...a].slice(-120));streakCard();badgeShelf();checkBadges()}});
+document.addEventListener('plancheck',e=>{if(e.detail.checked){const a=new Set(Array.isArray(get(DAYS))?get(DAYS):[]);a.add(dayKey());put(DAYS,[...a].slice(-120));streakCard();badgeShelf();checkBadges()}});
 setInterval(nowCard,60000);
 document.addEventListener('planbuilt',nowCard);
 
@@ -252,7 +252,7 @@ document.addEventListener('planbuilt',nowCard);
 let onb=null;
 function openOnb(){
   if(onb)return;
-  let fam=prof?prof.fam:'',dept=prof?prof.dept:'';
+  let fam=prof?famOf():'',dept=prof?prof.dept:'';
   onb=document.createElement('div');onb.className='onb';
   onb.innerHTML=`<form class="onb-card" role="dialog" aria-modal="true" aria-labelledby="onbT" novalidate>
     <p class="eyebrow">خطة السادس العلمي</p><h2 id="onbT">قبل لا نبدي، عرّفنا بنفسك</h2>

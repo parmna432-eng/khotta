@@ -22,9 +22,11 @@ const mainOf=s=>C[s].teachers.find(t=>t.main)||C[s].teachers[0];
 
 function loadPrefs(){
   const p=get(PREF)||{};
-  const out={subjects:{},teacher:{},hour:HOURS.includes(p.hour)?p.hour:10};
+  const out={subjects:{},teacher:{},chap:{},hour:HOURS.includes(p.hour)?p.hour:10};
   for(const s of ORDER){out.subjects[s]=p.subjects&&s in p.subjects?!!p.subjects[s]:true;
-    const t=p.teacher&&p.teacher[s];out.teacher[s]=C[s].teachers.some(x=>x.id===t)?t:mainOf(s).id}
+    const t=p.teacher&&p.teacher[s];out.teacher[s]=C[s].teachers.some(x=>x.id===t)?t:mainOf(s).id;
+    // per-chapter teacher overrides: {chapterIndex: teacherId}
+    const ch=p.chap&&p.chap[s]||{};out.chap[s]={};for(const li in ch)if(C[s].teachers.some(x=>x.id===ch[li]&&x.lists[li]))out.chap[s][li]=ch[li]}
   if(p.shift&&p.shift.from)out.shift={from:p.shift.from,mode:p.shift.mode==='fit'?'fit':'extend'};
   if(/^\d{4}-\d{1,2}-\d{1,2}$/.test(p.exam||''))out.exam=p.exam;
   return out;
@@ -71,13 +73,21 @@ function allocate(act,from,Q,need){
     while(p<q.length&&(i+1===slots[s]||acc+q[p].m/2<=target)){out.push(q[p]);acc+=q[p].m;p++}cur[s]=p;b.lecs=out}
   return days;
 }
+// the teacher of one chapter: its own choice if the student picked one, otherwise the subject's teacher
+const subjTeacher=s=>C[s].teachers.find(x=>x.id===prefs.teacher[s])||mainOf(s);
+const chapTeacher=(s,li)=>{const id=prefs.chap[s]&&prefs.chap[s][li];return id&&C[s].teachers.find(x=>x.id===id&&x.lists[li])||subjTeacher(s)};
+// one "teacher" per subject made of each chapter's chosen playlist, so the rest of the plan reads lists[li] as before
+function mixTeacher(s){const n=mainOf(s).lists.length,ts=[];
+  const lists=Array.from({length:n},(_,li)=>{const t=chapTeacher(s,li);ts.push(t);const l=t.lists[li];return {...l,by:l.by||t.name,tid:t.id}});
+  const one=ts.every(t=>t.id===ts[0].id);
+  return {id:one?ts[0].id:'mix',name:one?ts[0].name:[...new Set(ts.map(t=>t.name))].join(' و'),main:ts.every(t=>t.main),lists}}
 function build(){
   const act=ORDER.filter(s=>prefs.subjects[s]);
   const T={},Q={},tot={};
   for(const s of act){
-    const t=C[s].teachers.find(x=>x.id===prefs.teacher[s])||mainOf(s);T[s]=t;
+    const t=mixTeacher(s);T[s]=t;
     Q[s]=[];t.lists.forEach((l,li)=>l.v.forEach(v=>Q[s].push({v:v[0],t:v[1],m:v[2],li})));
-    if(t.main&&DONE_BEFORE[s])Q[s].splice(0,DONE_BEFORE[s]);
+    if(chapTeacher(s,0).main&&DONE_BEFORE[s])Q[s].splice(0,DONE_BEFORE[s]);
     tot[s]=Q[s].reduce((a,x)=>a+x.m,0);
   }
   // sessions per subject come from the main teacher, so picking an alternate teacher keeps the same days and only swaps the lectures
@@ -125,15 +135,20 @@ function render(){
   $('sDays').textContent=ar(days.length);$('sLect').textContent=ar(L);$('sHrs').textContent=ar(Math.round(M/60));
 
   // teachers table with the alternate-teacher choice
-  $('tBody').innerHTML=ORDER.map(s=>{const on=prefs.subjects[s],t=C[s].teachers.find(x=>x.id===prefs.teacher[s])||mainOf(s);
-    const opts=C[s].teachers.map(x=>`<option value="${x.id}"${x.id===t.id?' selected':''}>${esc(x.name)}${x.main?' (رئيسي)':' (بديل)'}</option>`).join('');
+  // the subject select sets every chapter; each chapter's own select overrides it for that chapter only
+  $('tBody').innerHTML=ORDER.map(s=>{const on=prefs.subjects[s],t=subjTeacher(s),mix=mixTeacher(s);
+    const opt=(sel,short)=>C[s].teachers.map(x=>`<option value="${x.id}"${x.id===sel?' selected':''}>${esc(short?x.name.replace(/^(الأستاذ|الست)\s+/,''):x.name)}${x.main?' (رئيسي)':short?'':' (بديل)'}</option>`).join('');
     return `<tr class="${on?'':'off'}"><td><span class="tag" style="--c:var(${COLOR[s]})"><span class="dot"></span>${C[s].name}</span>${on?'':'<br><span class="alt">محذوفة من جدولك</span>'}</td>
-      <td><label class="vh" for="tsel-${s}">مدرس ${C[s].name}</label><select class="tsel" id="tsel-${s}" data-s="${s}"${on?'':' disabled'}>${opts}</select></td>
-      <td>${t.lists.map(l=>`<a href="${PL(l.id)}" target="_blank" rel="noopener">${esc(l.t)}</a> <span class="alt">(${esc(l.y)} · ${ar(l.v.length)})</span>`).join('<br>')}</td></tr>`}).join('');
-  document.querySelectorAll('.tsel').forEach(el=>el.onchange=()=>{prefs.teacher[el.dataset.s]=el.value;savePrefs();rerender('تغيّر مدرس '+C[el.dataset.s].name+'، والجدول تحدّث')});
+      <td><label class="vh" for="tsel-${s}">مدرس ${C[s].name} لكل الفصول</label><select class="tsel" id="tsel-${s}" data-s="${s}"${on?'':' disabled'}>${opt(t.id)}</select>${mix.id==='mix'?'<span class="alt mixed">فصول بمدرسين مختلفين</span>':''}</td>
+      <td class="chaps">${mix.lists.map((l,li)=>`<div class="chap${l.tid!==t.id?' own':''}"><span class="chap-t"><a href="${PL(l.id)}" target="_blank" rel="noopener">${esc(l.t)}</a> <span class="alt">(${esc(l.y)} · ${ar(l.v.length)})</span></span>
+        <label class="vh" for="csel-${s}-${li}">مدرس ${esc(l.t)}</label><select class="csel" id="csel-${s}-${li}" data-s="${s}" data-li="${li}"${on?'':' disabled'}>${opt(l.tid,true)}</select></div>`).join('')}</td></tr>`}).join('');
+  document.querySelectorAll('.tsel').forEach(el=>el.onchange=()=>{const s=el.dataset.s;prefs.teacher[s]=el.value;prefs.chap[s]={};savePrefs();rerender('صارت كل فصول '+C[s].name+' على '+subjTeacher(s).name)});
+  document.querySelectorAll('.csel').forEach(el=>el.onchange=()=>{const s=el.dataset.s,li=el.dataset.li,ch=prefs.chap[s]||(prefs.chap[s]={});
+    if(el.value===prefs.teacher[s])delete ch[li];else ch[li]=el.value;savePrefs();
+    rerender(C[s].name+'، '+mainOf(s).lists[li].t+'، صار على '+chapTeacher(s,li).name)});
 
   // subjects editor
-  $('subjBox').innerHTML=ORDER.map(s=>`<label class="sch"><input type="checkbox" data-s="${s}"${prefs.subjects[s]?' checked':''}> <span class="dot" style="--c:var(${COLOR[s]})"></span>${C[s].name} <span class="alt">(${ar(Math.round(C[s].teachers.find(x=>x.id===prefs.teacher[s]).lists.reduce((a,l)=>a+l.v.reduce((y,v)=>y+v[2],0),0)/60))} ساعة)</span></label>`).join('');
+  $('subjBox').innerHTML=ORDER.map(s=>`<label class="sch"><input type="checkbox" data-s="${s}"${prefs.subjects[s]?' checked':''}> <span class="dot" style="--c:var(${COLOR[s]})"></span>${C[s].name} <span class="alt">(${ar(Math.round(mixTeacher(s).lists.reduce((a,l)=>a+l.v.reduce((y,v)=>y+v[2],0),0)/60))} ساعة)</span></label>`).join('');
 
   // day timeline
   const TL=timeline();
@@ -400,7 +415,7 @@ function mRender(){
       const nm=b.s==='rev'?'مراجعة':C[b.s].name,tag=b.pri?'<span class="m-tag">امتحان شهري</span>':'',optW=b.opt?'<span class="w">إذا تعبان أجّلها، وترتبها بعدين من «تأخرت؟» بالجدول الرئيسي</span>':'';
       if(b.plain){const id=b.pri?'m'+kk(x.d)+'-'+b.s:'p'+kk(x.d)+'-'+b.j;
         el.innerHTML=`<div class="subj-h">${tm}${tag}${optW}</div><div class="lec"><input type="checkbox" id="${id}"><label for="${id}" class="plain"><span class="subj-h"><span class="s">${nm}</span></span> <span class="t">${esc(b.plain)}</span></label><span></span></div>`;check(el.querySelector('.lec'),id)}
-      else{const t=P.T[b.s];el.innerHTML=`<div class="subj-h">${tm}${tag}<span class="s">${nm}</span><span class="w">${esc(t.name)}${b.fast?' · شغّلها بسرعة '+b.fast:''}</span>${optW}</div>`;
+      else{const t=P.T[b.s];el.innerHTML=`<div class="subj-h">${tm}${tag}<span class="s">${nm}</span><span class="w">${esc([...new Set(b.lecs.map(l=>t.lists[l.li].by))].join(' و'))}${b.fast?' · شغّلها بسرعة '+b.fast:''}</span>${optW}</div>`;
         b.lecs.forEach(l=>{const id='v'+l.v,rw=document.createElement('div');rw.className='lec';
           rw.innerHTML=`<input type="checkbox" id="${id}" aria-label="أنجزت ${esc(l.t)}"><label for="${id}"><a href="${V(l.v,t.lists[l.li].id)}" target="_blank" rel="noopener">${esc(l.t)}</a></label><span class="m">${dur(l.m)}</span>`;check(rw,id);el.appendChild(rw)})}
       box.appendChild(el)}

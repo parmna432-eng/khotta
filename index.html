@@ -204,6 +204,24 @@ body:not(.m-view) .monthly{display:none}
 .m-load.high{color:var(--today)}
 .m-opt{opacity:.7;background:repeating-linear-gradient(-45deg,transparent 0 8px,var(--accent-soft) 8px 9px)}
 .m-why{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 14px;font-size:14px}
+.chaps{min-width:300px}
+.chap{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:4px 10px;padding:4px 0;border-bottom:1px dashed var(--line)}
+.chap:last-child{border-bottom:0}
+.chap-t{min-width:0}
+.csel{font:inherit;font-size:13px;max-width:100%;border:1px solid var(--line);border-radius:8px;padding:3px 8px;background:var(--paper);color:var(--ink)}
+.chap.own .csel{border-color:var(--accent);background:var(--accent-soft);font-weight:600}
+.mixed{display:block;margin-top:4px;color:var(--accent)}
+@media (max-width:640px){
+  #teachers{min-width:0}
+  #teachers thead{display:none}
+  #teachers tr{display:flex;flex-direction:column;gap:6px;padding:10px 12px;border-bottom:1px solid var(--line)}
+  #teachers tr:last-child{border-bottom:0}
+  #teachers td{display:block;padding:0;border:0}
+  #teachers .tsel{width:100%}
+  .chaps{min-width:0}
+  .chap{flex-direction:column;align-items:stretch}
+  .csel{width:100%}
+}
 .m-why summary{cursor:pointer;font-weight:600;font-family:var(--display)}
 .m-why ul{margin:8px 0 0;padding-inline-start:18px;display:flex;flex-direction:column;gap:6px}
 .wrap{zoom:var(--zoom,1)}
@@ -213,7 +231,7 @@ body:not(.m-view) .monthly{display:none}
 .fontsz button:nth-of-type(1){font-size:13px}.fontsz button:nth-of-type(2){font-size:16px}.fontsz button:nth-of-type(3){font-size:19px}
 .fontsz button[aria-pressed="true"]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
 </style>
-<link rel="stylesheet" href="dream.css?v=21">
+<link rel="stylesheet" href="dream.css?v=23">
 <script>try{const p=JSON.parse(localStorage.getItem('plan6sci-dream'));if(p&&p.fam&&p.fam!=='other')document.documentElement.dataset.dream=p.fam}catch(e){}</script>
 <script>try{const z=+localStorage.getItem('plan6sci-font');if(z>1)document.documentElement.style.setProperty('--zoom',z)}catch(e){}</script>
 
@@ -280,8 +298,8 @@ body:not(.m-view) .monthly{display:none}
       <div class="sch-box" id="subjBox"></div>
       <button class="chip solid" type="button" id="subjApply">طبّق على جدولي</button>
     </div>
-    <p class="sub">اختار المدرس الرئيسي أو مدرس بديل لكل مادة. توزيع الجدول يبقى نفسه، بس محاضرات المادة تتبدل لمحاضرات المدرس اللي تختاره.</p>
-    <div class="tbl"><table id="teachers"><thead><tr><th>المادة</th><th>المدرس</th><th>القوائم (السنة · عدد المحاضرات)</th></tr></thead><tbody id="tBody"></tbody></table></div>
+    <p class="sub">اختار مدرس لكل مادة، وإذا تحب تكدر تختار مدرس مختلف لكل فصل، مثلاً الفصل الأول على مدرس والفصل الثاني على مدرس ثاني. توزيع الجدول يبقى نفسه، بس محاضرات الفصل تتبدل لمحاضرات المدرس اللي تختاره.</p>
+    <div class="tbl"><table id="teachers"><thead><tr><th>المادة</th><th>مدرس المادة</th><th>الفصول ومدرس كل فصل (السنة · عدد المحاضرات)</th></tr></thead><tbody id="tBody"></tbody></table></div>
   </section>
 
   <section>
@@ -374,14 +392,14 @@ body:not(.m-view) .monthly{display:none}
 
 <div class="notice" id="notice" role="status" hidden>
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 16V11a6 6 0 0 1 12 0v5l2 2H4z"/><path d="M10 20a2 2 0 0 0 4 0"/></svg>
-  <div><b>تكدر تختار مدرسك</b><span>لكل مادة اختار المدرس الرئيسي أو مدرس بديل، وتكدر تضيف أو تشيل مواد. الجدول يتحدّث على اختيارك.</span></div>
+  <div><b>تكدر تختار مدرسك</b><span>لكل مادة، أو لكل فصل لحاله، اختار المدرس الرئيسي أو مدرس بديل، وتكدر تضيف أو تشيل مواد. الجدول يتحدّث على اختيارك.</span></div>
   <div class="notice-actions"><button class="chip solid" type="button" id="noticeGo">اختار المدرسين</button><button class="chip" type="button" id="noticeX">تمام</button></div>
 </div>
 <div class="toast" id="toast" role="status" hidden></div>
 
-<script src="data.js?v=21"></script>
-<script src="plan.js?v=21"></script>
-<script src="dream.js?v=21"></script>
+<script src="data.js?v=23"></script>
+<script src="plan.js?v=23"></script>
+<script src="dream.js?v=23"></script>
 
 </body>
 </html>

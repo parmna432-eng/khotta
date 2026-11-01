@@ -198,6 +198,14 @@ body:not(.m-view) .monthly{display:none}
 .m-tag{font-size:11px;font-weight:600;color:var(--today);border:1px solid var(--today);border-radius:99px;padding:0 8px}
 .day.m-exam{border-color:var(--c,var(--today))}
 .m-banner{background:var(--accent-soft)}
+.m-load{font-size:13px;font-weight:600}
+.m-load.ok{color:var(--done)}
+.m-load.mid{color:var(--accent)}
+.m-load.high{color:var(--today)}
+.m-opt{opacity:.7;background:repeating-linear-gradient(-45deg,transparent 0 8px,var(--accent-soft) 8px 9px)}
+.m-why{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 14px;font-size:14px}
+.m-why summary{cursor:pointer;font-weight:600;font-family:var(--display)}
+.m-why ul{margin:8px 0 0;padding-inline-start:18px;display:flex;flex-direction:column;gap:6px}
 .wrap{zoom:var(--zoom,1)}
 .fontsz{display:flex;align-items:center;gap:4px;align-self:flex-end;font-size:12px;color:var(--muted)}
 .fontsz span{margin-inline-end:4px}
@@ -205,7 +213,7 @@ body:not(.m-view) .monthly{display:none}
 .fontsz button:nth-of-type(1){font-size:13px}.fontsz button:nth-of-type(2){font-size:16px}.fontsz button:nth-of-type(3){font-size:19px}
 .fontsz button[aria-pressed="true"]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
 </style>
-<link rel="stylesheet" href="dream.css?v=20">
+<link rel="stylesheet" href="dream.css?v=21">
 <script>try{const p=JSON.parse(localStorage.getItem('plan6sci-dream'));if(p&&p.fam&&p.fam!=='other')document.documentElement.dataset.dream=p.fam}catch(e){}</script>
 <script>try{const z=+localStorage.getItem('plan6sci-font');if(z>1)document.documentElement.style.setProperty('--zoom',z)}catch(e){}</script>
 
@@ -348,6 +356,18 @@ body:not(.m-view) .monthly{display:none}
     <button class="chip solid" type="button" id="mSave">احفظ المواعيد ورتب الجدول</button>
   </div>
   <div class="m-exams" id="mExams"></div>
+  <details class="m-why" id="mWhy" hidden>
+    <summary>ليش الجدول مرتب هيج؟</summary>
+    <ul>
+      <li><b>يتوزع على كل الأيام قبل الامتحان</b> بدل ما تحشر المادة بآخر يومين. الدراسة الموزعة على أيام تثبت بالذاكرة أكثر بكثير من الحشر (التكرار المتباعد).</li>
+      <li><b>مادتين امتحان باليوم بالكثير، والجمعة وحدة</b>، وباقي اليوم لموادك من الجدول الرئيسي، حتى تتقدم بالامتحانات وما تتأخر بالمنهج.</li>
+      <li><b>ثلاث جلسات دراسة باليوم بس.</b> إذا زادت مادة من الجدول الرئيسي تطلع «اختياري»: تقراها إذا عندك طاقة، أو تأجلها بدون تأنيب ضمير.</li>
+      <li><b>كل يوم تختبر نفسك</b>: أسئلة وزارية على اللي درسته، وتسميع بدون ما تفتح الدفتر لمحاضرات قبل ٣ أيام. اختبار النفس يثبت المعلومة أحسن من إعادة القراءة.</li>
+      <li><b>قبل الامتحان بيومين امتحان تجريبي</b> بنفس الوقت الحقيقي، حتى تكتشف أخطاءك وعندك وقت تصلحها.</li>
+      <li><b>اليوم اللي قبله مراجعة خفيفة ونوم ٧ إلى ٨ ساعات</b>، لأن النوم هو اللي يثبت الحفظ. ويوم الامتحان ما بيه محاضرات جديدة للمادة.</li>
+      <li><b>إذا الحمل ثقيل</b> شغّل المحاضرات بسرعة ١.٢٥ أو ١.٥ بدل ما تسهر، وتأكد من الفصول اللي يشملها الامتحان فعلاً.</li>
+    </ul>
+  </details>
   <h3 id="mPlanH" hidden>جدول الامتحانات</h3>
   <div id="mPlan" class="m-plan"></div>
 </section>
@@ -359,9 +379,9 @@ body:not(.m-view) .monthly{display:none}
 </div>
 <div class="toast" id="toast" role="status" hidden></div>
 
-<script src="data.js?v=20"></script>
-<script src="plan.js?v=20"></script>
-<script src="dream.js?v=20"></script>
+<script src="data.js?v=21"></script>
+<script src="plan.js?v=21"></script>
+<script src="dream.js?v=21"></script>
 
 </body>
 </html>

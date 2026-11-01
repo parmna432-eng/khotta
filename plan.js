@@ -331,69 +331,83 @@ function mLectures(s,lis){const t=P.T[s],ok=new Set(P.idsBy[s]),out=[];
 // default chapters: the ones the main plan reaches before the exam day
 function mDefaultLists(s,ex){const set=new Set();for(const x of P.days){if(x.d>=ex)break;for(const b of x.blocks)if(b.s===s)(b.lecs||[]).forEach(l=>set.add(l.li))}
   return set.size?[...set].sort((a,b)=>a-b):[0]}
+// Monthly exams schedule, built on how study specialists recommend preparing: spread over days (spacing), self-testing every day
+// (retrieval practice), a timed mock exam two days before, a light review and full sleep the night before, nothing new on exam day,
+// and a cap on how much exam work goes into one day so the main plan keeps moving.
 function mPlan(){
   const from=new Date(Math.max(TODAY,START));
   const ex=monthly.filter(e=>P.act.includes(e.s)).map(e=>({...e,date:parseKey(e.d)})).filter(e=>e.date>=from).sort((a,b)=>a.date-b.date);
   if(!ex.length)return {ex,days:[]};
-  const days=[];for(const d=new Date(from);d<=ex[ex.length-1].date;d.setDate(d.getDate()+1))days.push({d:new Date(d),prep:[],exams:[]});
+  const days=[];for(const d=new Date(from);d<=ex[ex.length-1].date;d.setDate(d.getDate()+1))days.push({d:new Date(d),prep:[],exams:[],fri:d.getDay()===5});
   for(const e of ex){
     const n=Math.round((e.date-from)/864e5),L=mLectures(e.s,e.li);
     e.R=L.filter(l=>!done['v'+l.v]);e.total=L.length;e.left=e.R.length;e.mins=e.R.reduce((a,l)=>a+l.m,0);days[n].exams.push(e);
-    // the day before is for review when there are at least 3 days; lectures must be done before that
-    e.review=n>=3;e.dl=e.review?n-1:n;e.studyDays=e.dl;e.perDay=e.dl?Math.round(e.mins/e.dl):e.mins;
-    if(e.review)days[n-1].prep.push({e,plain:'مراجعة '+C[e.s].name+' كاملة للامتحان: ملخصاتك، الأسئلة الوزارية، والمحاضرات اللي علّمتها صعبة'});
+    e.mock=n>=6;e.review=n>=2;e.dl=n-(e.review?1:0)-(e.mock?1:0);
+    if(e.mock)days[n-2].prep.push({e,plain:'امتحان تجريبي لنفسك: ورقة أسئلة وزارية من '+C[e.s].name+' للفصول المطلوبة بنفس وقت الامتحان الحقيقي، وبعدها صحح أخطاءك واكتبها بدفتر الأخطاء'});
+    if(e.review)days[n-1].prep.push({e,plain:'مراجعة خفيفة لـ'+C[e.s].name+': ملخصاتك ودفتر الأخطاء والمحاضرات اللي علّمتها صعبة، بدون محاضرات جديدة. نام ٧ إلى ٨ ساعات، النوم يثبّت اللي حفظته'});
+    e.studyDays=e.dl;e.perDay=e.dl?Math.round(e.mins/e.dl):e.mins;
   }
-  // at most two exam subjects a day (fewer on review days), the most urgent first, so the main plan always keeps a session for the other subjects
+  // new lectures: two exam subjects a day at most (one on Friday, fewer when a mock or review is already there), most urgent first;
+  // a subject on its last study day always gets its place so nothing is left for the review day
   days.forEach((x,i)=>{
-    const cand=ex.filter(e=>i<e.dl&&e.R.length),cap=Math.max(1,2-x.prep.length);
-    const urg=e=>e.R.reduce((a,l)=>a+l.m,0)/(e.dl-i);
-    const picked=[];
-    cand.sort((a,b)=>urg(b)-urg(a)||a.date-b.date).slice(0,cap).forEach(e=>{
-      const rem=e.R.reduce((a,l)=>a+l.m,0),share=Math.min(1,2/cand.length),left=Math.max(1,Math.round((e.dl-i)*share));
+    const cand=ex.filter(e=>i<e.dl&&e.R.length),urg=e=>e.R.reduce((a,l)=>a+l.m,0)/(e.dl-i);
+    const cap=Math.max(0,(x.fri?1:2)-x.prep.length),must=cand.filter(e=>i===e.dl-1);
+    const rest=cand.filter(e=>!must.includes(e)).sort((a,b)=>urg(b)-urg(a)||a.date-b.date);
+    const take=must.concat(rest.slice(0,Math.max(0,cap-must.length)));
+    const picked=take.map(e=>{
+      const rem=e.R.reduce((a,l)=>a+l.m,0),share=Math.min(1,(x.fri?1:2)/cand.length),left=Math.max(1,Math.round((e.dl-i)*share));
       const chunk=i===e.dl-1?rem:rem/left,out=[];let acc=0;
       while(e.R.length&&(!out.length||acc+e.R[0].m/2<=chunk)){const l=e.R.shift();out.push(l);acc+=l.m}
-      picked.push({e,lecs:out})});
+      return {e,lecs:out,fast:acc>190?'١.٥':acc>150?'١.٢٥':''}});
     x.prep=picked.concat(x.prep);
   });
-  // the main plan carries on for every subject that has no exam coming in these days
+  // the main plan carries on for subjects with no exam coming; three study sessions a day in total (two on an exam day),
+  // so main-plan blocks that don't fit are marked optional instead of piling up
   const main=new Map(P.days.map(x=>[x.d.getTime(),x]));
-  for(const x of days){const m=main.get(x.d.getTime()),busy=new Set(ex.filter(e=>e.date>=x.d).map(e=>e.s));x.other=m?m.blocks.map((b,j)=>({...b,j})).filter(b=>!busy.has(b.s)):[]}
+  for(const x of days){const m=main.get(x.d.getTime()),busy=new Set(ex.filter(e=>e.date>=x.d).map(e=>e.s));
+    x.other=m?m.blocks.map((b,j)=>({...b,j})).filter(b=>!busy.has(b.s)):[];
+    const room=Math.max(1,(x.exams.length?2:3)-x.prep.length);x.other.forEach((b,k)=>b.opt=k>=room)}
   return {ex,days};
 }
+const mLoad=m=>m<=120?['مريح','ok']:m<=180?['متوسط','mid']:['ثقيل','high'];
 function mCards(){
   const {ex}=mPlan();
-  $('mExams').innerHTML=ex.length?ex.map(e=>{const n=Math.round((e.date-TODAY)/864e5),pc=e.total?Math.round(100*(e.total-e.left)/e.total):0,t=P.T[e.s];
-    const heavy=e.perDay>240;
+  $('mExams').innerHTML=ex.length?ex.map(e=>{const n=Math.round((e.date-TODAY)/864e5),pc=e.total?Math.round(100*(e.total-e.left)/e.total):0,t=P.T[e.s],[lv,cls]=mLoad(e.perDay);
     return `<div class="m-card" style="--c:var(${COLOR[e.s]})"><div class="m-top"><b>${C[e.s].name}</b><span class="m-when">${n>0?'بعد '+daysWord(n):'اليوم'} · ${DN[e.date.getDay()]} ${dstr(e.date)}</span>
       <button class="linkbtn" type="button" data-del="${e.id}">احذف</button></div>
       <span class="alt">${e.li.map(li=>t.lists[li]?esc(t.lists[li].t):'').filter(Boolean).join('، ')}</span>
       <span class="sb-t"><i style="width:${pc}%"></i></span>
-      <span>${e.left?`باقي ${ar(e.left)} محاضرة (${dur(e.mins)} فيديو)${e.studyDays?' على '+daysWord(e.studyDays)+'، يعني تقريباً '+dur(e.perDay)+' باليوم':''}`:'خلصت كل محاضراته، ركّز على المراجعة والأسئلة'}</span>
-      ${heavy?`<span class="m-heavy">الحمل ثقيل. شغّل المحاضرات بسرعة ١.٥ أو قلل الفصول إذا الامتحان ما يشملها.</span>`:''}</div>`}).join(''):'<p class="note">ما ضفت امتحانات بعد. اختار المادة والموعد والفصول وضيفه، والجدول ينبني لحاله.</p>';
+      <span>${e.left?`باقي ${ar(e.left)} محاضرة (${dur(e.mins)} فيديو)${e.studyDays?' على '+daysWord(e.studyDays)+'، تقريباً '+dur(e.perDay)+' باليوم':''}`:'خلصت كل محاضراته، ركّز على الأسئلة والمراجعة'}</span>
+      ${e.left?`<span class="m-load ${cls}">الحمل: ${lv}${cls==='high'?'. شغّل محاضراته بسرعة ١.٢٥ أو ١.٥ بدل ما تسهر، وتأكد من الفصول اللي يشملها الامتحان':''}</span>`:''}
+      ${e.mock||e.review?`<span class="alt">${e.mock?'امتحان تجريبي قبله بيومين، و':''}${e.review?'مراجعة خفيفة باليوم اللي قبله':''}</span>`:''}</div>`}).join(''):'<p class="note">ما حددت مواعيد بعد. اكتب موعد امتحان كل مادة فوق واحفظ، والجدول ينبني لحاله.</p>';
   $('mExams').querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>{monthly=monthly.filter(e=>e.id!==b.dataset.del);saveM();mForm();mRender();mBanner();toast('انحذف الامتحان')});
 }
 function mRender(){
   mCards();
-  const {days}=mPlan(),TL=timeline(),slots=[0,1,2].map(i=>TL.find(r=>r[2]===i)).concat([TL.find(r=>r[2]==='practice')]),RV=TL.find(r=>r[2]==='review');
+  const {days}=mPlan(),TL=timeline(),S=[0,1,2].map(i=>TL.find(r=>r[2]===i)),PR=TL.find(r=>r[2]==='practice'),RV=TL.find(r=>r[2]==='review');
   const host=$('mPlan');host.innerHTML='';
-  if(!days.length){host.innerHTML='';$('mPlanH').hidden=true;return}
-  $('mPlanH').hidden=false;
+  if(!days.length){$('mPlanH').hidden=true;$('mWhy').hidden=true;return}
+  $('mPlanH').hidden=false;$('mWhy').hidden=false;
   for(const x of days){
-    const day=document.createElement('div');day.className='day'+(x.exams.length?' m-exam':'')+(x.d.getTime()===TODAY.getTime()?' today':'');
-    day.innerHTML=`<div class="date"><span class="dn">${DN[x.d.getDay()]}</span><span class="dd">${ar(x.d.getDate())}</span><span class="dm">${MN[x.d.getMonth()]}</span>${x.d.getTime()===TODAY.getTime()?'<span class="tlabel">اليوم</span>':''}</div><div class="subjs"></div>`;
+    const isT=x.d.getTime()===TODAY.getTime(),day=document.createElement('div');day.className='day'+(x.exams.length?' m-exam':'')+(isT?' today':'');
+    day.innerHTML=`<div class="date"><span class="dn">${DN[x.d.getDay()]}</span><span class="dd">${ar(x.d.getDate())}</span><span class="dm">${MN[x.d.getMonth()]}</span>${isT?'<span class="tlabel">اليوم</span>':''}</div><div class="subjs"></div>`;
     const box=day.querySelector('.subjs');let k=0;
-    const slot=()=>{const r=slots[k++];return r?`<span class="tm">${range(r[0],r[1])}</span>`:'<span class="tm">إذا عندك وقت</span>'};
     x.exams.forEach(e=>{const el=document.createElement('div');el.className='subj m-banner';el.style.setProperty('--c','var('+COLOR[e.s]+')');
-      el.innerHTML=`<div class="subj-h"><span class="s">اليوم امتحان ${C[e.s].name} الشهري</span><span class="w">بالتوفيق. راجع ملخصك الصبح وادخل الامتحان مرتاح.</span></div>`;box.appendChild(el)});
+      el.innerHTML=`<div class="subj-h"><span class="s">اليوم امتحان ${C[e.s].name} الشهري</span><span class="w">بالتوفيق. فطور زين، نظرة سريعة على ملخصك، وبعد الامتحان ارتاح ساعة قبل ما تكمل.</span></div>`;box.appendChild(el)});
     const blocks=x.prep.map(p=>({...p,s:p.e.s,pri:1})).concat(x.other);
-    for(const b of blocks){const el=document.createElement('div');el.className='subj'+(b.pri?' m-pri':'');el.dataset.s=b.s;el.style.setProperty('--c','var('+COLOR[b.s]+')');
-      const nm=b.s==='rev'?'مراجعة':C[b.s].name,tag=b.pri?'<span class="m-tag">امتحان شهري</span>':'';
+    for(const b of blocks){const el=document.createElement('div');el.className='subj'+(b.pri?' m-pri':'')+(b.opt?' m-opt':'');el.dataset.s=b.s;el.style.setProperty('--c','var('+COLOR[b.s]+')');
+      const r=b.opt?null:S[k++],tm=r?`<span class="tm">${range(r[0],r[1])}</span>`:`<span class="tm">${b.opt?'اختياري':'إذا عندك وقت'}</span>`;
+      const nm=b.s==='rev'?'مراجعة':C[b.s].name,tag=b.pri?'<span class="m-tag">امتحان شهري</span>':'',optW=b.opt?'<span class="w">إذا تعبان أجّلها، وترتبها بعدين من «تأخرت؟» بالجدول الرئيسي</span>':'';
       if(b.plain){const id=b.pri?'m'+kk(x.d)+'-'+b.s:'p'+kk(x.d)+'-'+b.j;
-        el.innerHTML=`<div class="subj-h">${slot()}${tag}</div><div class="lec"><input type="checkbox" id="${id}"><label for="${id}" class="plain"><span class="subj-h"><span class="s">${nm}</span></span> <span class="t">${esc(b.plain)}</span></label><span></span></div>`;check(el.querySelector('.lec'),id)}
-      else{const t=P.T[b.s];el.innerHTML=`<div class="subj-h">${slot()}${tag}<span class="s">${nm}</span><span class="w">${esc(t.name)}</span></div>`;
-        b.lecs.forEach(l=>{const id='v'+l.v,r=document.createElement('div');r.className='lec';
-          r.innerHTML=`<input type="checkbox" id="${id}" aria-label="أنجزت ${esc(l.t)}"><label for="${id}"><a href="${V(l.v,t.lists[l.li].id)}" target="_blank" rel="noopener">${esc(l.t)}</a></label><span class="m">${dur(l.m)}</span>`;check(r,id);el.appendChild(r)})}
+        el.innerHTML=`<div class="subj-h">${tm}${tag}${optW}</div><div class="lec"><input type="checkbox" id="${id}"><label for="${id}" class="plain"><span class="subj-h"><span class="s">${nm}</span></span> <span class="t">${esc(b.plain)}</span></label><span></span></div>`;check(el.querySelector('.lec'),id)}
+      else{const t=P.T[b.s];el.innerHTML=`<div class="subj-h">${tm}${tag}<span class="s">${nm}</span><span class="w">${esc(t.name)}${b.fast?' · شغّلها بسرعة '+b.fast:''}</span>${optW}</div>`;
+        b.lecs.forEach(l=>{const id='v'+l.v,rw=document.createElement('div');rw.className='lec';
+          rw.innerHTML=`<input type="checkbox" id="${id}" aria-label="أنجزت ${esc(l.t)}"><label for="${id}"><a href="${V(l.v,t.lists[l.li].id)}" target="_blank" rel="noopener">${esc(l.t)}</a></label><span class="m">${dur(l.m)}</span>`;check(rw,id);el.appendChild(rw)})}
       box.appendChild(el)}
+    // daily self-test on today's exam lectures, plus a short recall of what was studied three days ago
+    const studied=[...new Set(x.prep.filter(p=>p.lecs).map(p=>C[p.e.s].name))];
+    if(blocks.length&&!x.exams.length){const el=document.createElement('div');el.className='subj extra';
+      el.innerHTML=`<div class="subj-h"><span class="tm">${range(PR[0],PR[1])}</span><span class="w">${studied.length?'حل أسئلة وزارية لمحاضرات '+studied.join(' و')+' اللي درستها اليوم، و١٠ دقايق تسمّع لنفسك بدون ما تفتح الدفتر محاضرات قبل ٣ أيام':'حل تمارين الكتاب والأسئلة الوزارية لمحاضرات اليوم'}</span></div>`;box.appendChild(el)}
     if(blocks.length){const el=document.createElement('div');el.className='subj extra';el.innerHTML=`<div class="subj-h"><span class="tm">${range(RV[0],RV[1])}</span><span class="w">مراجعة ملخص اليوم وتشوف جدول باجر</span></div>`;box.appendChild(el)}
     host.appendChild(day)}
 }

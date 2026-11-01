@@ -79,7 +79,8 @@ function allocate(act,from,Q,need){
 }
 // the teacher of one chapter: its own choice if the student picked one, otherwise the subject's teacher
 const subjTeacher=s=>C[s].teachers.find(x=>x.id===prefs.teacher[s])||mainOf(s);
-const chapTeacher=(s,li)=>{const id=prefs.chap[s]&&prefs.chap[s][li];return id&&C[s].teachers.find(x=>x.id===id&&x.lists[li])||subjTeacher(s)};
+const chapTeacher=(s,li)=>{const id=prefs.chap[s]&&prefs.chap[s][li];const t=id&&C[s].teachers.find(x=>x.id===id&&x.lists[li]);if(t)return t;
+  const st=subjTeacher(s);return st.lists[li]?st:mainOf(s)};
 // one "teacher" per subject made of each chapter's chosen playlist, so the rest of the plan reads lists[li] as before
 function mixTeacher(s){const n=mainOf(s).lists.length,ts=[];
   const lists=Array.from({length:n},(_,li)=>{const t=chapTeacher(s,li);ts.push(t);const l=t.lists[li];return {...l,by:l.by||t.name,tid:t.id}});
@@ -141,12 +142,13 @@ function render(){
   // teachers table with the alternate-teacher choice
   // the subject select sets every chapter; each chapter's own select overrides it for that chapter only
   $('tBody').innerHTML=ORDER.map(s=>{const on=prefs.subjects[s],t=subjTeacher(s),mix=mixTeacher(s);
-    const opt=(sel,short)=>C[s].teachers.map(x=>`<option value="${x.id}"${x.id===sel?' selected':''}>${esc(short?x.name.replace(/^(الأستاذ|الست)\s+/,''):x.name)}${x.main?' (رئيسي)':short?'':' (بديل)'}</option>`).join('');
+    // a chapter's menu lists only the teachers who recorded it; the subject menu marks teachers missing chapters
+    const opt=(sel,short,li)=>C[s].teachers.filter(x=>li===undefined||x.lists[li]).map(x=>`<option value="${x.id}"${x.id===sel?' selected':''}>${esc(short?x.name.replace(/^(الأستاذ|الست)\s+/,''):x.name)}${x.main?' (رئيسي)':short?'':x.lists.length<mainOf(s).lists.length?' (بديل، بعض الفصول)':' (بديل)'}</option>`).join('');
     return `<tr class="${on?'':'off'}"><td><span class="tag" style="--c:var(${COLOR[s]})"><span class="dot"></span>${C[s].name}</span>${on?'':'<br><span class="alt">محذوفة من جدولك</span>'}</td>
       <td><label class="vh" for="tsel-${s}">مدرس ${C[s].name} لكل الفصول</label><select class="tsel" id="tsel-${s}" data-s="${s}"${on?'':' disabled'}>${opt(t.id)}</select>${mix.id==='mix'?'<span class="alt mixed">فصول بمدرسين مختلفين</span>':''}</td>
       <td class="chaps">${mix.lists.map((l,li)=>`<div class="chap${l.tid!==t.id?' own':''}"><span class="chap-t"><a href="${PL(l.id)}" target="_blank" rel="noopener">${esc(l.t)}</a> <span class="alt">(${esc(l.y)} · ${ar(l.v.length)})</span></span>
-        <label class="vh" for="csel-${s}-${li}">مدرس ${esc(l.t)}</label><select class="csel" id="csel-${s}-${li}" data-s="${s}" data-li="${li}"${on?'':' disabled'}>${opt(l.tid,true)}</select></div>`).join('')}</td></tr>`}).join('');
-  document.querySelectorAll('.tsel').forEach(el=>el.onchange=()=>{const s=el.dataset.s;prefs.teacher[s]=el.value;prefs.chap[s]={};savePrefs();rerender('صارت كل فصول '+C[s].name+' على '+subjTeacher(s).name)});
+        <label class="vh" for="csel-${s}-${li}">مدرس ${esc(l.t)}</label><select class="csel" id="csel-${s}-${li}" data-s="${s}" data-li="${li}"${on?'':' disabled'}>${opt(l.tid,true,li)}</select></div>`).join('')}</td></tr>`}).join('');
+  document.querySelectorAll('.tsel').forEach(el=>el.onchange=()=>{const s=el.dataset.s;prefs.teacher[s]=el.value;prefs.chap[s]={};savePrefs();const st=subjTeacher(s);rerender(st.lists.length<mainOf(s).lists.length?C[s].name+' صارت على '+st.name+'، والفصول اللي بعده ما سجّلها تبقى على '+mainOf(s).name:'صارت كل فصول '+C[s].name+' على '+st.name)});
   document.querySelectorAll('.csel').forEach(el=>el.onchange=()=>{const s=el.dataset.s,li=el.dataset.li,ch=prefs.chap[s]||(prefs.chap[s]={});
     if(el.value===prefs.teacher[s])delete ch[li];else ch[li]=el.value;savePrefs();
     rerender(C[s].name+'، '+mainOf(s).lists[li].t+'، صار على '+chapTeacher(s,li).name)});

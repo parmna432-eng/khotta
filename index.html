@@ -89,6 +89,7 @@ a:focus-visible,button:focus-visible,input:focus-visible,summary:focus-visible{o
 .lec label{min-width:0;cursor:pointer}
 .lec .m{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap}
 .lec.checked a,.lec.checked .t{text-decoration:line-through;opacity:.55}
+.lec.moved{color:var(--muted)}.lec.moved a{opacity:.7}.lec.moved .mv-x{width:17px;text-align:center;color:var(--today)}.lec.moved .mv-to{font-size:12px;color:var(--today)}
 .plain{font-size:14px}
 .tm{font-size:12px;color:var(--today);font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap}
 .subj.extra{background:var(--accent-soft)}
@@ -239,7 +240,7 @@ body:not(.m-view) .monthly{display:none}
 .fontsz button:nth-of-type(1){font-size:13px}.fontsz button:nth-of-type(2){font-size:16px}.fontsz button:nth-of-type(3){font-size:19px}
 .fontsz button[aria-pressed="true"]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
 </style>
-<link rel="stylesheet" href="dream.css?v=32">
+<link rel="stylesheet" href="dream.css?v=33">
 <script>try{const p=JSON.parse(localStorage.getItem('plan6sci-dream'));const r=document.documentElement;if(p&&p.fam&&p.fam!=='other')r.dataset.dream=p.fam==='engineer'&&p.dept==='هندسة الطائرات المسيّرة'?'drone':p.fam;if(p&&p.gender==='f')r.dataset.gender='f'}catch(e){}</script>
 <script>try{const z=+localStorage.getItem('plan6sci-font');if([1.12,1.25].includes(z))document.documentElement.style.setProperty('--zoom',z)}catch(e){}</script>
 
@@ -408,9 +409,9 @@ body:not(.m-view) .monthly{display:none}
 </div>
 <div class="toast" id="toast" role="status" hidden></div>
 
-<script src="data.js?v=32"></script>
-<script src="plan.js?v=32"></script>
-<script src="dream.js?v=32"></script>
+<script src="data.js?v=33"></script>
+<script src="plan.js?v=33"></script>
+<script src="dream.js?v=33"></script>
 
 </body>
 </html>

@@ -86,18 +86,18 @@ function mixTeacher(s){const n=mainOf(s).lists.length,ts=[];
   const lists=Array.from({length:n},(_,li)=>{const t=chapTeacher(s,li);ts.push(t);const l=t.lists[li];return {...l,by:l.by||t.name,tid:t.id}});
   const one=ts.every(t=>t.id===ts[0].id);
   return {id:one?ts[0].id:'mix',name:one?ts[0].name:[...new Set(ts.map(t=>t.name))].join(' و'),main:ts.every(t=>t.main),lists}}
-// catch-up for lectures not ticked before the re-plan date, in their original order. "fit": added on top of the coming study days,
-// about an hour a day so it is cleared soon; "extend": on new days right after the last study day. Nothing already planned moves.
-function placeMissed(days,missed,R,mode){
-  const group=list=>{const out=[];for(const l of list){const last=out[out.length-1];if(last&&last.s===l.s)last.lecs.push(l);else out.push({s:l.s,lecs:[l],extra:true})}return out};
-  const M=missed.reduce((a,l)=>a+l.m,0),future=days.filter(x=>!x.past&&x.d>=R&&!x.review);
-  if(mode==='fit'&&future.length){
-    const n=Math.min(future.length,Math.max(1,Math.ceil(M/60))),bins=Array.from({length:n},()=>[]);let acc=0;
-    for(const l of missed){bins[Math.min(n-1,Math.floor((acc+l.m/2)/M*n))].push(l);acc+=l.m}
-    bins.forEach((bin,i)=>{if(bin.length)future[i].blocks=future[i].blocks.concat(group(bin))});
-    return days}
+// re-plan from R: each subject's lectures not ticked before R go back in front of that subject's coming lectures and fill its own
+// slots in order (a day with two Arabic lectures still has two, renumbered), so other subjects and the shape of every day stay the same.
+// Lectures ticked early stay where they are. What overflows a subject's slots goes to new days after the last study day.
+function placeMissed(days,missed,R){
+  const bySub={};for(const l of missed)(bySub[l.s]=bySub[l.s]||[]).push(l);
+  const future=days.filter(x=>!x.past&&x.d>=R&&!x.review),over=[];
+  for(const s in bySub){const slots=[],seq=bySub[s].slice();
+    for(const x of future)for(const b of x.blocks){if(b.s!==s||!b.lecs)continue;b.lecs=b.lecs.slice();b.lecs.forEach((l,i)=>{if(!done['v'+l.v]){slots.push([b,i]);seq.push(l)}})}
+    slots.forEach(([b,i],k)=>{b.lecs[i]=seq[k]});over.push(...seq.slice(slots.length).map(l=>({...l,s})))}
+  if(!over.length)return days;
   const d=new Date(Math.max(days[days.length-1].d.getTime()+864e5,R.getTime())),out=days.slice();let day=null,cur=null,acc=0;
-  for(const l of missed){
+  for(const l of over){
     if(!cur||cur.s!==l.s||acc+l.m>150){
       if(!day||day.blocks.length>=(day.d.getDay()===5?2:3)){day={d:new Date(d),blocks:[],catchup:true};out.push(day);d.setDate(d.getDate()+1)}
       cur={s:l.s,lecs:[],extra:true};day.blocks.push(cur);acc=0}
@@ -117,12 +117,12 @@ function build(){
   let days=allocate(act,START,Q,need);
   const sh=prefs.shift,R=sh&&parseKey(sh.from);
   if(R&&R>START){
-    // days before R keep what was ticked; days from R on stay exactly as planned, and what was not ticked before R is added as catch-up
+    // days before R keep what was ticked; what was not ticked moves back into its own subject's coming lectures
     const missed=[];
     days=days.map(x=>{if(x.d>=R)return x;
       const blocks=x.blocks.map(b=>{if(b.s==='rev')return b;b.lecs.forEach(l=>{if(!done['v'+l.v])missed.push({...l,s:b.s,from:x.d})});return {s:b.s,lecs:b.lecs.filter(l=>done['v'+l.v])}});
       return {d:x.d,past:true,blocks:blocks.filter(b=>b.s==='rev'||b.lecs.length)}});
-    if(missed.length)days=placeMissed(days,missed,R,sh.mode);
+    if(missed.length)days=placeMissed(days,missed,R);
   }
   const d=new Date(days[days.length-1].d);d.setDate(d.getDate()+1);
   // final review week: subjects with the most lectures marked hard come first, and each review block lists those lectures
@@ -204,13 +204,13 @@ function render(){
       else{const t=T[b.s],lists=[...new Set(b.lecs.map(l=>l.li))].map(li=>t.lists[li]);const bm=b.lecs.reduce((a,l)=>a+l.m,0);
         const speed=bm>190?' · شغّلها بسرعة ١.٥':bm>150?' · شغّلها بسرعة ١.٢٥':'';
         const from=b.extra?b.lecs.reduce((m,l)=>l.from&&(!m||l.from<m)?l.from:m,null):null;
-        el.innerHTML=`<div class="subj-h">${b.extra?'<span class="tm late-tag">تعويض</span>':tm}<span class="s">${nm}</span><span class="w">${b.extra?'متأخرة'+(from?' من '+DN[from.getDay()]+' '+dstr(from):'')+' · ':''}${lists.map(l=>esc(l.t)).join(' ← ')} · ${esc(lists[0]&&lists[0].by||t.name)}${speed}</span></div>`;
+        el.innerHTML=`<div class="subj-h">${b.extra?'<span class="tm late-tag">تعويض</span>':tm}<span class="s">${nm}</span><span class="w">${b.extra?'ما لحكت بأيام المادة'+' · ':''}${lists.map(l=>esc(l.t)).join(' ← ')} · ${esc(lists[0]&&lists[0].by||t.name)}${speed}</span></div>`;
         b.lecs.forEach(l=>{const L=t.lists[l.li],id='v'+l.v;allIds.push(id);const r=document.createElement('div');r.className='lec';
           r.innerHTML=`<input type="checkbox" id="${id}" aria-label="أنجزت ${esc(l.t)}"><label for="${id}"><a href="${V(l.v,L.id)}" target="_blank" rel="noopener">${esc(l.t)}</a></label><span class="m">${dur(l.m)}</span><button type="button" class="flag" aria-pressed="${!!hard[id]}" aria-label="صعبة عليّ: ${esc(l.t)}" title="صعبة عليّ">${FLAG}</button>`;
           check(r,id);r.querySelector('.flag').onclick=()=>flagHard(id);el.appendChild(r)})}
       box.appendChild(el)});
     if(p.past){const el=document.createElement('div');el.className='subj extra';el.dataset.s='extra';
-      el.innerHTML=`<div class="subj-h"><span class="w">${p.blocks.some(b=>b.lecs)?'هذا اللي خلصته بهذا اليوم. الباقي انضاف كتعويض على الأيام الجاية، وجدولها ما تغير.':'ما خلصت محاضرات بهذا اليوم، ومحاضراته انضافت كتعويض على الأيام الجاية.'}</span></div>`;box.appendChild(el);weekEl.appendChild(day);return}
+      el.innerHTML=`<div class="subj-h"><span class="w">${p.blocks.some(b=>b.lecs)?'هذا اللي خلصته بهذا اليوم. الباقي رجع لأيام نفس المادة الجاية بنفس تسلسله.':'ما خلصت محاضرات بهذا اليوم، ومحاضراته رجعت لأيام نفس المادة الجاية بنفس تسلسله.'}</span></div>`;box.appendChild(el);weekEl.appendChild(day);return}
     [[PR,'حل تمارين الكتاب والأسئلة الوزارية لمحاضرات اليوم'],[RV,'مراجعة ملخص اليوم وتشوف جدول باجر']].forEach(([r,w])=>{const el=document.createElement('div');el.className='subj extra';el.dataset.s='extra';
       el.innerHTML=`<div class="subj-h"><span class="tm">${range(r[0],r[1])}</span><span class="w">${w}</span></div>`;box.appendChild(el)});
     weekEl.appendChild(day)});
@@ -235,7 +235,7 @@ function updateLate(){
   if(!late.length&&!lateManual&&!sh){box.hidden=true;return}
   box.hidden=false;const mins=late.reduce((a,l)=>a+l.m,0);
   $('lateTitle').textContent=late.length?'عندك '+ar(late.length)+' محاضرة متأخرة من الأيام اللي فاتت ('+dur(mins)+' فيديو)':sh&&!lateManual?'رتبت جدولك من '+dstr(parseKey(sh.from)):'أعد ترتيب جدولك';
-  $('lateText').textContent=late.length||lateManual?'اختار شلون نعوّضها: جدول الأيام الجاية يبقى نفسه بنفس محاضراته، واللي خلصته يبقى بيومه، والمتأخرة بس تنضاف كتعويض.':'يخلص جدولك هسه '+dstr(P.days[P.days.length-1].d)+'. إذا تريد ترجع للترتيب الأصلي اضغط تراجع.';
+  $('lateText').textContent=late.length||lateManual?'كل مادة ترجع محاضراتها المتأخرة لأول أيامها الجاية بنفس التسلسل: نفس الأيام ونفس عدد المحاضرات، بس الأرقام ترجع لورا. المواد الثانية ما تتغير، واللي خلصته يبقى بيومه.':'يخلص جدولك هسه '+dstr(P.days[P.days.length-1].d)+'. إذا تريد ترجع للترتيب الأصلي اضغط تراجع.';
   $('lateActs').hidden=!(late.length||lateManual);$('lateUndo').hidden=!sh;
 }
 function shift(mode){
@@ -245,7 +245,7 @@ function shift(mode){
   toast('رتبنا جدولك من '+dstr(from)+(diff>0?'، وطال '+ar(diff)+' يوم':diff<0?'، وقصر '+ar(-diff)+' يوم':'، ونفس تاريخ النهاية'));
   $('plan').querySelector('.day.today')?.scrollIntoView({behavior:'smooth',block:'center'});
 }
-$('lateExtend').onclick=()=>shift('extend');
+$('lateExtend').onclick=()=>shift('fit');
 $('lateFit').onclick=()=>shift('fit');
 $('lateUndo').onclick=()=>{delete prefs.shift;savePrefs();lateManual=false;rerender('رجع جدولك للترتيب الأصلي')};
 $('lateOpen').onclick=()=>{lateManual=true;updateLate();$('lateBox').scrollIntoView({behavior:'smooth',block:'center'})};
@@ -328,7 +328,7 @@ function exam(){
   $('examBtn').textContent=ex?'غيّر الموعد':'حدد موعد امتحانك';
   window.PLAN_EXAM=ex&&n>0?n:null;
   const late=ex?Math.round((end-ex)/864e5):0,w=$('examWarn');w.hidden=!(late>=0&&ex&&n>0);
-  if(!w.hidden)w.textContent='جدولك يخلص '+dstr(end)+'، '+(late?'بعد موعد امتحانك بـ '+(late===1?'يوم':late===2?'يومين':ar(late)+(late<11?' أيام':' يوم')):'بنفس يوم امتحانك')+'. إذا تأخرت محاضرات اختار «وزّعها على الأيام الجاية» بدل «أيام تعويض بالآخر»، وشغّل المحاضرات بسرعة أعلى حتى تلحك.';
+  if(!w.hidden)w.textContent='جدولك يخلص '+dstr(end)+'، '+(late?'بعد موعد امتحانك بـ '+(late===1?'يوم':late===2?'يومين':ar(late)+(late<11?' أيام':' يوم')):'بنفس يوم امتحانك')+'. إذا تأخرت محاضرات شغّل المحاضرات بسرعة أعلى حتى تلحك، وشغّل المحاضرات بسرعة أعلى حتى تلحك.';
 }
 $('examBtn').onclick=()=>{const e=$('examEdit');e.hidden=!e.hidden;$('examBtn').setAttribute('aria-expanded',!e.hidden);if(!e.hidden){$('examDate').value=prefs.exam?prefs.exam.split('-').map((x,i)=>i?x.padStart(2,'0'):x).join('-'):'';$('examDate').focus()}};
 $('examSave').onclick=()=>{const v=$('examDate').value;if(!v)return;const [y,m,d]=v.split('-').map(Number);prefs.exam=y+'-'+m+'-'+d;savePrefs();$('examEdit').hidden=true;$('examBtn').setAttribute('aria-expanded','false');

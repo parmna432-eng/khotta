@@ -207,6 +207,7 @@ body:not(.m-view) .monthly{display:none}
 .m-load.ok{color:var(--done)}
 .m-load.mid{color:var(--accent)}
 .m-load.high{color:var(--today)}
+.late-tag{background:var(--today);color:var(--card);border-radius:6px;padding:0 6px}
 .m-acts{display:flex;flex-wrap:wrap;gap:8px}
 .m-opt{opacity:.7;background:repeating-linear-gradient(-45deg,transparent 0 8px,var(--accent-soft) 8px 9px)}
 .m-why{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 14px;font-size:14px}
@@ -237,7 +238,7 @@ body:not(.m-view) .monthly{display:none}
 .fontsz button:nth-of-type(1){font-size:13px}.fontsz button:nth-of-type(2){font-size:16px}.fontsz button:nth-of-type(3){font-size:19px}
 .fontsz button[aria-pressed="true"]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
 </style>
-<link rel="stylesheet" href="dream.css?v=29">
+<link rel="stylesheet" href="dream.css?v=30">
 <script>try{const p=JSON.parse(localStorage.getItem('plan6sci-dream'));const r=document.documentElement;if(p&&p.fam&&p.fam!=='other')r.dataset.dream=p.fam==='engineer'&&p.dept==='هندسة الطائرات المسيّرة'?'drone':p.fam;if(p&&p.gender==='f')r.dataset.gender='f'}catch(e){}</script>
 <script>try{const z=+localStorage.getItem('plan6sci-font');if([1.12,1.25].includes(z))document.documentElement.style.setProperty('--zoom',z)}catch(e){}</script>
 
@@ -280,8 +281,8 @@ body:not(.m-view) .monthly{display:none}
         <label><input type="radio" name="lateFrom" value="tomorrow"> أبدي من باجر</label>
       </div>
       <div class="late-btns">
-        <button class="chip solid" type="button" id="lateExtend">طوّل الجدول<small>نفس حمل اليوم، والنهاية تتأخر</small></button>
-        <button class="chip solid alt2" type="button" id="lateFit">وزّعها على الأيام الباقية<small>نفس تاريخ النهاية، والأيام أثقل</small></button>
+        <button class="chip solid" type="button" id="lateExtend">أيام تعويض بالآخر<small>الأيام الجاية تبقى نفسها، والمتأخرة تنحط بأيام بعد آخر يوم دراسة</small></button>
+        <button class="chip solid alt2" type="button" id="lateFit">وزّعها على الأيام الجاية<small>تنضاف فوق جدول الأيام الجاية، حوالي ساعة باليوم لحد ما تخلص</small></button>
       </div>
     </div>
     <button class="chip" type="button" id="lateUndo" hidden>تراجع للترتيب الأصلي</button>
@@ -405,9 +406,9 @@ body:not(.m-view) .monthly{display:none}
 </div>
 <div class="toast" id="toast" role="status" hidden></div>
 
-<script src="data.js?v=29"></script>
-<script src="plan.js?v=29"></script>
-<script src="dream.js?v=29"></script>
+<script src="data.js?v=30"></script>
+<script src="plan.js?v=30"></script>
+<script src="dream.js?v=30"></script>
 
 </body>
 </html>

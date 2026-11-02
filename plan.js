@@ -86,6 +86,23 @@ function mixTeacher(s){const n=mainOf(s).lists.length,ts=[];
   const lists=Array.from({length:n},(_,li)=>{const t=chapTeacher(s,li);ts.push(t);const l=t.lists[li];return {...l,by:l.by||t.name,tid:t.id}});
   const one=ts.every(t=>t.id===ts[0].id);
   return {id:one?ts[0].id:'mix',name:one?ts[0].name:[...new Set(ts.map(t=>t.name))].join(' و'),main:ts.every(t=>t.main),lists}}
+// catch-up for lectures not ticked before the re-plan date, in their original order. "fit": added on top of the coming study days,
+// about an hour a day so it is cleared soon; "extend": on new days right after the last study day. Nothing already planned moves.
+function placeMissed(days,missed,R,mode){
+  const group=list=>{const out=[];for(const l of list){const last=out[out.length-1];if(last&&last.s===l.s)last.lecs.push(l);else out.push({s:l.s,lecs:[l],extra:true})}return out};
+  const M=missed.reduce((a,l)=>a+l.m,0),future=days.filter(x=>!x.past&&x.d>=R&&!x.review);
+  if(mode==='fit'&&future.length){
+    const n=Math.min(future.length,Math.max(1,Math.ceil(M/60))),bins=Array.from({length:n},()=>[]);let acc=0;
+    for(const l of missed){bins[Math.min(n-1,Math.floor((acc+l.m/2)/M*n))].push(l);acc+=l.m}
+    bins.forEach((bin,i)=>{if(bin.length)future[i].blocks=future[i].blocks.concat(group(bin))});
+    return days}
+  const d=new Date(Math.max(days[days.length-1].d.getTime()+864e5,R.getTime())),out=days.slice();let day=null,cur=null,acc=0;
+  for(const l of missed){
+    if(!cur||cur.s!==l.s||acc+l.m>150){
+      if(!day||day.blocks.length>=(day.d.getDay()===5?2:3)){day={d:new Date(d),blocks:[],catchup:true};out.push(day);d.setDate(d.getDate()+1)}
+      cur={s:l.s,lecs:[],extra:true};day.blocks.push(cur);acc=0}
+    cur.lecs.push(l);acc+=l.m}
+  return out}
 function build(){
   const act=ORDER.filter(s=>prefs.subjects[s]);
   const T={},Q={},tot={};
@@ -100,16 +117,12 @@ function build(){
   let days=allocate(act,START,Q,need);
   const sh=prefs.shift,R=sh&&parseKey(sh.from);
   if(R&&R>START){
-    // re-plan from R: past days keep only what was ticked, everything not ticked moves forward in the same order
-    const studyEnd=days[days.length-1].d;
-    const past=days.filter(x=>x.d<R).map(x=>({d:x.d,past:true,blocks:x.blocks.map(b=>b.s==='rev'?b:{s:b.s,lecs:b.lecs.filter(l=>done['v'+l.v])}).filter(b=>b.s==='rev'||b.lecs.length)}));
-    const RQ={},rem={};for(const s of act){RQ[s]=Q[s].filter(l=>!done['v'+l.v]);rem[s]=RQ[s].reduce((a,x)=>a+x.m,0)}
-    const live=act.filter(s=>rem[s]>0),need2={};
-    let slot=SLOT;
-    if(sh.mode==='fit'){let n=0;for(const x=new Date(R);x<=studyEnd;x.setDate(x.getDate()+1))n+=x.getDay()===5?2:3;
-      if(n>0)slot=Math.max(SLOT,live.reduce((a,s)=>a+rem[s],0)/n)}
-    for(const s of live)need2[s]=Math.max(1,Math.round(need[s]*rem[s]/tot[s]*SLOT/slot));
-    days=past.concat(allocate(live,R,RQ,need2));
+    // days before R keep what was ticked; days from R on stay exactly as planned, and what was not ticked before R is added as catch-up
+    const missed=[];
+    days=days.map(x=>{if(x.d>=R)return x;
+      const blocks=x.blocks.map(b=>{if(b.s==='rev')return b;b.lecs.forEach(l=>{if(!done['v'+l.v])missed.push({...l,s:b.s,from:x.d})});return {s:b.s,lecs:b.lecs.filter(l=>done['v'+l.v])}});
+      return {d:x.d,past:true,blocks:blocks.filter(b=>b.s==='rev'||b.lecs.length)}});
+    if(missed.length)days=placeMissed(days,missed,R,sh.mode);
   }
   const d=new Date(days[days.length-1].d);d.setDate(d.getDate()+1);
   // final review week: subjects with the most lectures marked hard come first, and each review block lists those lectures
@@ -186,15 +199,18 @@ function render(){
         el.innerHTML=`<div class="subj-h">${tm}</div><div class="lec"><input type="checkbox" id="${id}"><label for="${id}" class="plain"><span class="subj-h"><span class="s">${nm}</span></span> <span class="t">${esc(b.plain)}</span></label><span></span></div>`;check(el.querySelector('.lec'),id);
         if(b.hard&&b.hard.length){const t=T[b.s],h=document.createElement('div');h.className='hard-list';
           h.innerHTML=`<span class="hl-t">${FLAG}ابدأ بالمحاضرات اللي علّمتها صعبة (${ar(b.hard.length)})</span>`+b.hard.map(l=>`<a href="${V(l.v,t.lists[l.li].id)}" target="_blank" rel="noopener">${esc(l.t)}</a>`).join('');el.appendChild(h)}}
+      // a session that ended up with no new lecture (short subjects) becomes a review session instead of an empty box
+      else if(!b.lecs.length){el.innerHTML=`<div class="subj-h">${tm}<span class="s">${nm}</span><span class="w">ما بيها محاضرة جديدة اليوم: راجع آخر محاضرات ${nm} اللي أخذتها وحل تمارينها</span></div>`}
       else{const t=T[b.s],lists=[...new Set(b.lecs.map(l=>l.li))].map(li=>t.lists[li]);const bm=b.lecs.reduce((a,l)=>a+l.m,0);
         const speed=bm>190?' · شغّلها بسرعة ١.٥':bm>150?' · شغّلها بسرعة ١.٢٥':'';
-        el.innerHTML=`<div class="subj-h">${tm}<span class="s">${nm}</span><span class="w">${lists.map(l=>esc(l.t)).join(' ← ')} · ${esc(lists[0]&&lists[0].by||t.name)}${speed}</span></div>`;
+        const from=b.extra?b.lecs.reduce((m,l)=>l.from&&(!m||l.from<m)?l.from:m,null):null;
+        el.innerHTML=`<div class="subj-h">${b.extra?'<span class="tm late-tag">تعويض</span>':tm}<span class="s">${nm}</span><span class="w">${b.extra?'متأخرة'+(from?' من '+DN[from.getDay()]+' '+dstr(from):'')+' · ':''}${lists.map(l=>esc(l.t)).join(' ← ')} · ${esc(lists[0]&&lists[0].by||t.name)}${speed}</span></div>`;
         b.lecs.forEach(l=>{const L=t.lists[l.li],id='v'+l.v;allIds.push(id);const r=document.createElement('div');r.className='lec';
           r.innerHTML=`<input type="checkbox" id="${id}" aria-label="أنجزت ${esc(l.t)}"><label for="${id}"><a href="${V(l.v,L.id)}" target="_blank" rel="noopener">${esc(l.t)}</a></label><span class="m">${dur(l.m)}</span><button type="button" class="flag" aria-pressed="${!!hard[id]}" aria-label="صعبة عليّ: ${esc(l.t)}" title="صعبة عليّ">${FLAG}</button>`;
           check(r,id);r.querySelector('.flag').onclick=()=>flagHard(id);el.appendChild(r)})}
       box.appendChild(el)});
     if(p.past){const el=document.createElement('div');el.className='subj extra';el.dataset.s='extra';
-      el.innerHTML=`<div class="subj-h"><span class="w">${p.blocks.some(b=>b.lecs)?'هذا اللي خلصته بهذا اليوم. الباقي انتقل لقدام.':'ما خلصت محاضرات بهذا اليوم، ومحاضراته انتقلت لقدام.'}</span></div>`;box.appendChild(el);weekEl.appendChild(day);return}
+      el.innerHTML=`<div class="subj-h"><span class="w">${p.blocks.some(b=>b.lecs)?'هذا اللي خلصته بهذا اليوم. الباقي انضاف كتعويض على الأيام الجاية، وجدولها ما تغير.':'ما خلصت محاضرات بهذا اليوم، ومحاضراته انضافت كتعويض على الأيام الجاية.'}</span></div>`;box.appendChild(el);weekEl.appendChild(day);return}
     [[PR,'حل تمارين الكتاب والأسئلة الوزارية لمحاضرات اليوم'],[RV,'مراجعة ملخص اليوم وتشوف جدول باجر']].forEach(([r,w])=>{const el=document.createElement('div');el.className='subj extra';el.dataset.s='extra';
       el.innerHTML=`<div class="subj-h"><span class="tm">${range(r[0],r[1])}</span><span class="w">${w}</span></div>`;box.appendChild(el)});
     weekEl.appendChild(day)});
@@ -219,7 +235,7 @@ function updateLate(){
   if(!late.length&&!lateManual&&!sh){box.hidden=true;return}
   box.hidden=false;const mins=late.reduce((a,l)=>a+l.m,0);
   $('lateTitle').textContent=late.length?'عندك '+ar(late.length)+' محاضرة متأخرة من الأيام اللي فاتت ('+dur(mins)+' فيديو)':sh&&!lateManual?'رتبت جدولك من '+dstr(parseKey(sh.from)):'أعد ترتيب جدولك';
-  $('lateText').textContent=late.length||lateManual?'اختار شلون نرتبها: كل اللي ما أشّرته ينتقل لقدام بنفس ترتيبه، واللي خلصته يبقى بمكانه.':'يخلص جدولك هسه '+dstr(P.days[P.days.length-1].d)+'. إذا تريد ترجع للترتيب الأصلي اضغط تراجع.';
+  $('lateText').textContent=late.length||lateManual?'اختار شلون نعوّضها: جدول الأيام الجاية يبقى نفسه بنفس محاضراته، واللي خلصته يبقى بيومه، والمتأخرة بس تنضاف كتعويض.':'يخلص جدولك هسه '+dstr(P.days[P.days.length-1].d)+'. إذا تريد ترجع للترتيب الأصلي اضغط تراجع.';
   $('lateActs').hidden=!(late.length||lateManual);$('lateUndo').hidden=!sh;
 }
 function shift(mode){
@@ -312,7 +328,7 @@ function exam(){
   $('examBtn').textContent=ex?'غيّر الموعد':'حدد موعد امتحانك';
   window.PLAN_EXAM=ex&&n>0?n:null;
   const late=ex?Math.round((end-ex)/864e5):0,w=$('examWarn');w.hidden=!(late>=0&&ex&&n>0);
-  if(!w.hidden)w.textContent='جدولك يخلص '+dstr(end)+'، '+(late?'بعد موعد امتحانك بـ '+(late===1?'يوم':late===2?'يومين':ar(late)+(late<11?' أيام':' يوم')):'بنفس يوم امتحانك')+'. إذا تأخرت محاضرات اختار «وزّعها على الأيام الباقية» بدل «طوّل الجدول»، وشغّل المحاضرات بسرعة أعلى حتى تلحك.';
+  if(!w.hidden)w.textContent='جدولك يخلص '+dstr(end)+'، '+(late?'بعد موعد امتحانك بـ '+(late===1?'يوم':late===2?'يومين':ar(late)+(late<11?' أيام':' يوم')):'بنفس يوم امتحانك')+'. إذا تأخرت محاضرات اختار «وزّعها على الأيام الجاية» بدل «أيام تعويض بالآخر»، وشغّل المحاضرات بسرعة أعلى حتى تلحك.';
 }
 $('examBtn').onclick=()=>{const e=$('examEdit');e.hidden=!e.hidden;$('examBtn').setAttribute('aria-expanded',!e.hidden);if(!e.hidden){$('examDate').value=prefs.exam?prefs.exam.split('-').map((x,i)=>i?x.padStart(2,'0'):x).join('-'):'';$('examDate').focus()}};
 $('examSave').onclick=()=>{const v=$('examDate').value;if(!v)return;const [y,m,d]=v.split('-').map(Number);prefs.exam=y+'-'+m+'-'+d;savePrefs();$('examEdit').hidden=true;$('examBtn').setAttribute('aria-expanded','false');

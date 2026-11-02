@@ -13,6 +13,8 @@ const MN=['كانون الثاني','شباط','آذار','نيسان','أيار
 const ar=n=>String(n).replace(/\d/g,d=>'٠١٢٣٤٥٦٧٨٩'[d]);
 const dur=m=>m>=60?ar(Math.floor(m/60))+'س'+(m%60?' '+ar(m%60)+'د':''):ar(m)+'د';
 const PL=id=>'https://www.youtube.com/playlist?list='+id, V=(v,l)=>'https://www.youtube.com/watch?v='+v+'&list='+l;
+// links of one lecture slot: the video(s) of whichever teacher the student picked for that chapter
+const lnk=l=>l.show.map(x=>`<a href="${V(x.v,x.pl)}" target="_blank" rel="noopener">${esc(x.t)}${x.cont?' (تكملة)':''}</a>`).join(' + ');
 const kk=d=>d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate();
 const dstr=d=>ar(d.getDate())+'/'+ar(d.getMonth()+1)+'/'+ar(d.getFullYear());
 const get=k=>{try{return JSON.parse(localStorage.getItem(k)||'null')}catch(e){return null}};
@@ -103,12 +105,24 @@ function placeMissed(days,missed,R){
       cur={s:l.s,lecs:[],extra:true};day.blocks.push(cur);acc=0}
     cur.lecs.push(l);acc+=l.m}
   return out}
+// slot i of a chapter shows the chosen teacher's lectures at the same place in the chapter (a teacher with more lectures shows two
+// in some slots, one with fewer repeats a lecture marked "تكملة"), so switching teachers never moves a day or loses a tick
+function slotsOf(s,t){const M=mainOf(s),out=[];
+  M.lists.forEach((ml,li)=>{const L=t.lists[li],alt=L.tid!==M.id,n=ml.v.length,k=L.v.length;let prev=-1;
+    ml.v.forEach((mv,i)=>{let show;
+      if(!alt)show=[{v:mv[0],t:mv[1],m:mv[2],pl:ml.id}];
+      else{const a=Math.min(k-1,Math.floor(i*k/n)),b=Math.max(a+1,Math.floor((i+1)*k/n));show=L.v.slice(a,b).map((x,j)=>({v:x[0],t:x[1],m:x[2],pl:L.id,cont:a+j<=prev}));prev=b-1}
+      out.push({v:mv[0],t:show.map(x=>x.t+(x.cont?' (تكملة)':'')).join(' + '),m:mv[2],dm:show.reduce((a,x)=>a+(x.cont?0:x.m),0)||show[0].m,li,show})})});
+  return out}
+const MIG=PREF.replace('prefs','slots1');
 function build(){
   const act=ORDER.filter(s=>prefs.subjects[s]);
   const T={},Q={},tot={};
   for(const s of act){
     const t=mixTeacher(s);T[s]=t;
-    Q[s]=[];t.lists.forEach((l,li)=>l.v.forEach(v=>Q[s].push({v:v[0],t:v[1],m:v[2],li})));
+    Q[s]=slotsOf(s,t);
+    // once: ticks and hard flags saved on an alternate teacher's videos move to the slots that show those videos
+    if(!get(MIG))for(const l of Q[s])if(l.show[0].v!==l.v)for(const k of [done,hard])if(!k['v'+l.v]&&l.show.every(x=>k['v'+x.v]))k['v'+l.v]=1;
     if(chapTeacher(s,0).main&&DONE_BEFORE[s])Q[s].splice(0,DONE_BEFORE[s]);
     tot[s]=Q[s].reduce((a,x)=>a+x.m,0);
   }
@@ -134,7 +148,8 @@ function build(){
   for(const bl of rv){days.push({d:new Date(d),blocks:bl,review:true});d.setDate(d.getDate()+1)}
   const slots={};days.forEach(x=>!x.past&&x.blocks.forEach(b=>{if(b.lecs)slots[b.s]=(slots[b.s]||0)+1}));
   const ids=[],idsBy={};for(const s of act){idsBy[s]=Q[s].map(l=>'v'+l.v);ids.push(...idsBy[s])}
-  return {act,T,days,tot,slots,ids,idsBy};
+  if(!get(MIG)){put(MIG,1);saveDone();put(HARD,hard)}
+  return {act,T,Q,days,tot,slots,ids,idsBy};
 }
 
 /* ---------- render ---------- */
@@ -187,7 +202,7 @@ function render(){
   days.forEach((p,i)=>{
     if(i===0||p.d.getDay()===6||(p.review&&!days[i-1].review)){weekEl=document.createElement('div');weekEl.className='week';const h=document.createElement('h3');
       if(p.review)h.innerHTML='<span class="phase">أسبوع المراجعة النهائية</span>';else{wn++;h.textContent='الأسبوع '+ar(wn)}weekEl.appendChild(h);host.appendChild(weekEl)}
-    const mins=p.blocks.reduce((a,b)=>a+(b.lecs||[]).reduce((x,l)=>x+l.m,0),0);
+    const mins=p.blocks.reduce((a,b)=>a+(b.lecs||[]).reduce((x,l)=>x+(l.dm||l.m),0),0);
     const day=document.createElement('div');day.className='day'+(p.d.getDay()===5?' fri':'')+(p.past?' past':'');
     const isToday=p.d.getTime()===today.getTime();if(isToday){day.classList.add('today');todayEl=day}
     day.innerHTML=`<div class="date"><span class="dn">${DN[p.d.getDay()]}</span><span class="dd">${ar(p.d.getDate())}</span><span class="dm">${MN[p.d.getMonth()]}</span>${mins?`<span class="hrs">${dur(mins)} فيديو</span>`:''}${isToday?'<span class="tlabel">اليوم</span>':''}</div><div class="subjs"></div>`;
@@ -198,15 +213,15 @@ function render(){
       if(b.plain){const id='p'+kk(p.d)+'-'+j;allIds.push(id);
         el.innerHTML=`<div class="subj-h">${tm}</div><div class="lec"><input type="checkbox" id="${id}"><label for="${id}" class="plain"><span class="subj-h"><span class="s">${nm}</span></span> <span class="t">${esc(b.plain)}</span></label><span></span></div>`;check(el.querySelector('.lec'),id);
         if(b.hard&&b.hard.length){const t=T[b.s],h=document.createElement('div');h.className='hard-list';
-          h.innerHTML=`<span class="hl-t">${FLAG}ابدأ بالمحاضرات اللي علّمتها صعبة (${ar(b.hard.length)})</span>`+b.hard.map(l=>`<a href="${V(l.v,t.lists[l.li].id)}" target="_blank" rel="noopener">${esc(l.t)}</a>`).join('');el.appendChild(h)}}
+          h.innerHTML=`<span class="hl-t">${FLAG}ابدأ بالمحاضرات اللي علّمتها صعبة (${ar(b.hard.length)})</span>`+b.hard.map(l=>lnk(l)).join('');el.appendChild(h)}}
       // a session that ended up with no new lecture (short subjects) becomes a review session instead of an empty box
       else if(!b.lecs.length){el.innerHTML=`<div class="subj-h">${tm}<span class="s">${nm}</span><span class="w">ما بيها محاضرة جديدة اليوم: راجع آخر محاضرات ${nm} اللي أخذتها وحل تمارينها</span></div>`}
-      else{const t=T[b.s],lists=[...new Set(b.lecs.map(l=>l.li))].map(li=>t.lists[li]);const bm=b.lecs.reduce((a,l)=>a+l.m,0);
+      else{const t=T[b.s],lists=[...new Set(b.lecs.map(l=>l.li))].map(li=>t.lists[li]);const bm=b.lecs.reduce((a,l)=>a+(l.dm||l.m),0);
         const speed=bm>190?' · شغّلها بسرعة ١.٥':bm>150?' · شغّلها بسرعة ١.٢٥':'';
         const from=b.extra?b.lecs.reduce((m,l)=>l.from&&(!m||l.from<m)?l.from:m,null):null;
         el.innerHTML=`<div class="subj-h">${b.extra?'<span class="tm late-tag">تعويض</span>':tm}<span class="s">${nm}</span><span class="w">${b.extra?'ما لحكت بأيام المادة'+' · ':''}${lists.map(l=>esc(l.t)).join(' ← ')} · ${esc(lists[0]&&lists[0].by||t.name)}${speed}</span></div>`;
-        b.lecs.forEach(l=>{const L=t.lists[l.li],id='v'+l.v;allIds.push(id);const r=document.createElement('div');r.className='lec';
-          r.innerHTML=`<input type="checkbox" id="${id}" aria-label="أنجزت ${esc(l.t)}"><label for="${id}"><a href="${V(l.v,L.id)}" target="_blank" rel="noopener">${esc(l.t)}</a></label><span class="m">${dur(l.m)}</span><button type="button" class="flag" aria-pressed="${!!hard[id]}" aria-label="صعبة عليّ: ${esc(l.t)}" title="صعبة عليّ">${FLAG}</button>`;
+        b.lecs.forEach(l=>{const id='v'+l.v;allIds.push(id);const r=document.createElement('div');r.className='lec';
+          r.innerHTML=`<input type="checkbox" id="${id}" aria-label="أنجزت ${esc(l.t)}"><label for="${id}">${lnk(l)}</label><span class="m">${dur(l.dm||l.m)}</span><button type="button" class="flag" aria-pressed="${!!hard[id]}" aria-label="صعبة عليّ: ${esc(l.t)}" title="صعبة عليّ">${FLAG}</button>`;
           check(r,id);r.querySelector('.flag').onclick=()=>flagHard(id);el.appendChild(r)})}
       box.appendChild(el)});
     if(p.past){const el=document.createElement('div');el.className='subj extra';el.dataset.s='extra';
@@ -310,7 +325,7 @@ function icsText(){
   let n=0;
   for(const p of P.days){if(p.past||p.d<TODAY)continue;const k=kk(p.d);
     p.blocks.forEach((b,j)=>{const r=S[j]||S[2],nm=b.s==='rev'?'مراجعة':C[b.s].name;
-      const desc=b.plain?b.plain:(b.lecs||[]).map(l=>'- '+l.t+' ('+l.m+' د)\n'+V(l.v,P.T[b.s].lists[l.li].id)).join('\n');
+      const desc=b.plain?b.plain:(b.lecs||[]).map(l=>'- '+l.t+' ('+l.m+' د)\n'+l.show.map(x=>V(x.v,x.pl)).join('\n')).join('\n');
       ev(p.d,r[0],r[1],'دراسة: '+nm,desc,k+'-'+j);n++});
     if(!p.review){ev(p.d,PR[0],PR[1],'حل تمارين وأسئلة وزارية','حل تمارين الكتاب والأسئلة الوزارية لمحاضرات اليوم',k+'-p');n++}}
   L.push('END:VCALENDAR');
@@ -364,8 +379,7 @@ const saveM=()=>put(MKEY,monthly);
 const mView=()=>document.body.classList.contains('m-view');
 const daysWord=n=>n===1?'يوم':n===2?'يومين':ar(n)+(n<11?' أيام':' يوم');
 // the subject's lectures in the chosen chapters, from the teacher the student picked
-function mLectures(s,lis){const t=P.T[s],ok=new Set(P.idsBy[s]),out=[];
-  lis.forEach(li=>{const L=t.lists[li];if(L)L.v.forEach(v=>{if(ok.has('v'+v[0]))out.push({v:v[0],t:v[1],m:v[2],li})})});return out}
+function mLectures(s,lis){return P.Q[s].filter(l=>lis.includes(l.li))}
 // default chapters: the ones the main plan reaches before the exam day
 function mDefaultLists(s,ex){const set=new Set();for(const x of P.days){if(x.d>=ex)break;for(const b of x.blocks)if(b.s===s)(b.lecs||[]).forEach(l=>set.add(l.li))}
   return set.size?[...set].sort((a,b)=>a-b):[0]}
@@ -440,7 +454,7 @@ function mRender(){
         el.innerHTML=`<div class="subj-h">${tm}${tag}${optW}</div><div class="lec"><input type="checkbox" id="${id}"><label for="${id}" class="plain"><span class="subj-h"><span class="s">${nm}</span></span> <span class="t">${esc(b.plain)}</span></label><span></span></div>`;check(el.querySelector('.lec'),id)}
       else{const t=P.T[b.s];el.innerHTML=`<div class="subj-h">${tm}${tag}<span class="s">${nm}</span><span class="w">${esc([...new Set(b.lecs.map(l=>t.lists[l.li].by))].join(' و'))}${b.fast?' · شغّلها بسرعة '+b.fast:''}</span>${optW}</div>`;
         b.lecs.forEach(l=>{const id='v'+l.v,rw=document.createElement('div');rw.className='lec';
-          rw.innerHTML=`<input type="checkbox" id="${id}" aria-label="أنجزت ${esc(l.t)}"><label for="${id}"><a href="${V(l.v,t.lists[l.li].id)}" target="_blank" rel="noopener">${esc(l.t)}</a></label><span class="m">${dur(l.m)}</span>`;check(rw,id);el.appendChild(rw)})}
+          rw.innerHTML=`<input type="checkbox" id="${id}" aria-label="أنجزت ${esc(l.t)}"><label for="${id}">${lnk(l)}</label><span class="m">${dur(l.dm||l.m)}</span>`;check(rw,id);el.appendChild(rw)})}
       box.appendChild(el)}
     // daily self-test on today's exam lectures, plus a short recall of what was studied three days ago
     const studied=[...new Set(x.prep.filter(p=>p.lecs).map(p=>C[p.e.s].name))];

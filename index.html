@@ -208,6 +208,7 @@ body:not(.m-view) .monthly{display:none}
 .m-load.mid{color:var(--accent)}
 .m-load.high{color:var(--today)}
 .late-tag{background:var(--today);color:var(--card);border-radius:6px;padding:0 6px}
+.autosave{margin:0;font-size:12px;color:var(--muted)}
 .m-acts{display:flex;flex-wrap:wrap;gap:8px}
 .m-opt{opacity:.7;background:repeating-linear-gradient(-45deg,transparent 0 8px,var(--accent-soft) 8px 9px)}
 .m-why{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 14px;font-size:14px}
@@ -238,7 +239,7 @@ body:not(.m-view) .monthly{display:none}
 .fontsz button:nth-of-type(1){font-size:13px}.fontsz button:nth-of-type(2){font-size:16px}.fontsz button:nth-of-type(3){font-size:19px}
 .fontsz button[aria-pressed="true"]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
 </style>
-<link rel="stylesheet" href="dream.css?v=31">
+<link rel="stylesheet" href="dream.css?v=32">
 <script>try{const p=JSON.parse(localStorage.getItem('plan6sci-dream'));const r=document.documentElement;if(p&&p.fam&&p.fam!=='other')r.dataset.dream=p.fam==='engineer'&&p.dept==='هندسة الطائرات المسيّرة'?'drone':p.fam;if(p&&p.gender==='f')r.dataset.gender='f'}catch(e){}</script>
 <script>try{const z=+localStorage.getItem('plan6sci-font');if([1.12,1.25].includes(z))document.documentElement.style.setProperty('--zoom',z)}catch(e){}</script>
 
@@ -266,6 +267,7 @@ body:not(.m-view) .monthly{display:none}
     <p class="note warn" id="examWarn" hidden></p>
     <div class="bar" aria-hidden="true"><i id="pbar"></i></div>
     <div class="sbars" id="sBars" aria-label="المنجز لكل مادة"></div>
+    <p class="autosave">كل تأشيرة وتغيير مدرس وترتيب ينحفظ تلقائياً بجهازك، حتى لو سدّيت الموقع. تبديل المدرس ما يغيّر أيامك ولا يمسح تقدمك.</p>
     <div class="m-entry">
       <button class="chip solid" type="button" id="mOpen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>الامتحانات الشهرية<span class="m-count" id="mCount" hidden></span></button>
       <a class="chip solid to-wizari" href="https://parmna432-eng.github.io/wizari/"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19l4-12 4 8 3-5 5 9z"/></svg>تجهيز ليوم الوزاري: خطة النص الثاني</a>
@@ -406,9 +408,9 @@ body:not(.m-view) .monthly{display:none}
 </div>
 <div class="toast" id="toast" role="status" hidden></div>
 
-<script src="data.js?v=31"></script>
-<script src="plan.js?v=31"></script>
-<script src="dream.js?v=31"></script>
+<script src="data.js?v=32"></script>
+<script src="plan.js?v=32"></script>
+<script src="dream.js?v=32"></script>
 
 </body>
 </html>

@@ -129,6 +129,9 @@ tr.off td{opacity:.55}
 .hour-box{display:flex;flex-wrap:wrap;gap:8px}
 .hbtn{font:inherit;font-size:14px;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:99px;padding:6px 14px;cursor:pointer}
 .hbtn[aria-pressed="true"]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.hbtn[disabled]{opacity:.45;cursor:not-allowed}
+.sbtn .alt{color:inherit;opacity:.75}
+.sess-h{margin:14px 0 2px;font-size:16px}
 .notice{position:fixed;z-index:40;inset-inline:max(16px,env(safe-area-inset-left,0px));bottom:max(16px,env(safe-area-inset-bottom,0px));margin:0 auto;max-width:560px;background:var(--card);color:var(--ink);border:1px solid var(--accent);border-radius:12px;padding:12px 14px;display:grid;grid-template-columns:auto 1fr;gap:6px 12px;align-items:start;box-shadow:0 12px 40px rgba(0,0,0,.18);animation:notice-in .4s ease}
 .notice>svg{width:24px;height:24px;color:var(--accent);margin-top:2px}
 .notice b{display:block}
@@ -240,7 +243,7 @@ body:not(.m-view) .monthly{display:none}
 .fontsz button:nth-of-type(1){font-size:13px}.fontsz button:nth-of-type(2){font-size:16px}.fontsz button:nth-of-type(3){font-size:19px}
 .fontsz button[aria-pressed="true"]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
 </style>
-<link rel="stylesheet" href="dream.css?v=33">
+<link rel="stylesheet" href="dream.css?v=34">
 <script>try{const p=JSON.parse(localStorage.getItem('plan6sci-dream'));const r=document.documentElement;if(p&&p.fam&&p.fam!=='other')r.dataset.dream=p.fam==='engineer'&&p.dept==='هندسة الطائرات المسيّرة'?'drone':p.fam;if(p&&p.gender==='f')r.dataset.gender='f'}catch(e){}</script>
 <script>try{const z=+localStorage.getItem('plan6sci-font');if([1.12,1.25].includes(z))document.documentElement.style.setProperty('--zoom',z)}catch(e){}</script>
 
@@ -353,8 +356,11 @@ body:not(.m-view) .monthly{display:none}
 
   <section>
     <h2>يومك الدراسي</h2>
-    <p class="sub">اختار الساعة اللي تبدي بيها دراستك بالعادة، وأوقات يومك وجلسات الجدول كلها تتحسب عليها. إذا عندك دوام الصبح اختار ١ أو ٢ الظهر، ويومك يترتب بعد الدوام باستراحات أقصر. حوالي ٩ إلى ١٠ ساعات دراسة، وداخل كل جلسة ٥٠ دقيقة دراسة و١٠ دقايق استراحة.</p>
+    <p class="sub">اختار الساعة اللي تبدي بيها دراستك بالعادة، وأوقات يومك وجلسات الجدول كلها تتحسب عليها. إذا عندك دوام الصبح اختار ١ أو ٢ الظهر، ويومك يترتب بعد الدوام باستراحات أقصر. وداخل كل جلسة ٥٠ دقيقة دراسة و١٠ دقايق استراحة.</p>
     <div class="hour-box" id="hourBox" role="group" aria-label="ساعة بداية الدراسة"></div>
+    <h3 class="sess-h">كم ساعة تدرس باليوم؟</h3>
+    <p class="sub">الجدول ينرتب على اختيارك من اليوم وجاي. الأيام اللي فاتت واللي أشّرته يبقى مثل ما هو، وكلما زادت الساعات خلصت المنهج أبكر.</p>
+    <div class="hour-box" id="sessBox" role="group" aria-label="ساعات الدراسة باليوم"></div>
     <div class="ics"><button class="chip solid" type="button" id="icsBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4M12 13v5M9.5 15.5h5"/></svg>أضف جلساتي لتقويم الجوال</button>
       <span class="alt">ينزل ملف بكل جلسات دراستك من اليوم لآخر الخطة، وكل جلسة يجيك تنبيه قبلها بـ ٥ دقايق حتى لو الموقع مسدود. افتح الملف واختار التقويم. إذا غيّرت ساعة البداية أو المدرسين أو رتبت جدولك من جديد، احذف التقويم القديم ونزّل ملف جديد.</span></div>
     <div class="tbl"><table class="tt" style="min-width:0"><tbody id="ttBody"></tbody></table></div>
@@ -385,6 +391,10 @@ body:not(.m-view) .monthly{display:none}
     <div class="m-acts"><button class="chip solid" type="button" id="mSave">احفظ المواعيد ورتب الجدول</button>
     <button class="chip" type="button" id="mReset">إعادة تعيين أيام الامتحانات</button></div>
   </div>
+  <div class="m-form">
+    <p class="m-form-h">كم ساعة تدرس باليوم بأيام الامتحانات الشهرية؟ هذا لجدول الامتحانات بس، وتقدّمك ما يتأثر.</p>
+    <div class="hour-box" id="mSess" role="group" aria-label="ساعات الدراسة بأيام الامتحانات"></div>
+  </div>
   <div class="m-exams" id="mExams"></div>
   <details class="m-why" id="mWhy" hidden>
     <summary>ليش الجدول مرتب هيج؟</summary>
@@ -409,9 +419,9 @@ body:not(.m-view) .monthly{display:none}
 </div>
 <div class="toast" id="toast" role="status" hidden></div>
 
-<script src="data.js?v=33"></script>
-<script src="plan.js?v=33"></script>
-<script src="dream.js?v=33"></script>
+<script src="data.js?v=34"></script>
+<script src="plan.js?v=34"></script>
+<script src="dream.js?v=34"></script>
 
 </body>
 </html>

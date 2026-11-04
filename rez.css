@@ -1,0 +1,152 @@
+/* "رزنامة اليوم": today is a calendar page hanging on a wall. Loaded last, so dream themes keep repainting the same tokens. */
+:root{
+  --paper:#eef1ec; --grid:transparent; --card:#fbfcfa; --ink:#10204f; --muted:#4f5b74; --line:#d3d9d6;
+  --accent:#1b3fd6; --accent-soft:#e4e9fb; --done:#14795a; --today:#d4112b; --warn-soft:#fbe6e6;
+  --poster:"Lalezar","Readex Pro",Tahoma,sans-serif;
+  --wall:color-mix(in srgb,var(--accent) 58%,#0a1426); --on-wall:#fff;
+  --ease:cubic-bezier(.2,.7,.2,1);
+}
+:root:not([data-dream]):not([data-gender="f"]){--wall:#1e7f70}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --paper:#0f1428;--grid:transparent;--card:#171d36;--ink:#e4e9fb;--muted:#a3adca;--line:#2b3354;
+  --accent:#8fa6ff;--accent-soft:#1e2748;--done:#5fd3a0;--today:#ff6b7a;--warn-soft:#33161e;color-scheme:dark}
+  :root:not([data-theme="light"]):not([data-dream]):not([data-gender="f"]){--wall:#0b2e2a}}
+:root[data-theme="dark"]{
+  --paper:#0f1428;--grid:transparent;--card:#171d36;--ink:#e4e9fb;--muted:#a3adca;--line:#2b3354;
+  --accent:#8fa6ff;--accent-soft:#1e2748;--done:#5fd3a0;--today:#ff6b7a;--warn-soft:#33161e;color-scheme:dark}
+:root[data-theme="dark"]:not([data-dream]):not([data-gender="f"]){--wall:#0b2e2a}
+
+html,body{overflow-x:clip}
+:root:not([data-dream]) body{background-image:none}
+body{margin:0;line-height:1.7}
+h1,h2{font-family:var(--poster);font-weight:400;font-synthesis:none;line-height:1.35}
+h2{font-size:clamp(24px,4vw,30px)}
+h3{font-weight:600}
+.wrap{gap:40px;padding-block:20px 72px}
+.stat b,.big,.rep-v{font-family:var(--poster);font-weight:400;font-synthesis:none}
+a{text-underline-offset:3px;text-decoration-thickness:1px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+/* the wall behind the top of the page */
+header{position:relative;display:grid;grid-template-columns:1fr auto;align-items:start;gap:8px 16px;padding-bottom:64px;color:var(--on-wall)}
+header::before{content:"";position:absolute;z-index:-1;inset-block:-20px -8px;inset-inline:calc(50% - 50vw);background:var(--wall)}
+header h1{grid-column:1;grid-row:1;font-size:clamp(22px,3.4vw,30px);color:inherit}
+.fontsz{grid-column:2;grid-row:1;align-self:start;color:inherit}
+.fontsz button{background:transparent;border-color:color-mix(in srgb,#fff 45%,transparent);color:inherit;min-width:36px;height:36px}
+.fontsz button[aria-pressed="true"]{background:#fff;color:#10204f;border-color:#fff}
+
+/* today's sheet overlaps the wall */
+.rz-today{position:relative;z-index:1;margin-top:-92px;gap:0}
+.week{gap:6px}
+.week h3{font-size:16px;padding:8px 0 2px}
+.rz-today .week>h3{order:0;padding-top:16px}
+.rz-today .day.today{order:-1}
+.rz-today .day.rz-past{order:2}
+
+/* every day is a sheet: the date sits on top of the sessions */
+.day{display:block;border-radius:6px;border-color:var(--line)}
+.date{flex-direction:row;flex-wrap:wrap;gap:2px 10px;align-items:baseline;justify-content:flex-start;text-align:start;padding:12px 16px;border-left:0;border-bottom:2px dashed var(--line)}
+.date .dn{font-size:16px;font-weight:600}
+.date .dd{font-family:var(--poster);font-weight:400;font-size:24px;line-height:1.2}
+.date .dm,.date .hrs{margin:0}
+.day.fri .date{background:transparent}
+.day.fri .date .dd,.day.fri .date .dn{color:var(--today)}
+
+.day.today{border:0;box-shadow:0 12px 28px -8px rgba(6,16,40,.34);outline:0}
+#plan .day.today .date{display:grid;grid-template-columns:auto 1fr auto;grid-template-rows:auto auto;column-gap:14px;align-items:center;padding:14px 18px 12px}
+#plan .day.today .dd{grid-column:1;grid-row:1/4;font-size:clamp(72px,17vw,112px);line-height:.95;color:var(--today)}
+#plan .day.today .dn{grid-column:2;grid-row:1;align-self:end;font-family:var(--poster);font-weight:400;font-size:clamp(24px,4vw,32px);line-height:1.2}
+#plan .day.today .dm{grid-column:2;grid-row:2;align-self:start;font-size:16px}
+#plan .day.today .tlabel{grid-column:3;grid-row:1;align-self:end;justify-self:end;font-size:16px}
+#plan .day.today .hrs{grid-column:3;grid-row:2;align-self:start;justify-self:end;font-size:14px}
+#plan .day.today .hrs~.hrs{grid-row:3}
+
+/* a session: time first, then the subject, then its lectures */
+.subj{padding:14px 18px;border-bottom:1px solid var(--line)}
+.subj-h{gap:2px 10px}
+.tm{flex-basis:100%;color:var(--ink);font-weight:600;font-size:14px}
+.subj-h .s{font-size:18px;font-weight:700}
+.subj-h .s::before{content:"";display:inline-block;width:10px;height:10px;margin-inline-end:8px;background:var(--c);border-radius:2px}
+.subj-h .w{font-size:14px}
+.lec{min-height:44px;align-items:center;gap:10px;padding:6px 0;font-size:16px;line-height:1.5}
+.lec input{width:24px;height:24px;margin:0;accent-color:var(--accent)}
+.lec a{color:var(--ink);text-decoration-color:color-mix(in srgb,var(--ink) 35%,transparent)}
+.lec a:hover{color:var(--accent);text-decoration-color:currentColor}
+.lec .m{font-size:14px}
+.flag{min-width:44px;min-height:44px}
+.lec.checked a,.lec.checked .t{opacity:.6}
+.subj.extra{background:transparent;color:var(--muted);font-size:14px;padding-block:10px;border-bottom:1px dashed var(--line)}
+.subj.extra .tm{color:var(--muted)}
+.subj:last-child{border-bottom:0}
+
+/* folded days: one line, tap to open */
+.day.rz-fold{display:flex;align-items:center;min-height:56px;cursor:pointer;transition:background-color .15s}
+.day.rz-fold:hover{background:var(--accent-soft)}
+.day.rz-fold .date{flex:none;border:0;padding:8px 16px;align-items:center;flex-wrap:nowrap}
+.day.rz-fold .date .dm,.day.rz-fold .date .hrs{display:none}
+.day.rz-fold .subjs{display:none}
+.rz-sum{display:none}
+.day.rz-fold .rz-sum{display:block;flex:1;min-width:0;padding-inline-end:12px;color:var(--muted);font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.day.rz-fold::after,.week>h3[aria-expanded]::after{content:"";flex:none;width:8px;height:8px;margin-inline:0 18px;border-inline-start:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:rotate(-45deg);transition:transform .25s var(--ease)}
+.day.rz-past{opacity:.72}
+.day.rz-opened .subjs{animation:rz-open .25s var(--ease)}
+@keyframes rz-open{from{opacity:0;transform:translateY(-6px)}}
+
+/* the rest of the plan: one line per week */
+.rz-weeks{display:flex;flex-direction:column;gap:8px}
+.rz-weeks .week>h3{display:flex;align-items:center;justify-content:space-between;min-height:52px;padding:0 16px;background:var(--card);border:1px solid var(--line);border-radius:6px;color:var(--ink);cursor:pointer}
+.rz-weeks .week>h3::after{margin-inline-end:2px}
+.rz-weeks .week>h3[aria-expanded="true"]::after{transform:rotate(135deg)}
+.rz-weeks .week.rz-closed>.day{display:none}
+body.rz-filtered .rz-weeks .week.rz-closed>.day{display:block}
+body.rz-filtered .day.rz-fold{display:block;min-height:0}
+body.rz-filtered .day.rz-fold .subjs{display:flex}
+body.rz-filtered .day.rz-fold .rz-sum,body.rz-filtered .day.rz-fold::after{display:none}
+
+/* progress moved under today: same numbers, less shouting */
+.rz-progress{gap:14px}
+.stats{gap:0;background:var(--card);border:1px solid var(--line);border-radius:6px}
+.stat{flex:1 1 110px;min-width:0;background:transparent;border:0;border-radius:0;padding:12px 16px}
+.stat+.stat{border-inline-start:1px solid var(--line)}
+.stat b{font-size:32px;line-height:1.3}
+.stat.exam{border-color:var(--line)}
+.stat.exam b{color:var(--today)}
+.bar{height:10px;border-radius:2px}
+.bar i{transition:width .6s var(--ease)}
+.m-entry{gap:10px}
+
+/* controls */
+.chip,.jump,.filters button,.hbtn,.sbtn{border-radius:8px;min-height:44px;transition:background-color .15s,color .15s,border-color .15s,transform .1s}
+.chip:active,.jump:active,.filters button:active,.hbtn:active,.sbtn:active{transform:translateY(1px)}
+.tip,.note,.dream,.tbl,.wk,.mini,.m-card{border-radius:6px}
+select{min-height:44px}
+.toolbar{gap:12px}
+
+/* navigation: bottom bar on phones, sticky bar on wide screens */
+.rz-nav{position:fixed;z-index:30;inset-inline:0;bottom:0;display:grid;grid-template-columns:repeat(4,1fr);background:var(--card);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px)}
+.rz-nav button{font:inherit;font-size:14px;font-weight:500;min-height:56px;background:none;border:0;color:var(--muted);cursor:pointer;position:relative}
+.rz-nav button[aria-current="true"]{color:var(--ink);font-weight:700}
+.rz-nav button[aria-current="true"]::before{content:"";position:absolute;inset-inline:22%;top:-1px;height:3px;background:var(--today)}
+body{padding-bottom:calc(56px + env(safe-area-inset-bottom,0px))}
+.notice{animation:none;opacity:1;bottom:calc(68px + env(safe-area-inset-bottom,0px))}
+.toast{bottom:calc(72px + env(safe-area-inset-bottom,0px))}
+@media (min-width:900px){
+  body{padding-bottom:0}
+  .rz-nav{position:sticky;top:0;bottom:auto;display:flex;justify-content:center;gap:8px;border-top:0;border-bottom:1px solid var(--line);padding:0}
+  .rz-nav button{min-height:48px;padding-inline:20px}
+  .rz-nav button[aria-current="true"]::before{inset-inline:20px;top:auto;bottom:-1px}
+  .notice{bottom:16px}.toast{bottom:20px}
+}
+@media (max-width:520px){
+  header{grid-template-columns:1fr}
+  header h1{grid-column:1}
+  .fontsz{grid-column:1;grid-row:2;justify-self:end}
+  .day{grid-template-columns:none}
+  .stat{flex-basis:33%;padding:10px 12px}
+  .stat+.stat{border-inline-start:0}
+  .stat.exam{flex-basis:100%;border-top:1px solid var(--line)}
+  .subj{padding-inline:14px}
+  #plan .day.today .date{padding-inline:14px}
+}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+@media print{.rz-nav{display:none}.rz-weeks .week.rz-closed>.day,.day.rz-fold .subjs{display:block}}

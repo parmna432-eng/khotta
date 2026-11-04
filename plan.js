@@ -435,22 +435,22 @@ function mPlan(){
     if(e.review)days[n-1].prep.push({e,plain:'مراجعة خفيفة لـ'+C[e.s].name+': ملخصاتك ودفتر الأخطاء والمحاضرات اللي علّمتها صعبة، بدون محاضرات جديدة. نام ٧ إلى ٨ ساعات، النوم يثبّت اللي حفظته'});
   }
   // new lectures go into real sessions: a session holds SESS_MIN of video (one long lecture alone is fine) and what is left takes another
-  // session on another day. Exam subjects share part of the day and the main plan keeps the rest; if that can't finish them, the exams
-  // take the whole day, full sessions and the mock day too. What still doesn't fit is told to the student on the card, never squeezed into a session.
+  // session. Monthly exams come first: their lectures take the day's sessions in full (two a day per subject, so a subject doesn't fill the whole day)
+  // and the main plan gets what is left. If that can't finish them, the limit goes and the mock day is used too. What still doesn't fit is told to the student on the card, never squeezed into a session.
   const dayK=d=>typeof isRam==='function'&&isRam(d)?Math.min(MK(),3):MK();
-  const soft=x=>Math.max(1,dayK(x.d)-(x.fri?2:1)),hardK=x=>Math.max(1,dayK(x.d)-(x.fri||x.exams.length?1:0));
+  const hardK=x=>Math.max(1,dayK(x.d)-(x.fri||x.exams.length?1:0));
   const mins=L=>L.reduce((a,l)=>a+l.m,0);
   const run=full=>{const left=new Map(ex.map(e=>[e,e.R.slice()])),plan=days.map(()=>[]),end=e=>full?e.dlF:e.dl;
     days.forEach((x,i)=>{
-      const room=(full?hardK(x):soft(x))-x.prep.length;
+      const room=hardK(x)-x.prep.length;
       for(let n=0;n<room;n++){
         const cand=ex.filter(e=>i<end(e)&&left.get(e).length),rate=e=>mins(left.get(e))/(end(e)-i);
-        // every exam subject gets its turn first; a second session the same day only for a subject that needs more than one a day
-        const fresh=cand.filter(e=>!plan[i].some(p=>p.e===e)),pool=fresh.length?fresh:full?cand:cand.filter(e=>rate(e)>SESS_MIN);
+        // the nearest exam goes first, then the next one, to the last
+        const pool=full?cand:cand.filter(e=>plan[i].filter(p=>p.e===e).length<2);
         if(!pool.length)break;
-        const e=pool.sort((p,q)=>rate(q)-rate(p)||p.date-q.date)[0],R=left.get(e);
-        const share=Math.min(1,Math.max(1,room)/cand.length),sessLeft=Math.max(1,Math.round((end(e)-i)*share)),chunk=full?SESS_MIN:Math.min(SESS_MIN,mins(R)/sessLeft),out=[];let acc=0;
-        while(R.length&&(!out.length||(acc+R[0].m/2<=chunk&&acc+R[0].m<=SESS_MIN))){const l=R.shift();out.push(l);acc+=l.m}
+        const e=pool.sort((p,q)=>p.date-q.date||rate(q)-rate(p))[0],R=left.get(e);
+        const out=[];let acc=0;
+        while(R.length&&(!out.length||acc+R[0].m<=SESS_MIN)){const l=R.shift();out.push(l);acc+=l.m}
         plan[i].push({e,lecs:out,fast:acc>190?'١.٥':acc>SESS_MIN?'١.٢٥':''})}
     });
     return {plan,left,over:[...left.values()].some(L=>L.length)}};
@@ -462,14 +462,14 @@ function mPlan(){
   const main=new Map(P.days.map(x=>[x.d.getTime(),x]));
   for(const x of days){const m=main.get(x.d.getTime()),busy=new Set(ex.filter(e=>e.date>=x.d).map(e=>e.s));
     x.other=m?m.blocks.map((b,j)=>({...b,j})).filter(b=>!busy.has(b.s)):[];
-    const room=Math.max(1,(x.exams.length?MK()-1:MK())-x.prep.length);x.other.forEach((b,k)=>b.opt=k>=room)}
+    const room=Math.max(0,(x.exams.length?MK()-1:MK())-x.prep.length);x.other.forEach((b,k)=>b.opt=k>=room)}
   return {ex,days};
 }
 // heavier is fine when the student chose more hours
 const mLoad=m=>{const f=MK()/3;return m<=120*f?['مريح','ok']:m<=180*f?['متوسط','mid']:['ثقيل','high']};
 function mCards(){
   const {ex}=mPlan();
-  $('mExams').innerHTML=ex.length?ex.map(e=>{const n=Math.round((e.date-TODAY)/864e5),pc=e.total?Math.round(100*(e.total-e.left)/e.total):0,t=P.T[e.s],[lv,cls]=mLoad(e.perDay);
+  $('mExams').innerHTML=ex.length?ex.map(e=>{const n=Math.round((e.date-TODAY)/864e5),pc=e.total?Math.round(100*(e.total-e.left)/e.total):0,t=P.T[e.s],[lv,cls]=mLoad(e.dl?e.mins/e.dl:e.mins);
     return `<div class="m-card" style="--c:var(${COLOR[e.s]})"><div class="m-top"><b>${C[e.s].name}</b><span class="m-when">${n>0?'بعد '+daysWord(n):'اليوم'} · ${DN[e.date.getDay()]} ${dstr(e.date)}</span>
       <button class="linkbtn" type="button" data-del="${esc(e.id)}">احذف</button></div>
       <span class="alt">${e.li.map(li=>t.lists[li]?esc(t.lists[li].t):'').filter(Boolean).join('، ')}</span>

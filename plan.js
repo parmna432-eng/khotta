@@ -42,6 +42,7 @@ function loadPrefs(){
   if(/^\d{4}-\d{1,2}-\d{1,2}$/.test(p.exam||''))out.exam=p.exam;
   out.sess=(Array.isArray(p.sess)?p.sess:[]).filter(x=>x&&parseKey(x.from)&&SESS_N.includes(x.k)).map(x=>({from:x.from,k:x.k})).sort((a,b)=>parseKey(a.from)-parseKey(b.from));
   out.mk=SESS_N.includes(p.mk)?p.mk:3;
+  out.part={};for(const s of ['eng','ar']){const q=p.part&&p.part[s];if(q&&typeof q==='object'){const o={};for(const k of ['g','l'])if(C[s].teachers.some(x=>x.id===q[k]))o[k]=q[k];if(o.g||o.l)out.part[s]=o}}
   return out;
 }
 let prefs=loadPrefs();
@@ -78,7 +79,7 @@ const sessOf=TL=>TL.filter(r=>typeof r[2]==='number').map(r=>range(r[0],r[1]));
 const TODAY=(()=>{const q=new URLSearchParams(location.search).get('today');const d=q&&parseKey(q);const t=d||new Date();t.setHours(0,0,0,0);return t})();
 // hand out each subject's sessions day by day from `from` so subjects stay spread evenly, then split its lectures over them by video time
 function allocate(act,from,Q,need){
-  const left={},tot={};for(const s of act){left[s]=need[s];tot[s]=Q[s].reduce((a,x)=>a+x.m,0)}
+  const left={},tot={};for(const s of act){left[s]=need[s];tot[s]=Q[s].reduce((a,x)=>a+(x.dm||x.m),0)}
   const days=[];const d=new Date(from);
   while(act.some(s=>left[s]>0)){
     const fri=d.getDay()===5,k=kDay(d),pick=[];
@@ -93,8 +94,8 @@ function allocate(act,from,Q,need){
   const slots={},used={},cur={};
   days.forEach(x=>x.blocks.forEach(b=>{if(b.s!=='rev')slots[b.s]=(slots[b.s]||0)+1}));
   for(const x of days)for(const b of x.blocks){if(b.s==='rev')continue;const s=b.s,q=Q[s],i=used[s]||0;used[s]=i+1;
-    const target=tot[s]*(i+1)/slots[s];let p=cur[s]||0,acc=q.slice(0,p).reduce((a,y)=>a+y.m,0);const out=[];
-    while(p<q.length&&(i+1===slots[s]||acc+q[p].m/2<=target)){out.push(q[p]);acc+=q[p].m;p++}cur[s]=p;b.lecs=out}
+    const target=tot[s]*(i+1)/slots[s];let p=cur[s]||0,acc=q.slice(0,p).reduce((a,y)=>a+(y.dm||y.m),0);const out=[];
+    while(p<q.length&&(i+1===slots[s]||acc+(q[p].dm||q[p].m)/2<=target)){out.push(q[p]);acc+=q[p].dm||q[p].m;p++}cur[s]=p;b.lecs=out}
   return days;
 }
 // the teacher of one chapter: its own choice if the student picked one, otherwise the subject's teacher
@@ -102,7 +103,21 @@ const subjTeacher=s=>C[s].teachers.find(x=>x.id===prefs.teacher[s])||mainOf(s);
 const chapTeacher=(s,li)=>{const id=prefs.chap[s]&&prefs.chap[s][li];const t=id&&C[s].teachers.find(x=>x.id===id&&x.lists[li]);if(t)return t;
   const st=subjTeacher(s);return st.lists[li]?st:mainOf(s)};
 // one "teacher" per subject made of each chapter's chosen playlist, so the rest of the plan reads lists[li] as before
+// a lecture's part: Arabic has a chapter of its own for literature; English lectures are told apart by their titles
+const PARTS={eng:{g:'القواعد',l:'الأدب والإنشاء'},ar:{g:'القواعد',l:'الأدب'}};
+const LIT=/ان?شاء|إنشاء|أنشاء|مقال|قطعة|قطع |اسقاط|إسقاط|أسقاط|املاء|إملاء|أملاء|ادب|أدب|رواية|النصائح|موضوع|إيميل|ايميل|passage|essay/i;
+const partOf=(s,li,title)=>s==='ar'?(li===1?'l':'g'):LIT.test(title)?'l':'g';
+const partTeacher=(s,k)=>{const id=prefs.part[s]&&prefs.part[s][k],t=id&&C[s].teachers.find(x=>x.id===id);return t||subjTeacher(s)};
+function partList(s,li){const M=mainOf(s),tg=partTeacher(s,'g'),tl=partTeacher(s,'l');
+  const take=(t,k)=>{const L=t.lists[li]||M.lists[li],by=t.lists[li]?t:M;return {by,L,v:L.v.filter(x=>partOf(s,li,x[1])===k).map(x=>[x[0],x[1],x[2],L.id])}};
+  const a=take(tg,'g'),b=take(tl,'l'),v=a.v.concat(b.v);
+  if(!v.length||!a.v.length&&s==='eng'||!b.v.length&&s==='eng')return null;
+  const by=[...new Set([a.by,b.by].filter((t,i)=>[a,b][i].v.length).map(t=>t.name))].join(' و');
+  return {...M.lists[li],id:(a.v[0]||b.v[0])[3],y:(a.v.length?a:b).L.y,v,by,tid:a.by.id===b.by.id&&a.by.main?M.id:'part'}}
 function mixTeacher(s){const n=mainOf(s).lists.length,ts=[];
+  if(PARTS[s]&&prefs.part[s]){const base=subjTeacher(s),names=[partTeacher(s,'g').name,partTeacher(s,'l').name];
+    const lists=Array.from({length:n},(_,li)=>{const p=partList(s,li);if(p)return p;const t=chapTeacher(s,li),l=t.lists[li];return {...l,by:l.by||t.name,tid:t.id}});
+    return {id:'part',name:[...new Set(names)].join(' و'),main:false,lists}}
   const lists=Array.from({length:n},(_,li)=>{const t=chapTeacher(s,li);ts.push(t);const l=t.lists[li];return {...l,by:l.by||t.name,tid:t.id}});
   const one=ts.every(t=>t.id===ts[0].id);
   return {id:one?ts[0].id:'mix',name:one?ts[0].name:[...new Set(ts.map(t=>t.name))].join(' و'),main:ts.every(t=>t.main),lists}}
@@ -131,7 +146,7 @@ function slotsOf(s,t){const M=mainOf(s),out=[];
   M.lists.forEach((ml,li)=>{const L=t.lists[li],alt=L.tid!==M.id,n=ml.v.length,k=L.v.length;let prev=-1;
     ml.v.forEach((mv,i)=>{let show;
       if(!alt)show=[{v:mv[0],t:mv[1],m:mv[2],pl:ml.id}];
-      else{const a=Math.min(k-1,Math.floor(i*k/n)),b=Math.max(a+1,Math.floor((i+1)*k/n));show=L.v.slice(a,b).map((x,j)=>({v:x[0],t:x[1],m:x[2],pl:L.id,cont:a+j<=prev}));prev=b-1}
+      else{const a=Math.min(k-1,Math.floor(i*k/n)),b=Math.max(a+1,Math.floor((i+1)*k/n));show=L.v.slice(a,b).map((x,j)=>({v:x[0],t:x[1],m:x[2],pl:x[3]||L.id,cont:a+j<=prev}));prev=b-1}
       out.push({v:mv[0],t:show.map(x=>x.t+(x.cont?' (تكملة)':'')).join(' + '),m:mv[2],dm:show.reduce((a,x)=>a+(x.cont?0:x.m),0)||show[0].m,li,show})})});
   return out}
 const MIG=PREF.replace('prefs','slots1');
@@ -197,11 +212,13 @@ function render(){
     // a chapter's menu lists only the teachers who recorded it; the subject menu marks teachers missing chapters
     const opt=(sel,short,li)=>C[s].teachers.filter(x=>li===undefined||x.lists[li]).map(x=>`<option value="${x.id}"${x.id===sel?' selected':''}>${esc(short?x.name.replace(/^(الأستاذ|الست)\s+/,''):x.name)}${x.main?' (رئيسي)':short?'':x.lists.length<mainOf(s).lists.length?' (بديل، بعض الفصول)':' (بديل)'}</option>`).join('');
     return `<tr class="${on?'':'off'}"><td><span class="tag" style="--c:var(${COLOR[s]})"><span class="dot"></span>${C[s].name}</span>${on?'':'<br><span class="alt">محذوفة من جدولك</span>'}</td>
-      <td><label class="vh" for="tsel-${s}">مدرس ${C[s].name} لكل الفصول</label><select class="tsel" id="tsel-${s}" data-s="${s}"${on?'':' disabled'}>${opt(t.id)}</select>${mix.id==='mix'?'<span class="alt mixed">فصول بمدرسين مختلفين</span>':''}</td>
+      <td><label class="vh" for="tsel-${s}">مدرس ${C[s].name} لكل الفصول</label><select class="tsel" id="tsel-${s}" data-s="${s}"${on?'':' disabled'}>${opt(t.id)}</select>${mix.id==='mix'?'<span class="alt mixed">فصول بمدرسين مختلفين</span>':''}${PARTS[s]&&on?`<div class="parts">${['g','l'].map(k=>`<label>${PARTS[s][k]}<select class="psel" data-s="${s}" data-k="${k}">${opt(partTeacher(s,k).id,true)}</select></label>`).join('')}</div>`:''}</td>
       <td class="chaps">${mix.lists.map((l,li)=>`<div class="chap${l.tid!==t.id?' own':''}"><span class="chap-t"><a href="${PL(l.id)}" target="_blank" rel="noopener">${esc(l.t)}</a> <span class="alt">(${esc(l.y)} · ${ar(l.v.length)})</span></span>
         <label class="vh" for="csel-${s}-${li}">مدرس ${esc(l.t)}</label><select class="csel" id="csel-${s}-${li}" data-s="${s}" data-li="${li}"${on?'':' disabled'}>${opt(l.tid,true,li)}</select></div>`).join('')}</td></tr>`}).join('');
-  document.querySelectorAll('.tsel').forEach(el=>el.onchange=()=>{const s=el.dataset.s;prefs.teacher[s]=el.value;prefs.chap[s]={};savePrefs();const st=subjTeacher(s);rerender(st.lists.length<mainOf(s).lists.length?C[s].name+' صارت على '+st.name+'، والفصول اللي بعده ما سجّلها تبقى على '+mainOf(s).name:'صارت كل فصول '+C[s].name+' على '+st.name)});
-  document.querySelectorAll('.csel').forEach(el=>el.onchange=()=>{const s=el.dataset.s,li=el.dataset.li,ch=prefs.chap[s]||(prefs.chap[s]={});
+  document.querySelectorAll('.psel').forEach(el=>el.onchange=()=>{const s=el.dataset.s,k=el.dataset.k,o=prefs.part[s]||(prefs.part[s]={});o[k]=el.value;
+    if((o.g||subjTeacher(s).id)===subjTeacher(s).id&&(o.l||subjTeacher(s).id)===subjTeacher(s).id)delete prefs.part[s];savePrefs();rerender(C[s].name+'، '+PARTS[s][k]+' صار على '+C[s].teachers.find(x=>x.id===el.value).name+'، وتقدّمك بقى مثل ما هو')});
+  document.querySelectorAll('.tsel').forEach(el=>el.onchange=()=>{const s=el.dataset.s;prefs.teacher[s]=el.value;prefs.chap[s]={};delete prefs.part[s];savePrefs();const st=subjTeacher(s);rerender(st.lists.length<mainOf(s).lists.length?C[s].name+' صارت على '+st.name+'، والفصول اللي بعده ما سجّلها تبقى على '+mainOf(s).name:'صارت كل فصول '+C[s].name+' على '+st.name)});
+  document.querySelectorAll('.csel').forEach(el=>el.onchange=()=>{const s=el.dataset.s,li=el.dataset.li,ch=prefs.chap[s]||(prefs.chap[s]={});delete prefs.part[s];
     if(el.value===prefs.teacher[s])delete ch[li];else ch[li]=el.value;savePrefs();
     rerender(C[s].name+'، '+mainOf(s).lists[li].t+'، صار على '+chapTeacher(s,li).name)});
 

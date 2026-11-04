@@ -150,3 +150,8 @@ body{padding-bottom:calc(56px + env(safe-area-inset-bottom,0px))}
 }
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
 @media print{.rz-nav{display:none}.rz-weeks .week.rz-closed>.day,.day.rz-fold .subjs{display:block}}
+
+/* grammar and literature teachers */
+.parts{display:grid;grid-template-columns:1fr;gap:8px;margin-top:10px}
+.parts label{display:flex;flex-direction:column;gap:4px;font-size:14px;color:var(--muted)}
+.parts select{width:100%}

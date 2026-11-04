@@ -413,7 +413,8 @@ const saveM=()=>put(MKEY,monthly);
 const mView=()=>document.body.classList.contains('m-view');
 const daysWord=n=>n===1?'يوم':n===2?'يومين':ar(n)+(n<11?' أيام':' يوم');
 // the subject's lectures in the chosen chapters, from the teacher the student picked
-function mLectures(s,lis){return P.Q[s].filter(l=>lis.includes(l.li))}
+// `to` is the last lecture the exam covers, when it stops partway through a chapter
+function mLectures(s,lis,to){const L=P.Q[s].filter(l=>lis.includes(l.li)),i=to==null?-1:L.findIndex(l=>String(l.v)===String(to));return i<0?L:L.slice(0,i+1)}
 // default chapters: the ones the main plan reaches before the exam day
 function mDefaultLists(s,ex){const set=new Set();for(const x of P.days){if(x.d>=ex)break;for(const b of x.blocks)if(b.s===s)(b.lecs||[]).forEach(l=>set.add(l.li))}
   return set.size?[...set].sort((a,b)=>a-b):[0]}
@@ -428,7 +429,7 @@ function mPlan(){
   if(!ex.length)return {ex,days:[]};
   const days=[];for(const d=new Date(from);d<=ex[ex.length-1].date;d.setDate(d.getDate()+1))days.push({d:new Date(d),prep:[],exams:[],fri:d.getDay()===5});
   for(const e of ex){
-    const n=Math.round((e.date-from)/864e5),L=mLectures(e.s,e.li);
+    const n=Math.round((e.date-from)/864e5),L=mLectures(e.s,e.li,e.to);e.lastT=e.to!=null&&L.length?L[L.length-1].t:'';
     e.R=L.filter(l=>!done['v'+l.v]);e.total=L.length;e.left=e.R.length;e.mins=e.R.reduce((a,l)=>a+lm(l),0);days[n].exams.push(e);
     e.mock=n>=6;e.review=n>=2;e.dlF=n-(e.review?1:0);e.dl=e.dlF-(e.mock?1:0);
     if(e.mock)days[n-2].prep.push({e,plain:'امتحان تجريبي لنفسك: ورقة أسئلة وزارية من '+C[e.s].name+' للفصول المطلوبة بنفس وقت الامتحان الحقيقي، وبعدها صحح أخطاءك واكتبها بدفتر الأخطاء'});
@@ -474,7 +475,7 @@ function mCards(){
   $('mExams').innerHTML=ex.length?ex.map(e=>{const n=Math.round((e.date-TODAY)/864e5),pc=e.total?Math.round(100*(e.total-e.left)/e.total):0,t=P.T[e.s],[lv,cls]=mLoad(e.dl?e.mins/e.dl:e.mins);
     return `<div class="m-card" style="--c:var(${COLOR[e.s]})"><div class="m-top"><b>${C[e.s].name}</b><span class="m-when">${n>0?'بعد '+daysWord(n):'اليوم'} · ${DN[e.date.getDay()]} ${dstr(e.date)}</span>
       <button class="linkbtn" type="button" data-del="${esc(e.id)}">احذف</button></div>
-      <span class="alt">${e.li.map(li=>t.lists[li]?esc(t.lists[li].t):'').filter(Boolean).join('، ')}</span>
+      <span class="alt">${e.li.map(li=>t.lists[li]?esc(t.lists[li].t):'').filter(Boolean).join('، ')}${e.lastT?' · لحد «'+esc(e.lastT)+'»':''}</span>
       <span class="sb-t"><i style="width:${pc}%"></i></span>
       <span>${e.left?`باقي ${ar(e.left)} محاضرة (${dur(e.mins)} فيديو)${e.studyDays?' على '+daysWord(e.studyDays)+'، تقريباً '+dur(e.perDay)+' باليوم':''}`:'خلصت كل محاضراته، ركّز على الأسئلة والمراجعة'}</span>
       ${e.left&&!(e.over&&e.over.length)?`<span class="m-load ${cls}">الحمل: ${lv}${cls==='high'?'. شغّل محاضراته بسرعة ١.٢٥ أو ١.٥ بدل ما تسهر، وتأكد من الفصول اللي يشملها الامتحان':''}</span>`:''}
@@ -521,11 +522,13 @@ function mForm(){
   const minV=iso(mFrom());
   $('mRows').innerHTML=P.act.map(s=>{const e=mUpcoming(s);
     return `<div class="m-row" data-s="${s}" style="--c:var(${COLOR[s]})"><b>${C[s].name}</b><input type="date" min="${minV}" max="2027-12-31" value="${e?iso(parseKey(e.d)):''}" aria-label="موعد امتحان ${C[s].name} الشهري">
-      <details><summary>الفصول اللي يشملها</summary><div class="sch-box"></div></details></div>`}).join('');
+      <details><summary>الفصول والمحاضرات اللي يشملها</summary><div class="sch-box"></div></details></div>`}).join('');
   $('mRows').querySelectorAll('.m-row').forEach(r=>{const s=r.dataset.s,inp=r.querySelector('input[type=date]'),box=r.querySelector('.sch-box'),e=mUpcoming(s);
-    const fill=li=>{box.innerHTML=P.T[s].lists.map((l,i)=>`<label class="sch"><input type="checkbox" value="${i}"${li.includes(i)?' checked':''}> ${esc(l.t)}</label>`).join('')};
-    let edited=!!e;fill(e?e.li:inp.value?mDefaultLists(s,fromIso(inp.value)):[0]);
-    box.addEventListener('change',()=>edited=true);
+    // the last lecture is picked from the last chosen chapter
+    const toBox=(li,to)=>{const m=li.length?Math.max(...li):0;return `<label class="m-to">الامتحان لحد محاضرة: <select aria-label="آخر محاضرة يشملها امتحان ${C[s].name}"><option value="">نهاية الفصل</option>${P.Q[s].filter(l=>l.li===m).map(l=>`<option value="${esc(l.v)}"${String(l.v)===String(to)?' selected':''}>${esc(l.t)}</option>`).join('')}</select></label>`};
+    const fill=(li,to)=>{box.innerHTML=P.T[s].lists.map((l,i)=>`<label class="sch"><input type="checkbox" value="${i}"${li.includes(i)?' checked':''}> ${esc(l.t)}</label>`).join('')+'<div class="m-toBox">'+toBox(li,to)+'</div>'};
+    let edited=!!e;fill(e?e.li:inp.value?mDefaultLists(s,fromIso(inp.value)):[0],e&&e.to);
+    box.addEventListener('change',ev=>{edited=true;if(ev.target.type==='checkbox')box.querySelector('.m-toBox').innerHTML=toBox([...box.querySelectorAll('input:checked')].map(i=>+i.value))});
     inp.onchange=()=>{if(!edited&&inp.value)fill(mDefaultLists(s,fromIso(inp.value)))}});
 }
 $('mSave').onclick=()=>{const from=mFrom();let n=0,bad=0;
@@ -533,7 +536,7 @@ $('mSave').onclick=()=>{const from=mFrom();let n=0,bad=0;
     monthly=monthly.filter(e=>!(e.s===s&&parseKey(e.d)>=from));if(!v)return;
     const ex=fromIso(v);if(ex<from||!parseKey(kk(ex))){bad++;return}
     const li=[...r.querySelectorAll('.sch-box input:checked')].map(i=>+i.value);
-    monthly.push({id:s+'-'+kk(ex),s,d:kk(ex),li:li.length?li:[0]});n++});
+    const to=r.querySelector('.m-to select').value;monthly.push({id:s+'-'+kk(ex),s,d:kk(ex),li:li.length?li:[0],...(to?{to}:{})});n++});
   saveM();mForm();mRender();mBanner();
   toast(bad?'في موعد قبل اليوم وما انحفظ، صححه':n?'انحفظت مواعيد '+ar(n)+' امتحانات وترتب الجدول عليها':'ما حددت أي موعد')};
 // start over: removes every monthly exam date (asks first, since it can't be undone)

@@ -192,6 +192,8 @@ body:not(.m-view) .monthly{display:none}
 .m-row summary{cursor:pointer}
 .m-row .sch-box{margin-top:6px}
 .m-row .sch{font-size:13px;color:var(--ink)}
+.m-row .m-to{display:block;margin-top:8px;font-size:13px;color:var(--ink)}
+.m-row .m-to select{display:block;width:100%;max-width:100%;margin-top:4px;font:inherit;color:var(--ink);background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:5px 6px}
 @media (max-width:560px){.m-row{grid-template-columns:5.5em 1fr}.m-row details{grid-column:1/-1}}
 #mSave{align-self:flex-start}
 .m-exams{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:10px}
@@ -243,7 +245,7 @@ body:not(.m-view) .monthly{display:none}
 .fontsz button:nth-of-type(1){font-size:13px}.fontsz button:nth-of-type(2){font-size:16px}.fontsz button:nth-of-type(3){font-size:19px}
 .fontsz button[aria-pressed="true"]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
 </style>
-<link rel="stylesheet" href="dream.css?v=37">
+<link rel="stylesheet" href="dream.css?v=38">
 <script>try{const p=JSON.parse(localStorage.getItem('plan6sci-dream'));const r=document.documentElement;if(p&&p.fam&&p.fam!=='other')r.dataset.dream=p.fam==='engineer'&&p.dept==='هندسة الطائرات المسيّرة'?'drone':p.fam;if(p&&p.gender==='f')r.dataset.gender='f'}catch(e){}</script>
 <script>try{const z=+localStorage.getItem('plan6sci-font');if([1.12,1.25].includes(z))document.documentElement.style.setProperty('--zoom',z)}catch(e){}</script>
 
@@ -420,9 +422,9 @@ body:not(.m-view) .monthly{display:none}
 </div>
 <div class="toast" id="toast" role="status" hidden></div>
 
-<script src="data.js?v=37"></script>
-<script src="plan.js?v=37"></script>
-<script src="dream.js?v=37"></script>
+<script src="data.js?v=38"></script>
+<script src="plan.js?v=38"></script>
+<script src="dream.js?v=38"></script>
 
 </body>
 </html>

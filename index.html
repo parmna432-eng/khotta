@@ -245,8 +245,8 @@ body:not(.m-view) .monthly{display:none}
 .fontsz button:nth-of-type(1){font-size:14px}.fontsz button:nth-of-type(2){font-size:16px}.fontsz button:nth-of-type(3){font-size:18px}
 .fontsz button[aria-pressed="true"]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
 </style>
-<link rel="stylesheet" href="dream.css?v=40">
-<link rel="stylesheet" href="rez.css?v=40">
+<link rel="stylesheet" href="dream.css?v=41">
+<link rel="stylesheet" href="rez.css?v=41">
 <script>try{const p=JSON.parse(localStorage.getItem('plan6sci-dream'));const r=document.documentElement;if(p&&p.fam&&p.fam!=='other')r.dataset.dream=p.fam==='engineer'&&p.dept==='هندسة الطائرات المسيّرة'?'drone':p.fam;if(p&&p.gender==='f')r.dataset.gender='f'}catch(e){}</script>
 <script>try{const z=+localStorage.getItem('plan6sci-font');if([1.12,1.25].includes(z))document.documentElement.style.setProperty('--zoom',z)}catch(e){}</script>
 
@@ -274,7 +274,7 @@ body:not(.m-view) .monthly{display:none}
     <p class="note warn" id="examWarn" hidden></p>
     <div class="bar" aria-hidden="true"><i id="pbar"></i></div>
     <div class="sbars" id="sBars" aria-label="المنجز لكل مادة"></div>
-    <p class="autosave">كل تأشيرة وتغيير مدرس وترتيب ينحفظ تلقائياً بجهازك، حتى لو سدّيت الموقع. تبديل المدرس ما يغيّر أيامك ولا يمسح تقدمك.</p>
+    <p class="autosave">كل تأشيرة وتغيير مدرس وترتيب ينحفظ تلقائياً بجهازك، حتى لو سدّيت الموقع. تبديل المدرس ما يمسح تقدمك، بس ممكن يغيّر توزيع أيامك.</p>
     <div class="m-entry">
       <button class="chip solid" type="button" id="mOpen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>الامتحانات الشهرية<span class="m-count" id="mCount" hidden></span></button>
       <a class="chip solid to-wizari" href="https://parmna432-eng.github.io/wizari/"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19l4-12 4 8 3-5 5 9z"/></svg>تجهيز ليوم الوزاري: خطة النص الثاني</a>
@@ -315,7 +315,7 @@ body:not(.m-view) .monthly{display:none}
       <div class="sch-box" id="subjBox"></div>
       <button class="chip solid" type="button" id="subjApply">طبّق على جدولي</button>
     </div>
-    <p class="sub">اختار مدرس لكل مادة، وإذا تحب تكدر تختار مدرس مختلف لكل فصل، مثلاً الفصل الأول على مدرس والفصل الثاني على مدرس ثاني. توزيع الجدول يبقى نفسه، بس محاضرات الفصل تتبدل لمحاضرات المدرس اللي تختاره.</p>
+    <p class="sub">اختار مدرس لكل مادة، وإذا تحب تكدر تختار مدرس مختلف لكل فصل، مثلاً الفصل الأول على مدرس والفصل الثاني على مدرس ثاني. محاضرات الفصل تتبدل لمحاضرات المدرس اللي تختاره، والمدرس اللي فيديوهاته أطول ياخذ جلسات أكثر.</p>
     <div class="tbl"><table id="teachers"><thead><tr><th>المادة</th><th>مدرس المادة</th><th>الفصول ومدرس كل فصل (السنة · عدد المحاضرات)</th></tr></thead><tbody id="tBody"></tbody></table></div>
   </section>
 
@@ -423,10 +423,10 @@ body:not(.m-view) .monthly{display:none}
 </div>
 <div class="toast" id="toast" role="status" hidden></div>
 
-<script src="data.js?v=40"></script>
-<script src="plan.js?v=40"></script>
-<script src="dream.js?v=40"></script>
-<script src="rez.js?v=40"></script>
+<script src="data.js?v=41"></script>
+<script src="plan.js?v=41"></script>
+<script src="dream.js?v=41"></script>
+<script src="rez.js?v=41"></script>
 
 </body>
 </html>

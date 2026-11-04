@@ -161,8 +161,8 @@ function build(){
     if(chapTeacher(s,0).main&&DONE_BEFORE[s])Q[s].splice(0,DONE_BEFORE[s]);
     tot[s]=Q[s].reduce((a,x)=>a+x.m,0);
   }
-  // sessions per subject come from the main teacher, so picking an alternate teacher keeps the same days and only swaps the lectures
-  const need={};for(const s of act){const mt=mainOf(s).lists.reduce((a,l)=>a+l.v.reduce((x,v)=>x+v[2],0),0);need[s]=Math.max(1,Math.round(mt/SLOT))}
+  // sessions per subject follow the main teacher's video time, and a longer chosen teacher gets more of them (a shorter one keeps the same days)
+  const need={};for(const s of act){const mt=mainOf(s).lists.reduce((a,l)=>a+l.v.reduce((x,v)=>x+v[2],0),0);need[s]=Math.max(1,Math.round(Math.max(mt,Q[s].reduce((a,x)=>a+(x.dm||x.m),0))/SLOT))}
   let days=allocate(act,START,Q,need);
   const sh=prefs.shift,R=sh&&parseKey(sh.from);
   // a re-plan saved before the day it was made was kept: "from tomorrow" pressed on Tuesday used to empty Tuesday too

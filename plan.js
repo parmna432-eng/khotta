@@ -420,6 +420,7 @@ function mDefaultLists(s,ex){const set=new Set();for(const x of P.days){if(x.d>=
 // Monthly exams schedule, built on how study specialists recommend preparing: spread over days (spacing), self-testing every day
 // (retrieval practice), a timed mock exam two days before, a light review and full sleep the night before, nothing new on exam day,
 // and a cap on how much exam work goes into one day so the main plan keeps moving.
+const SESS_MIN=150;
 const MK=()=>prefs.hour>=12?Math.min(prefs.mk,3):prefs.mk;
 function mPlan(){
   const from=new Date(Math.max(TODAY,START));
@@ -429,25 +430,33 @@ function mPlan(){
   for(const e of ex){
     const n=Math.round((e.date-from)/864e5),L=mLectures(e.s,e.li);
     e.R=L.filter(l=>!done['v'+l.v]);e.total=L.length;e.left=e.R.length;e.mins=e.R.reduce((a,l)=>a+l.m,0);days[n].exams.push(e);
-    e.mock=n>=6;e.review=n>=2;e.dl=n-(e.review?1:0)-(e.mock?1:0);
+    e.mock=n>=6;e.review=n>=2;e.dlF=n-(e.review?1:0);e.dl=e.dlF-(e.mock?1:0);
     if(e.mock)days[n-2].prep.push({e,plain:'امتحان تجريبي لنفسك: ورقة أسئلة وزارية من '+C[e.s].name+' للفصول المطلوبة بنفس وقت الامتحان الحقيقي، وبعدها صحح أخطاءك واكتبها بدفتر الأخطاء'});
     if(e.review)days[n-1].prep.push({e,plain:'مراجعة خفيفة لـ'+C[e.s].name+': ملخصاتك ودفتر الأخطاء والمحاضرات اللي علّمتها صعبة، بدون محاضرات جديدة. نام ٧ إلى ٨ ساعات، النوم يثبّت اللي حفظته'});
-    e.studyDays=e.dl;e.perDay=e.dl?Math.round(e.mins/e.dl):e.mins;
   }
-  // new lectures: two exam subjects a day at most (one on Friday, fewer when a mock or review is already there), most urgent first;
-  // a subject on its last study day always gets its place so nothing is left for the review day
-  days.forEach((x,i)=>{
-    const cand=ex.filter(e=>i<e.dl&&e.R.length),urg=e=>e.R.reduce((a,l)=>a+l.m,0)/(e.dl-i);
-    const cap=Math.max(0,(x.fri?Math.max(1,MK()-2):Math.max(1,MK()-1))-x.prep.length),must=cand.filter(e=>i===e.dl-1);
-    const rest=cand.filter(e=>!must.includes(e)).sort((a,b)=>urg(b)-urg(a)||a.date-b.date);
-    const take=must.concat(rest.slice(0,Math.max(0,cap-must.length)));
-    const picked=take.map(e=>{
-      const rem=e.R.reduce((a,l)=>a+l.m,0),share=Math.min(1,(x.fri?Math.max(1,MK()-2):Math.max(1,MK()-1))/cand.length),left=Math.max(1,Math.round((e.dl-i)*share));
-      const chunk=i===e.dl-1?rem:rem/left,out=[];let acc=0;
-      while(e.R.length&&(!out.length||acc+e.R[0].m/2<=chunk)){const l=e.R.shift();out.push(l);acc+=l.m}
-      return {e,lecs:out,fast:acc>190?'١.٥':acc>150?'١.٢٥':''}});
-    x.prep=picked.concat(x.prep);
-  });
+  // new lectures go into real sessions: a session holds SESS_MIN of video (one long lecture alone is fine) and what is left takes another
+  // session on another day. Exam subjects share part of the day and the main plan keeps the rest; if that can't finish them, the exams
+  // take the whole day, full sessions and the mock day too. What still doesn't fit is told to the student on the card, never squeezed into a session.
+  const dayK=d=>typeof isRam==='function'&&isRam(d)?Math.min(MK(),3):MK();
+  const soft=x=>Math.max(1,dayK(x.d)-(x.fri?2:1)),hardK=x=>Math.max(1,dayK(x.d)-(x.fri||x.exams.length?1:0));
+  const mins=L=>L.reduce((a,l)=>a+l.m,0);
+  const run=full=>{const left=new Map(ex.map(e=>[e,e.R.slice()])),plan=days.map(()=>[]),end=e=>full?e.dlF:e.dl;
+    days.forEach((x,i)=>{
+      const room=(full?hardK(x):soft(x))-x.prep.length;
+      for(let n=0;n<room;n++){
+        const cand=ex.filter(e=>i<end(e)&&left.get(e).length),rate=e=>mins(left.get(e))/(end(e)-i);
+        // every exam subject gets its turn first; a second session the same day only for a subject that needs more than one a day
+        const fresh=cand.filter(e=>!plan[i].some(p=>p.e===e)),pool=fresh.length?fresh:full?cand:cand.filter(e=>rate(e)>SESS_MIN);
+        if(!pool.length)break;
+        const e=pool.sort((p,q)=>rate(q)-rate(p)||p.date-q.date)[0],R=left.get(e);
+        const share=Math.min(1,Math.max(1,room)/cand.length),sessLeft=Math.max(1,Math.round((end(e)-i)*share)),chunk=full?SESS_MIN:Math.min(SESS_MIN,mins(R)/sessLeft),out=[];let acc=0;
+        while(R.length&&(!out.length||(acc+R[0].m/2<=chunk&&acc+R[0].m<=SESS_MIN))){const l=R.shift();out.push(l);acc+=l.m}
+        plan[i].push({e,lecs:out,fast:acc>190?'١.٥':acc>SESS_MIN?'١.٢٥':''})}
+    });
+    return {plan,left,over:[...left.values()].some(L=>L.length)}};
+  let fit=run(false);if(fit.over)fit=run(true);
+  days.forEach((x,i)=>{x.prep=fit.plan[i].concat(x.prep)});
+  for(const e of ex){e.over=fit.left.get(e);const on=days.filter(x=>x.prep.some(p=>p.e===e&&p.lecs));e.studyDays=on.length;e.perDay=on.length?Math.round((e.mins-mins(e.over))/on.length):e.mins}
   // the main plan carries on for subjects with no exam coming; three study sessions a day in total (two on an exam day),
   // so main-plan blocks that don't fit are marked optional instead of piling up
   const main=new Map(P.days.map(x=>[x.d.getTime(),x]));
@@ -466,7 +475,8 @@ function mCards(){
       <span class="alt">${e.li.map(li=>t.lists[li]?esc(t.lists[li].t):'').filter(Boolean).join('، ')}</span>
       <span class="sb-t"><i style="width:${pc}%"></i></span>
       <span>${e.left?`باقي ${ar(e.left)} محاضرة (${dur(e.mins)} فيديو)${e.studyDays?' على '+daysWord(e.studyDays)+'، تقريباً '+dur(e.perDay)+' باليوم':''}`:'خلصت كل محاضراته، ركّز على الأسئلة والمراجعة'}</span>
-      ${e.left?`<span class="m-load ${cls}">الحمل: ${lv}${cls==='high'?'. شغّل محاضراته بسرعة ١.٢٥ أو ١.٥ بدل ما تسهر، وتأكد من الفصول اللي يشملها الامتحان':''}</span>`:''}
+      ${e.left&&!(e.over&&e.over.length)?`<span class="m-load ${cls}">الحمل: ${lv}${cls==='high'?'. شغّل محاضراته بسرعة ١.٢٥ أو ١.٥ بدل ما تسهر، وتأكد من الفصول اللي يشملها الامتحان':''}</span>`:''}
+      ${e.over&&e.over.length?`<span class="m-load high">ما تلحق ${ar(e.over.length)} محاضرة (${dur(e.over.reduce((a,l)=>a+l.m,0))}) قبل الامتحان، تبدي من «${esc(e.over[0].t)}». زيد ساعات الدراسة، أو احذف الفصول اللي ما يشملها الامتحان، أو ركّز على ملخصها وأسئلتها الوزارية</span>`:''}
       ${e.mock||e.review?`<span class="alt">${e.mock?'امتحان تجريبي قبله بيومين، و':''}${e.review?'مراجعة خفيفة باليوم اللي قبله':''}</span>`:''}</div>`}).join(''):'<p class="note">ما حددت مواعيد بعد. اكتب موعد امتحان كل مادة فوق واحفظ، والجدول ينبني لحاله.</p>';
   $('mExams').querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>{monthly=monthly.filter(e=>e.id!==b.dataset.del);saveM();mForm();mRender();mBanner();toast('انحذف الامتحان')});
 }

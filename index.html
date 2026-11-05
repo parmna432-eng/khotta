@@ -245,8 +245,8 @@ body:not(.m-view) .monthly{display:none}
 .fontsz button:nth-of-type(1){font-size:14px}.fontsz button:nth-of-type(2){font-size:16px}.fontsz button:nth-of-type(3){font-size:18px}
 .fontsz button[aria-pressed="true"]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
 </style>
-<link rel="stylesheet" href="dream.css?v=42">
-<link rel="stylesheet" href="rez.css?v=42">
+<link rel="stylesheet" href="dream.css?v=43">
+<link rel="stylesheet" href="rez.css?v=43">
 <script>try{const p=JSON.parse(localStorage.getItem('plan6sci-dream'));const r=document.documentElement;if(p&&p.fam&&p.fam!=='other')r.dataset.dream=p.fam==='engineer'&&p.dept==='هندسة الطائرات المسيّرة'?'drone':p.fam;if(p&&p.gender==='f')r.dataset.gender='f'}catch(e){}</script>
 <script>try{const z=+localStorage.getItem('plan6sci-font');if([1.12,1.25].includes(z))document.documentElement.style.setProperty('--zoom',z)}catch(e){}</script>
 
@@ -291,7 +291,7 @@ body:not(.m-view) .monthly{display:none}
       </div>
       <div class="late-btns">
         <button class="chip solid" type="button" id="lateExtend" hidden>رجّع المتأخر</button>
-        <button class="chip solid alt2" type="button" id="lateFit">رجّع المتأخر لأيام مادته<small>كل مادة تتراجع محاضراتها بنفس أيامها، والأيام الثانية ما تتغير</small></button>
+        <button class="chip solid alt2" type="button" id="lateFit">رجّع المتأخر لليوم اللي بعده<small>المتأخر يجي أول شي بنفس تسلسله، وباقي الجدول يتأخر وراه</small></button>
       </div>
     </div>
     <button class="chip" type="button" id="lateUndo" hidden>تراجع للترتيب الأصلي</button>
@@ -427,10 +427,10 @@ body:not(.m-view) .monthly{display:none}
 </div>
 <div class="toast" id="toast" role="status" hidden></div>
 
-<script src="data.js?v=42"></script>
-<script src="plan.js?v=42"></script>
-<script src="dream.js?v=42"></script>
-<script src="rez.js?v=42"></script>
+<script src="data.js?v=43"></script>
+<script src="plan.js?v=43"></script>
+<script src="dream.js?v=43"></script>
+<script src="rez.js?v=43"></script>
 
 </body>
 </html>

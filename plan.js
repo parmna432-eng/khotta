@@ -150,24 +150,39 @@ function mixTeacher(s){const n=mainOf(s).lists.length,ts=[];
   const lists=Array.from({length:n},(_,li)=>{const t=chapTeacher(s,li);ts.push(t);const l=t.lists[li];return {...l,by:l.by||t.name,tid:t.id}});
   const one=ts.every(t=>t.id===ts[0].id);
   return {id:one?ts[0].id:'mix',name:one?ts[0].name:[...new Set(ts.map(t=>t.name))].join(' و'),main:ts.every(t=>t.main),lists}}
-// re-plan from R: each subject's lectures not ticked before R go back in front of that subject's coming lectures and fill its own
-// slots in order (a day with two Arabic lectures still has two, renumbered), so other subjects and the shape of every day stay the same.
-// Lectures ticked early stay where they are. What overflows a subject's slots goes to new days after the last study day.
+// re-plan from R: lectures not ticked before R come first, on R itself, and everything after them moves back to make room.
+// Sessions and daily limits stay the same and every subject keeps its book order. Lectures ticked before R stay on their days.
 function placeMissed(days,missed,R){
-  const bySub={};for(const l of missed)(bySub[l.s]=bySub[l.s]||[]).push(l);
-  const future=days.filter(x=>!x.past&&x.d>=R&&!x.review),over=[];
-  // the subject's lectures are laid out in book order over its slots, so a day never shows 7, 5, 6
-  for(const s in bySub){const slots=[],seq=bySub[s].slice();
-    for(const x of future)for(const b of x.blocks){if(b.s!==s||!b.lecs)continue;b.lecs=b.lecs.slice();b.lecs.forEach((l,i)=>{slots.push([b,i,x.d]);seq.push(l)})}
-    seq.sort((a,b)=>a.qi-b.qi);
-    slots.forEach(([b,i,d],k)=>{b.lecs[i]=seq[k];if(seq[k].from)seq[k].to=d});over.push(...seq.slice(slots.length).map(l=>Object.assign(l,{s})))}
-  if(!over.length)return days;
-  const d=new Date(Math.max(days[days.length-1].d.getTime()+864e5,R.getTime())),out=days.slice();let day=null,cur=null,acc=0;
-  for(const l of over){
-    if(!cur||cur.s!==l.s||acc+(l.dm||l.m)>150){
-      if(!day||day.blocks.length>=kDay(day.d)){day={d:new Date(d),blocks:[],catchup:true};out.push(day);d.setDate(d.getDate()+1)}
-      cur={s:l.s,lecs:[],extra:true};day.blocks.push(cur);acc=0}
-    cur.lecs.push(l);acc+=l.dm||l.m;if(l.from)l.to=day.d}
+  const isLight=b=>b.s==='isl'||(b.s==='ar'&&PARTS.ar&&b.lecs.every(l=>l.li===1));
+  const before=days.filter(x=>x.past||x.d<R),future=days.filter(x=>!x.past&&x.d>=R);
+  // a day that stays as it is before R (today, when re-planning from tomorrow) takes the earliest lectures, so the book order never runs backwards
+  const kind=l=>l.s+(l.li===1&&PARTS.ar&&l.s==='ar'?'L':'');missed=missed.slice();
+  for(const x of before){if(x.past)continue;for(const b of x.blocks){if(!b.lecs||!b.lecs.length)continue;const key=kind({...b.lecs[0],s:b.s}),open=b.lecs.filter(l=>!done['v'+l.v]),late=missed.filter(l=>kind(l)===key);if(!open.length||!late.length)continue;
+    const all=open.map(l=>({...l,s:b.s})).concat(late).sort((u,v)=>u.qi-v.qi),stay=all.slice(0,open.length),go=all.slice(open.length);
+    b.lecs=b.lecs.filter(l=>done['v'+l.v]).concat(stay).sort((u,v)=>u.qi-v.qi);stay.forEach(l=>{if(l.from)l.to=new Date(x.d)});missed=missed.filter(l=>kind(l)!==key).concat(go)}}
+  // the coming sessions, oldest first, with the late lectures in front of them
+  const heavy=[],light={isl:[],ar:[]},late=[];
+  const lateOf=s=>missed.filter(l=>l.s===s);
+  for(const s of new Set(missed.map(l=>l.s))){const L=lateOf(s),lit=L.filter(l=>s==='isl'||(s==='ar'&&PARTS.ar&&l.li===1)),rest=L.filter(l=>!lit.includes(l));
+    if(lit.length)light[s].push(...lit);let cur=null,acc=0;
+    for(const l of rest){const m=l.dm||l.m;if(!cur||acc+m>SESS_MIN){cur={s,lecs:[]};late.push(cur);acc=0}cur.lecs.push(l);acc+=m}}
+  for(const x of future)for(const b of x.blocks){if(!b.lecs)continue;if(isLight(b))light[b.s].push(...b.lecs);else heavy.push({s:b.s,lecs:b.lecs.slice()})}
+  const queue=late.concat(heavy);
+  // each subject back in book order over its sessions, so a day never shows 7, 5, 6
+  for(const s of new Set(queue.map(b=>b.s))){const B=queue.filter(b=>b.s===s),all=B.flatMap(b=>b.lecs).sort((a,b)=>a.qi-b.qi);let p=0;for(const b of B){b.lecs=all.slice(p,p+b.lecs.length);p+=b.lecs.length}}
+  for(const k in light)light[k].sort((a,b)=>a.qi-b.qi);
+  const wOf=b=>b.lecs.length===1?Math.max(1,Math.ceil((b.lecs[0].dm||b.lecs[0].m)/(SESS_MIN*1.1))):1;
+  const out=before.slice(),d=new Date(R);
+  while(queue.length||light.isl.length||light.ar.length){
+    const fri=d.getDay()===5,k0=kDay(d),lt=['isl','ar'].filter(s=>light[s].length),useL=lt.length&&(k0>=2||!queue.length),k=useL?Math.max(0,k0-1):k0,pick=[];let u=0;
+    for(let i=0;i<queue.length&&u<k;){const b=queue[i],w=wOf(b);
+      if(pick.some(x=>x.s===b.s)||queue.slice(0,i).some(x=>x.s===b.s)||(u&&u+w>k)){i++;continue}
+      pick.push({...b,w});u+=w;queue.splice(i,1)}
+    const blocks=pick.sort((a,b)=>RANK[a.s]-RANK[b.s]);
+    if(useL)for(const s of lt)blocks.push({s,lecs:[light[s].shift()],w:lt.length>1?.5:1});
+    if(fri)blocks.push({s:'rev',plain:'مراجعة الأسبوع: ارجع لملخصات كل مادة وحل ١٠ أسئلة وزارية منها'});
+    for(const b of blocks)for(const l of b.lecs||[])if(l.from)l.to=new Date(d);
+    out.push({d:new Date(d),blocks});d.setDate(d.getDate()+1)}
   return out}
 // slot i of a chapter shows the chosen teacher's lectures at the same place in the chapter (a teacher with more lectures shows two
 // in some slots, one with fewer repeats a lecture marked "تكملة"), so switching teachers never moves a day or loses a tick
@@ -337,7 +352,7 @@ function updateLate(){
   if(!late.length&&!lateManual&&!sh){box.hidden=true;return}
   box.hidden=false;const mins=late.reduce((a,l)=>a+l.m,0);
   $('lateTitle').textContent=late.length?'عندك '+ar(late.length)+' محاضرة متأخرة من الأيام اللي فاتت ('+dur(mins)+' فيديو)':sh&&!lateManual?'رتبت جدولك من '+dstr(parseKey(sh.from)):'أعد ترتيب جدولك';
-  $('lateText').textContent=late.length||lateManual?'كل مادة ترجع محاضراتها المتأخرة لأول أيامها الجاية بنفس التسلسل: نفس الأيام ونفس عدد المحاضرات، بس الأرقام ترجع لورا. المواد الثانية ما تتغير، واللي خلصته يبقى بيومه.':'يخلص جدولك هسه '+dstr(P.days[P.days.length-1].d)+'. إذا تريد ترجع للترتيب الأصلي اضغط تراجع.';
+  $('lateText').textContent=late.length||lateManual?'المحاضرات اللي ما خلصتها ترجع لأول يوم تختاره بنفس تسلسلها، وباقي الجدول يتأخر وراها. واللي خلصته يبقى بيومه.':'يخلص جدولك هسه '+dstr(P.days[P.days.length-1].d)+'. إذا تريد ترجع للترتيب الأصلي اضغط تراجع.';
   $('lateActs').hidden=!(late.length||lateManual);$('lateUndo').hidden=!sh;
 }
 function shift(mode){

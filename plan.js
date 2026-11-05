@@ -25,6 +25,8 @@ const get=k=>{try{return JSON.parse(localStorage.getItem(k)||'null')}catch(e){re
 const put=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}};
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const mainOf=s=>C[s].teachers.find(t=>t.main)||C[s].teachers[0];
+// the teacher shown as main: slots and ticks stay on the first recorded teacher, so a new default never loses progress
+const defOf=s=>C[s].teachers.find(t=>t.pick)||mainOf(s);
 
 // strict Y-M-D near the school year: a bad ?today or a year-9999 exam used to loop forever
 const parseKey=k=>{if(!/^\d{4}-\d{1,2}-\d{1,2}$/.test(String(k)))return null;const [y,m,d]=String(k).split('-').map(Number);const t=new Date(y,m-1,d);
@@ -33,7 +35,7 @@ function loadPrefs(){
   const p=get(PREF)||{};
   const out={subjects:{},teacher:{},chap:{},hour:HOURS.includes(p.hour)?p.hour:10};
   for(const s of ORDER){out.subjects[s]=p.subjects&&typeof p.subjects==='object'&&s in p.subjects?!!p.subjects[s]:true;
-    const t=p.teacher&&p.teacher[s];out.teacher[s]=C[s].teachers.some(x=>x.id===t)?t:mainOf(s).id;
+    const t=p.teacher&&p.teacher[s];out.teacher[s]=C[s].teachers.some(x=>x.id===t)?t:defOf(s).id;
     // per-chapter teacher overrides: {chapterIndex: teacherId}
     const ch=p.chap&&p.chap[s]||{};out.chap[s]={};for(const li in ch)if(C[s].teachers.some(x=>x.id===ch[li]&&x.lists[li]))out.chap[s][li]=ch[li]}
   // a plan needs at least one subject
@@ -43,6 +45,7 @@ function loadPrefs(){
   out.sess=(Array.isArray(p.sess)?p.sess:[]).filter(x=>x&&parseKey(x.from)&&SESS_N.includes(x.k)).map(x=>({from:x.from,k:x.k})).sort((a,b)=>parseKey(a.from)-parseKey(b.from));
   out.mk=SESS_N.includes(p.mk)?p.mk:3;
   out.part={};for(const s of ['eng','ar']){const q=p.part&&p.part[s];if(q&&typeof q==='object'){const o={};for(const k of ['g','l'])if(C[s].teachers.some(x=>x.id===q[k]))o[k]=q[k];if(o.g||o.l)out.part[s]=o}}
+  const sc=p.school,hm=/^([01]\d|2[0-3]):[0-5]\d$/;if(sc&&hm.test(sc.a)&&hm.test(sc.b)&&sc.a<sc.b)out.school={a:sc.a,b:sc.b,from:parseKey(sc.from)?sc.from:''};
   return out;
 }
 let prefs=loadPrefs();
@@ -50,8 +53,27 @@ const savePrefs=()=>put(PREF,prefs);
 
 /* ---------- daily timeline from the chosen start hour ---------- */
 function clock(m){m=((m%1440)+1440)%1440;if(m===0)return'١٢:٠٠ منتصف الليل';const h=Math.floor(m/60),mi=m%60,h12=h%12||12;return ar(h12)+':'+ar(String(mi).padStart(2,'0'))+(h<12?'ص':'م')}
-function timeline(k){
-  const b=prefs.hour*60;k=k||kNow();
+/* ---------- school hours: on school days (Sunday to Thursday) study sits around the student's own school times ---------- */
+const hhmm=t=>{const [a,b]=t.split(':').map(Number);return a*60+b};
+const schoolOn=d=>{const c=prefs.school;if(!c)return false;if(!d)return true;if(typeof isRam==='function'&&isRam(d))return false;
+  return d.getDay()!==5&&d.getDay()!==6&&(!c.from||parseKey(c.from)<=d)};
+function schoolRows(k){const a=hhmm(prefs.school.a),b=hhmm(prefs.school.b),pm=a>=660,wake=pm?420:a-60,bed=pm?1410:Math.min(1410,wake+960);
+  const wins=(pm?[[wake+45,a-45]]:[]).concat([[b+60,bed]]);
+  const place=n=>{const rows=[];let w=0,cur=wins[0][0];
+    for(let i=0;i<n;i++){while(w<wins.length&&cur+150>wins[w][1]){w++;if(w<wins.length)cur=wins[w][0]}
+      if(w>=wins.length)return null;rows.push([cur,cur+150,i]);cur+=150;if(i<n-1&&cur+20<=wins[w][1]){rows.push([cur,cur+20,'استراحة قصيرة']);cur+=20}}
+    while(w<wins.length&&cur+45>wins[w][1]){w++;if(w<wins.length)cur=wins[w][0]}
+    if(w>=wins.length)return null;const end=wins[w][1],pr=Math.min(90,end-cur-20);rows.push([cur,cur+pr,'practice'],[cur+pr,cur+pr+20,'review']);cur+=pr+20;
+    if(cur<end)rows.push([cur,end,'وقت حر وراحة قبل النوم']);return rows};
+  let n=k,rows=null;while(n>=1&&!(rows=place(n)))n--;
+  if(!rows){const st=b+60;rows=[[st,st+150,0],[st+150,st+180,'practice'],[st+180,st+195,'review']]}
+  const fixed=(pm?[[wake,wake+45,'الكعدة، فطور خفيف، ترتيب مكان الدراسة'],[a-45,a,'تحضير والطريق للمدرسة']]:[[wake,a,'الكعدة، فطور والطريق للمدرسة']]).concat([[a,b,'دوام المدرسة'],[b,b+60,'رجعة من الدوام، غداء وراحة'],[Math.max(bed,rows[rows.length-1][1]),Math.max(bed,rows[rows.length-1][1])+480,'نوم']]);
+  return rows.concat(fixed).sort((x,y)=>x[0]-y[0])}
+const schoolFit=k=>schoolRows(k).filter(r=>typeof r[2]==='number').length;
+const schoolK=(d,k)=>schoolOn(d)?Math.min(k,schoolFit(k)):k;
+function timeline(k,d){
+  k=k||(d?kOf(d):kNow());if(schoolOn(d))return schoolRows(k);
+  const b=prefs.hour*60;
   // afternoon start (after school): same three sessions with shorter breaks, a shorter practice, and sleep right after the review
   if(prefs.hour>=12){const sl=b+660;
     if(k<3)return [[b-60,b,'رجعة من الدوام، غداء وراحة'],[b,b+150,0],[b+150,b+170,'استراحة قصيرة'],[b+170,b+320,1],[b+320,b+365,'عشاء، صلاة، استراحة'],
@@ -69,9 +91,12 @@ function timeline(k){
 }
 const range=(a,b)=>clock(a)+' – '+clock(b);
 // sessions a day on date d: the last choice made on or before d (3 before any choice); an afternoon start fits 3 at most
-const kOf=d=>{let k=3;for(const x of prefs.sess)if(parseKey(x.from)<=d)k=x.k;return k};
+const kBase=d=>{let k=3;for(const x of prefs.sess)if(parseKey(x.from)<=d)k=x.k;return k};
+const kOf=d=>schoolK(d,kBase(d));
 const kNow=()=>kOf(new Date(Math.max(TODAY,START)));
 const kDay=d=>d.getDay()===5?Math.max(1,kOf(d)-1):kOf(d);
+// a block's time: its first session to its last; the running index restarts on each day
+let spanI=0;const spanOf=(T,b)=>{const S=T.filter(r=>typeof r[2]==='number'),a=S[Math.min(Math.floor(spanI),S.length-1)],z=S[Math.min(Math.ceil(spanI+(b.w||1))-1,S.length-1)];spanI+=b.w||1;return range(a[0],z[1])};
 const sessOf=TL=>TL.filter(r=>typeof r[2]==='number').map(r=>range(r[0],r[1]));
 
 /* ---------- schedule ---------- */
@@ -79,27 +104,31 @@ const sessOf=TL=>TL.filter(r=>typeof r[2]==='number').map(r=>range(r[0],r[1]));
 const TODAY=(()=>{const q=new URLSearchParams(location.search).get('today');const d=q&&parseKey(q);const t=d||new Date();t.setHours(0,0,0,0);return t})();
 // hand out each subject's sessions day by day from `from` so subjects stay spread evenly, then split its lectures over them by video time
 function allocate(act,from,Q,need){
-  const left={},tot={};for(const s of act){left[s]=need[s];tot[s]=Q[s].reduce((a,x)=>a+(x.dm||x.m),0)}
+  // each subject is cut into sessions first: as even as its session count allows, never more video than a session holds
+  const mm=l=>l.dm||l.m,parts={},left={},used={};
+  // light lessons run on their own daily line: one Islamic and one literature lesson a day, sharing a session
+  const light={isl:act.includes('isl')?Q.isl.slice():[],ar:act.includes('ar')&&PARTS.ar?Q.ar.filter(l=>l.li===1):[]};
+  for(const s of act){const all=Q[s],q=s==='isl'?[]:s==='ar'&&PARTS.ar?all.filter(l=>l.li!==1):all,cap=SESS_MIN,out=[];let p=0,rem=q.reduce((a,l)=>a+mm(l),0),tot=all.reduce((a,l)=>a+mm(l),0)||1,n=Math.max(1,Math.round(need[s]*rem/tot));
+    for(let i=0;p<q.length;i++){const target=rem/Math.max(1,n-i),b=[];let acc=0;
+      while(p<q.length&&(!b.length||(acc+mm(q[p])/2<=target&&acc+mm(q[p])<=cap))){b.push(q[p]);acc+=mm(q[p]);p++}
+      rem-=acc;out.push(b)}
+    parts[s]=out;left[s]=out.length;used[s]=0}
+  // one video longer than a session counts as the sessions it really takes
+  const wOf=s=>{const b=parts[s][used[s]];return b.length===1?Math.max(1,Math.ceil(mm(b[0])/(SESS_MIN*1.1))):1};
   const days=[];const d=new Date(from);
-  while(act.some(s=>left[s]>0)){
-    const fri=d.getDay()===5,k=kDay(d),pick=[];
-    if(fri&&left.isl>0)pick.push('isl');
-    const cand=act.filter(s=>left[s]>0&&!pick.includes(s)).sort((a,b)=>(left[b]/need[b])-(left[a]/need[a])||left[b]-left[a]);
-    for(const s of cand){if(pick.length>=k)break;pick.push(s)}
-    pick.forEach(s=>left[s]--);
-    const blocks=pick.sort((a,b)=>RANK[a]-RANK[b]).map(s=>({s}));
+  while(act.some(s=>left[s]>0)||light.isl.length||light.ar.length){
+    const fri=d.getDay()===5,k0=kDay(d),lt=['isl','ar'].filter(s=>light[s].length),useL=lt.length&&(k0>=2||!act.some(s=>left[s]>0)),k=useL?Math.max(0,k0-1):k0,pick=[];let u=0;const take=s=>{pick.push(s);u+=wOf(s)};
+    const cand=act.filter(s=>left[s]>0&&!pick.includes(s)).sort((a,b)=>(left[b]/parts[b].length)-(left[a]/parts[a].length)||left[b]-left[a]);
+    for(const s of cand){if(u>=k)break;if(u&&u+wOf(s)>k)continue;take(s)}
+    const blocks=pick.sort((a,b)=>RANK[a]-RANK[b]).map(s=>{const w=wOf(s),lecs=parts[s][used[s]];used[s]++;left[s]--;return {s,lecs,w}});
+    if(useL)for(const s of lt)blocks.push({s,lecs:[light[s].shift()],w:lt.length>1?.5:1});
     if(fri)blocks.push({s:'rev',plain:'مراجعة الأسبوع: ارجع لملخصات كل مادة وحل ١٠ أسئلة وزارية منها'});
     days.push({d:new Date(d),blocks});d.setDate(d.getDate()+1);
   }
-  const slots={},used={},cur={};
-  days.forEach(x=>x.blocks.forEach(b=>{if(b.s!=='rev')slots[b.s]=(slots[b.s]||0)+1}));
-  for(const x of days)for(const b of x.blocks){if(b.s==='rev')continue;const s=b.s,q=Q[s],i=used[s]||0;used[s]=i+1;
-    const target=tot[s]*(i+1)/slots[s];let p=cur[s]||0,acc=q.slice(0,p).reduce((a,y)=>a+(y.dm||y.m),0);const out=[];
-    while(p<q.length&&(i+1===slots[s]||acc+(q[p].dm||q[p].m)/2<=target)){out.push(q[p]);acc+=q[p].dm||q[p].m;p++}cur[s]=p;b.lecs=out}
   return days;
 }
 // the teacher of one chapter: its own choice if the student picked one, otherwise the subject's teacher
-const subjTeacher=s=>C[s].teachers.find(x=>x.id===prefs.teacher[s])||mainOf(s);
+const subjTeacher=s=>C[s].teachers.find(x=>x.id===prefs.teacher[s])||defOf(s);
 const chapTeacher=(s,li)=>{const id=prefs.chap[s]&&prefs.chap[s][li];const t=id&&C[s].teachers.find(x=>x.id===id&&x.lists[li]);if(t)return t;
   const st=subjTeacher(s);return st.lists[li]?st:mainOf(s)};
 // one "teacher" per subject made of each chapter's chosen playlist, so the rest of the plan reads lists[li] as before
@@ -135,10 +164,10 @@ function placeMissed(days,missed,R){
   if(!over.length)return days;
   const d=new Date(Math.max(days[days.length-1].d.getTime()+864e5,R.getTime())),out=days.slice();let day=null,cur=null,acc=0;
   for(const l of over){
-    if(!cur||cur.s!==l.s||acc+l.m>150){
+    if(!cur||cur.s!==l.s||acc+(l.dm||l.m)>150){
       if(!day||day.blocks.length>=kDay(day.d)){day={d:new Date(d),blocks:[],catchup:true};out.push(day);d.setDate(d.getDate()+1)}
       cur={s:l.s,lecs:[],extra:true};day.blocks.push(cur);acc=0}
-    cur.lecs.push(l);acc+=l.m;if(l.from)l.to=day.d}
+    cur.lecs.push(l);acc+=l.dm||l.m;if(l.from)l.to=day.d}
   return out}
 // slot i of a chapter shows the chosen teacher's lectures at the same place in the chapter (a teacher with more lectures shows two
 // in some slots, one with fewer repeats a lecture marked "تكملة"), so switching teachers never moves a day or loses a tick
@@ -196,11 +225,12 @@ let done={};try{done=JSON.parse(localStorage.getItem(DONE)||'{}')}catch(e){}if(!
 const saveDone=()=>{try{localStorage.setItem(DONE,JSON.stringify(done))}catch(e){}};
 let hard=get(HARD)||{};
 const FLAG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 21V4M5 4h11l-2 4 2 4H5"/></svg>';
-let P=null,allIds=[],todayEl=null,filter='all';
+let P=null,allIds=[],todayEl=null,filter='all',mDue=new Map();
 const $=id=>document.getElementById(id);
 
 function render(){
   P=build();const {act,T,days}=P;allIds=[];todayEl=null;
+  mDue=new Map();for(const e of monthly){const d=parseKey(e.d);if(act.includes(e.s)&&d>=TODAY)for(const l of mLectures(e.s,e.li,e.to)){const u=new Date(d);u.setDate(u.getDate()-1);mDue.set(l.v,{u,s:e.s})}}
   const studyEnd=days.filter(x=>!x.review).slice(-1)[0];
   $('hTitle').textContent='خطة السادس العلمي — من '+dstr(START)+' إلى '+dstr(days[days.length-1].d);
   let L=0,M=0;days.forEach(x=>x.blocks.forEach(b=>(b.lecs||[]).forEach(l=>{L++;M+=l.m})));
@@ -210,7 +240,7 @@ function render(){
   // the subject select sets every chapter; each chapter's own select overrides it for that chapter only
   $('tBody').innerHTML=ORDER.map(s=>{const on=prefs.subjects[s],t=subjTeacher(s),mix=mixTeacher(s);
     // a chapter's menu lists only the teachers who recorded it; the subject menu marks teachers missing chapters
-    const opt=(sel,short,li)=>C[s].teachers.filter(x=>li===undefined||x.lists[li]).map(x=>`<option value="${x.id}"${x.id===sel?' selected':''}>${esc(short?x.name.replace(/^(الأستاذ|الست)\s+/,''):x.name)}${x.main?' (رئيسي)':short?'':x.lists.length<mainOf(s).lists.length?' (بديل، بعض الفصول)':' (بديل)'}</option>`).join('');
+    const opt=(sel,short,li)=>C[s].teachers.filter(x=>li===undefined||x.lists[li]).map(x=>`<option value="${x.id}"${x.id===sel?' selected':''}>${esc(short?x.name.replace(/^(الأستاذ|الست)\s+/,''):x.name)}${x===defOf(s)?' (رئيسي)':short?'':x.lists.length<mainOf(s).lists.length?' (بديل، بعض الفصول)':' (بديل)'}</option>`).join('');
     return `<tr class="${on?'':'off'}"><td><span class="tag" style="--c:var(${COLOR[s]})"><span class="dot"></span>${C[s].name}</span>${on?'':'<br><span class="alt">محذوفة من جدولك</span>'}</td>
       <td><label class="vh" for="tsel-${s}">مدرس ${C[s].name} لكل الفصول</label><select class="tsel" id="tsel-${s}" data-s="${s}"${on?'':' disabled'}>${opt(t.id)}</select>${mix.id==='mix'?'<span class="alt mixed">فصول بمدرسين مختلفين</span>':''}${PARTS[s]&&on?`<div class="parts">${['g','l'].map(k=>`<label>${PARTS[s][k]}<select class="psel" data-s="${s}" data-k="${k}">${opt(partTeacher(s,k).id,true)}</select></label>`).join('')}</div>`:''}</td>
       <td class="chaps">${mix.lists.map((l,li)=>`<div class="chap${l.tid!==t.id?' own':''}"><span class="chap-t"><a href="${PL(l.id)}" target="_blank" rel="noopener">${esc(l.t)}</a> <span class="alt">(${esc(l.y)} · ${ar(l.v.length)})</span></span>
@@ -230,11 +260,16 @@ function render(){
   $('ttBody').innerHTML=TL.map(([a,b,w])=>{const st=typeof w==='number'||w==='practice'||w==='review';
     const txt=typeof w==='number'?'الجلسة '+ar(w+1)+': المادة '+['الأولى بجدول اليوم (الأصعب، وذهنك صافي)','الثانية','الثالثة','الرابعة'][w]:w==='practice'?'الجلسة '+ar(SESS_K+1)+': حل تمارين الكتاب والأسئلة الوزارية لمحاضرات اليوم':w==='review'?'مراجعة ملخص اليوم، وتشوف جدول باجر':w;
     return `<tr class="${st?'study':'free'}"><td>${w==='نوم'?clock(a):range(a,b)}</td><td>${txt}</td></tr>`}).join('');
+  const sc=prefs.school;$('schA').value=sc?sc.a:'';$('schB').value=sc?sc.b:'';$('schClear').hidden=!sc;$('schNote').hidden=!sc;
+  if(sc){const k=kBase(new Date(Math.max(TODAY,START))),n=schoolFit(k);$('schNote').textContent=n<k?'بأيام الدوام وقتك يكفي '+SESS_W(n)+' بس، فالجدول ينطيك '+SESS_W(n)+' ويكمل الباقي بالأيام الجاية.':'بأيام الدوام جلساتك كلها برا وقت المدرسة. الجمعة والسبت تمشي على ساعة بدايتك فوق.'}
+  $('schSave').onclick=()=>{const a=$('schA').value,b=$('schB').value;if(!a||!b||a>=b){toast('اكتب وقت الذهاب ووقت الرجوع، والرجوع لازم يكون بعد الذهاب');return}
+    prefs.school={a,b,from:kk(new Date(Math.max(TODAY,START)))};savePrefs();rerender('انحفظ دوامك، والجدول صار برا أوقات المدرسة من اليوم وجاي')};
+  $('schClear').onclick=()=>{delete prefs.school;savePrefs();rerender('انشال الدوام، والجدول رجع على ساعة بدايتك')};
   $('hourBox').innerHTML=HOURS.map(h=>`<button type="button" class="hbtn" data-h="${h}" aria-pressed="${h===prefs.hour}">${hourLabel(h)}</button>`).join('');
   document.querySelectorAll('.hbtn').forEach(b=>b.onclick=()=>{const k4=kNow()>3;prefs.hour=+b.dataset.h;if(k4&&prefs.hour>=12){const f=new Date(Math.max(TODAY,START));prefs.sess=prefs.sess.filter(x=>parseKey(x.from)<f);prefs.sess.push({from:kk(f),k:3})}savePrefs();rerender('صار يومك يبدي الساعة '+hourLabel(prefs.hour)+(k4&&prefs.hour>=12?'، وبالعصر تكفي ٣ جلسات باليوم':''))});
   const SESS=sessOf(TL);
-  sessBox($('sessBox'),kNow(),k=>{const f=new Date(Math.max(TODAY,START)),key=kk(f);prefs.sess=prefs.sess.filter(x=>parseKey(x.from)<f);
-    if(kOf(new Date(f.getTime()-864e5))!==k||!prefs.sess.length)prefs.sess.push({from:key,k});savePrefs();
+  sessBox($('sessBox'),kBase(new Date(Math.max(TODAY,START))),k=>{const f=new Date(Math.max(TODAY,START)),key=kk(f);prefs.sess=prefs.sess.filter(x=>parseKey(x.from)<f);
+    if(kBase(new Date(f.getTime()-864e5))!==k||!prefs.sess.length)prefs.sess.push({from:key,k});savePrefs();
     rerender('صار يومك '+SESS_L[k][1]+' ('+SESS_W(k)+') من '+dstr(f)+'، والأيام اللي فاتت وتقدّمك بقت مثل ما هي')});
   const PR=TL.find(r=>r[2]==='practice'),RV=TL.find(r=>r[2]==='review');
 
@@ -246,14 +281,14 @@ function render(){
   days.forEach((p,i)=>{
     if(i===0||p.d.getDay()===6||(p.review&&!days[i-1].review)){weekEl=document.createElement('div');weekEl.className='week';const h=document.createElement('h3');
       if(p.review)h.innerHTML='<span class="phase">أسبوع المراجعة النهائية</span>';else{wn++;h.textContent='الأسبوع '+ar(wn)}weekEl.appendChild(h);host.appendChild(weekEl)}
-    const mins=p.blocks.reduce((a,b)=>a+(b.lecs||[]).reduce((x,l)=>x+(l.dm||l.m),0),0);
+    const mins=p.blocks.reduce((a,b)=>a+(b.lecs||[]).reduce((x,l)=>x+(l.dm||l.m),0),0),TD=timeline(kOf(p.d),p.d);spanI=0;
     const day=document.createElement('div');day.className='day'+(p.d.getDay()===5?' fri':'')+(p.past?' past':'');
     const isToday=p.d.getTime()===today.getTime();if(isToday){day.classList.add('today');todayEl=day}
     day.innerHTML=`<div class="date"><span class="dn">${DN[p.d.getDay()]}</span><span class="dd">${ar(p.d.getDate())}</span><span class="dm">${MN[p.d.getMonth()]}</span>${mins?`<span class="hrs">${dur(mins)} فيديو</span>`:''}${isToday?'<span class="tlabel">اليوم</span>':''}</div><div class="subjs"></div>`;
     const box=day.querySelector('.subjs');
     p.blocks.forEach((b,j)=>{
       const el=document.createElement('div');el.className='subj';el.dataset.s=b.s;el.style.setProperty('--c','var('+COLOR[b.s]+')');
-      const nm=b.s==='rev'?'مراجعة':C[b.s].name,tm=`<span class="tm">${SESS[j]||SESS[SESS.length-1]}</span>`;
+      const nm=b.s==='rev'?'مراجعة':C[b.s].name,tm=`<span class="tm">${spanOf(TD,b)}</span>`;
       if(b.plain){const id='p'+kk(p.d)+'-'+j;allIds.push(id);
         el.innerHTML=`<div class="subj-h">${tm}</div><div class="lec"><input type="checkbox" id="${id}"><label for="${id}" class="plain"><span class="subj-h"><span class="s">${nm}</span></span> <span class="t">${esc(b.plain)}</span></label><span></span></div>`;check(el.querySelector('.lec'),id);
         if(b.hard&&b.hard.length){const t=T[b.s],h=document.createElement('div');h.className='hard-list';
@@ -265,14 +300,14 @@ function render(){
         const from=b.extra?b.lecs.reduce((m,l)=>l.from&&(!m||l.from<m)?l.from:m,null):null;
         el.innerHTML=`<div class="subj-h">${b.extra?'<span class="tm late-tag">تعويض</span>':tm}<span class="s">${nm}</span><span class="w">${b.extra?'ما لحكت بأيام المادة'+' · ':''}${lists.map(l=>esc(l.t)).join(' ← ')} · ${esc(lists[0]&&lists[0].by||t.name)}${speed}</span></div>`;
         b.lecs.forEach(l=>{const id='v'+l.v;allIds.push(id);const r=document.createElement('div');r.className='lec';
-          r.innerHTML=`<input type="checkbox" id="${id}" aria-label="أنجزت ${esc(l.t)}"><label for="${id}">${lnk(l)}</label><span class="m">${dur(l.dm||l.m)}</span><button type="button" class="flag" aria-pressed="${!!hard[id]}" aria-label="صعبة عليّ: ${esc(l.t)}" title="صعبة عليّ">${FLAG}</button>`;
+          r.innerHTML=`<input type="checkbox" id="${id}" aria-label="أنجزت ${esc(l.t)}"><label for="${id}">${lnk(l)}${mDue.has(l.v)&&p.d>=mDue.get(l.v).u?' <span class="mv-to">تدرسها قبل امتحان '+C[mDue.get(l.v).s].name+' من جدول الامتحانات</span>':''}</label><span class="m">${dur(l.dm||l.m)}</span><button type="button" class="flag" aria-pressed="${!!hard[id]}" aria-label="صعبة عليّ: ${esc(l.t)}" title="صعبة عليّ">${FLAG}</button>`;
           check(r,id);r.querySelector('.flag').onclick=()=>flagHard(id);el.appendChild(r)});
         (b.moved||[]).forEach(l=>{const r=document.createElement('div');r.className='lec moved';
           r.innerHTML=`<span class="mv-x" aria-hidden="true">↩</span><span>${lnk(l)} <span class="mv-to">ما خلصتها، انتقلت ${l.to?'ليوم '+DN[l.to.getDay()]+' '+ar(l.to.getDate())+'/'+ar(l.to.getMonth()+1):'لأيام التعويض'}</span></span><span class="m">${dur(l.dm||l.m)}</span><span></span>`;el.appendChild(r)})}
       box.appendChild(el)});
     if(p.past){const el=document.createElement('div');el.className='subj extra';el.dataset.s='extra';
       el.innerHTML=`<div class="subj-h"><span class="w">${p.blocks.some(b=>b.lecs&&b.lecs.length)?'هذا اللي خلصته بهذا اليوم، واللي ما خلصته انتقل لأيام نفس المادة الجاية بنفس تسلسله، ومكتوب جنب كل محاضرة وين صارت.':'ما خلصت محاضرات بهذا اليوم، ومحاضراته انتقلت لأيام نفس المادة الجاية بنفس تسلسله، ومكتوب جنب كل محاضرة وين صارت.'}</span></div>`;box.appendChild(el);weekEl.appendChild(day);return}
-    [[PR,'حل تمارين الكتاب والأسئلة الوزارية لمحاضرات اليوم'],[RV,'مراجعة ملخص اليوم وتشوف جدول باجر']].forEach(([r,w])=>{const el=document.createElement('div');el.className='subj extra';el.dataset.s='extra';
+    [[TD.find(r=>r[2]==='practice'),'حل تمارين الكتاب والأسئلة الوزارية لمحاضرات اليوم'],[TD.find(r=>r[2]==='review'),'مراجعة ملخص اليوم وتشوف جدول باجر']].forEach(([r,w])=>{const el=document.createElement('div');el.className='subj extra';el.dataset.s='extra';
       el.innerHTML=`<div class="subj-h"><span class="tm">${range(r[0],r[1])}</span><span class="w">${w}</span></div>`;box.appendChild(el)});
     weekEl.appendChild(day)});
 
@@ -318,8 +353,10 @@ $('lateUndo').onclick=()=>{delete prefs.shift;savePrefs();lateManual=false;reren
 $('lateOpen').onclick=()=>{lateManual=true;updateLate();$('lateBox').scrollIntoView({behavior:'smooth',block:'center'})};
 function applyFilter(){document.querySelectorAll('.subj').forEach(t=>t.hidden=!(filter==='all'||t.dataset.s===filter));
   document.querySelectorAll('.day').forEach(d=>d.hidden=![...d.querySelectorAll('.subj')].some(t=>!t.hidden))}
+// lectures ticked today stay on today's monthly sheet until tomorrow, so the day doesn't move on while the student is still in it
+const DAT=PREF.replace('prefs','doneat');const doneAt=Object.fromEntries(Object.entries(get(DAT)||{}).filter(([,v])=>v===kk(TODAY)));
 function check(row,id){const cb=row.querySelector('input');cb.checked=!!done[id];row.classList.toggle('checked',cb.checked);
-  cb.addEventListener('change',()=>{if(cb.checked)done[id]=1;else delete done[id];row.classList.toggle('checked',cb.checked);saveDone();progress();updateLate();if(mView())mCards();
+  cb.addEventListener('change',()=>{if(cb.checked){done[id]=1;doneAt[id]=kk(TODAY)}else{delete done[id];delete doneAt[id]}put(DAT,doneAt);row.classList.toggle('checked',cb.checked);saveDone();progress();updateLate();if(mView())mCards();
     document.dispatchEvent(new CustomEvent('plancheck',{detail:{checked:cb.checked}}))})}
 function flagHard(id){const on=!hard[id];if(on)hard[id]=1;else delete hard[id];put(HARD,hard);
   rerender(on?'علّمتها صعبة، وتطلعلك أول شي بأسبوع المراجعة':'شلت علامة الصعبة')}
@@ -374,7 +411,7 @@ function icsText(){
   const ev=(d,a,b,title,desc,uid)=>L.push('BEGIN:VEVENT','UID:'+uid+'@khotta','DTSTAMP:'+dt,'DTSTART:'+stamp(d,a),'DTEND:'+stamp(d,b),'SUMMARY:'+e(title),'DESCRIPTION:'+e(desc),
     'BEGIN:VALARM','ACTION:DISPLAY','DESCRIPTION:'+e(title),'TRIGGER:-PT5M','END:VALARM','END:VEVENT');
   let n=0;
-  for(const p of P.days){if(p.past||p.d<TODAY)continue;const k=kk(p.d),TL=timeline(kOf(p.d)),S=TL.filter(r=>typeof r[2]==='number'),PR=TL.find(r=>r[2]==='practice');
+  for(const p of P.days){if(p.past||p.d<TODAY)continue;const k=kk(p.d),TL=timeline(kOf(p.d),p.d),S=TL.filter(r=>typeof r[2]==='number'),PR=TL.find(r=>r[2]==='practice');
     p.blocks.forEach((b,j)=>{const r=S[j]||S[S.length-1],nm=b.s==='rev'?'مراجعة':C[b.s].name;
       const desc=b.plain?b.plain:(b.lecs||[]).map(l=>'- '+l.t+' ('+l.m+' د)\n'+l.show.map(x=>V(x.v,x.pl)).join('\n')).join('\n');
       ev(p.d,r[0],r[1],'دراسة: '+nm,desc,k+'-'+j);n++});
@@ -447,25 +484,28 @@ function mPlan(){
   const days=[];for(const d=new Date(from);d<=ex[ex.length-1].date;d.setDate(d.getDate()+1))days.push({d:new Date(d),prep:[],exams:[],fri:d.getDay()===5});
   for(const e of ex){
     const n=Math.round((e.date-from)/864e5),L=mLectures(e.s,e.li,e.to);e.lastT=e.to!=null&&L.length?L[L.length-1].t:'';
-    e.R=L.filter(l=>!done['v'+l.v]);e.total=L.length;e.left=e.R.length;e.mins=e.R.reduce((a,l)=>a+lm(l),0);days[n].exams.push(e);
+    e.R=L.filter(l=>!done['v'+l.v]||doneAt['v'+l.v]);const un=e.R.filter(l=>!done['v'+l.v]);e.total=L.length;e.left=un.length;e.mins=un.reduce((a,l)=>a+lm(l),0);e.n=n;days[n].exams.push(e);
     e.mock=n>=6;e.review=n>=2;e.dlF=n-(e.review?1:0);e.dl=e.dlF-(e.mock?1:0);
     if(e.mock)days[n-2].prep.push({e,plain:'امتحان تجريبي لنفسك: ورقة أسئلة وزارية من '+C[e.s].name+' للفصول المطلوبة بنفس وقت الامتحان الحقيقي، وبعدها صحح أخطاءك واكتبها بدفتر الأخطاء'});
     if(e.review)days[n-1].prep.push({e,plain:'مراجعة خفيفة لـ'+C[e.s].name+': ملخصاتك ودفتر الأخطاء والمحاضرات اللي علّمتها صعبة، بدون محاضرات جديدة. نام ٧ إلى ٨ ساعات، النوم يثبّت اللي حفظته'});
   }
+  // exam day belongs to that exam: nothing else is planned on it
+  for(const e of ex){if(e.mock&&days[e.n-2].exams.length)e.mock=false;if(e.review&&days[e.n-1].exams.length)e.review=false}
+  days.forEach(x=>{if(x.exams.length)x.prep=[]});
   // new lectures go into real sessions: a session holds SESS_MIN of video (one long lecture alone is fine) and what is left takes another
   // session. Monthly exams come first: their lectures take the day's sessions in full (two a day per subject at most, so a subject doesn't fill the whole day; a video longer than a session takes the sessions it needs)
   // and the main plan gets what is left. If that can't finish them, the mock day is used too and every exam subject takes one session before any takes a second, so the nearest exam can't eat the time of the others. What still doesn't fit is told to the student on the card, never squeezed into a session.
-  const dayK=d=>typeof isRam==='function'&&isRam(d)?Math.min(MK(),3):MK();
+  const dayK=d=>schoolK(d,typeof isRam==='function'&&isRam(d)?Math.min(MK(),3):MK());
   const hardK=x=>Math.max(1,dayK(x.d)-(x.fri||x.exams.length?1:0));
   const mins=L=>L.reduce((a,l)=>a+lm(l),0);
   const run=full=>{const left=new Map(ex.map(e=>[e,e.R.slice()])),plan=days.map(()=>[]),end=e=>full?e.dlF:e.dl;
     days.forEach((x,i)=>{
-      const room=hardK(x)-x.prep.length;
+      const room=x.exams.length?0:hardK(x)-x.prep.length;
       const held=e=>plan[i].filter(p=>p.e===e).reduce((a,p)=>a+p.span,0);
       for(let n=0;n<room;n++){
         const cand=ex.filter(e=>i<end(e)&&left.get(e).length),rate=e=>mins(left.get(e))/(end(e)-i);
         // the nearest exam goes first, then the next one, to the last
-        const under=cand.filter(e=>held(e)<2),fresh=under.filter(e=>!held(e)),pool=full&&fresh.length?fresh:under;
+        const under=cand.filter(e=>held(e)<2),fresh=under.filter(e=>!held(e)),pool=full===2?cand:full&&fresh.length?fresh:under;
         if(!pool.length)break;
         const e=pool.sort((p,q)=>p.date-q.date||rate(q)-rate(p))[0],R=left.get(e);
         const out=[];let acc=0;
@@ -474,15 +514,18 @@ function mPlan(){
         plan[i].push({e,lecs:out,span,fast:acc>SESS_MIN*span*1.25?'١.٥':acc>SESS_MIN*span?'١.٢٥':''})}
     });
     return {plan,left,over:[...left.values()].some(L=>L.length)}};
-  let fit=run(false);if(fit.over)fit=run(true);
+  // last try: nearest exam first with no daily limit, because a whole chapter has to be done two days before its exam
+  let fit=run(0);if(fit.over){fit=run(1);if(fit.over){const f=run(2);if(!f.over)fit=f}}
   days.forEach((x,i)=>{x.prep=fit.plan[i].concat(x.prep)});
   for(const e of ex){e.over=fit.left.get(e);const on=days.filter(x=>x.prep.some(p=>p.e===e&&p.lecs));e.studyDays=on.length;e.perDay=on.length?Math.round((e.mins-mins(e.over))/on.length):e.mins}
   // the main plan carries on for subjects with no exam coming; three study sessions a day in total (two on an exam day),
   // so main-plan blocks that don't fit are marked optional instead of piling up
   const main=new Map(P.days.map(x=>[x.d.getTime(),x]));
+  // a lecture an exam covers is studied before that exam, so it never comes back after it
+  const scope=new Set(monthly.filter(e=>P.act.includes(e.s)).flatMap(e=>mLectures(e.s,e.li,e.to).map(l=>l.v)));
   for(const x of days){const m=main.get(x.d.getTime()),busy=new Set(ex.filter(e=>e.date>=x.d).map(e=>e.s));
-    x.other=m?m.blocks.map((b,j)=>({...b,j})).filter(b=>!busy.has(b.s)):[];
-    const room=Math.max(0,(x.exams.length?MK()-1:MK())-x.prep.reduce((a,p)=>a+(p.span||1),0));x.other.forEach((b,k)=>b.opt=k>=room)}
+    x.other=m&&!x.exams.length?m.blocks.map((b,j)=>({...b,j,lecs:b.lecs&&b.lecs.filter(l=>!scope.has(l.v))})).filter(b=>!busy.has(b.s)&&(!b.lecs||b.lecs.length)):[];
+    const room=Math.max(0,dayK(x.d)-x.prep.reduce((a,p)=>a+(p.span||1),0));x.other.forEach((b,k)=>b.opt=k>=room)}
   return {ex,days};
 }
 // heavier is fine when the student chose more hours
@@ -503,16 +546,17 @@ function mCards(){
 function mRender(){
   mCards();
   sessBox($('mSess'),MK(),k=>{prefs.mk=k;savePrefs();mRender();mBanner();toast('صار جدول الامتحانات '+SESS_L[k][1]+' ('+SESS_W(k)+')، وتقدّمك بقى مثل ما هو')});
-  const {days}=mPlan(),TL=timeline(MK()),S=TL.filter(r=>typeof r[2]==='number'),PR=TL.find(r=>r[2]==='practice'),RV=TL.find(r=>r[2]==='review');
+  const {days}=mPlan();let S,PR,RV;
   const host=$('mPlan');host.innerHTML='';
   if(!days.length){$('mPlanH').hidden=true;$('mWhy').hidden=true;return}
   $('mPlanH').hidden=false;$('mWhy').hidden=false;
   for(const x of days){
+    const TX=timeline(MK(),x.d);S=TX.filter(r=>typeof r[2]==='number');PR=TX.find(r=>r[2]==='practice');RV=TX.find(r=>r[2]==='review');
     const isT=x.d.getTime()===TODAY.getTime(),day=document.createElement('div');day.className='day'+(x.exams.length?' m-exam':'')+(isT?' today':'');
     day.innerHTML=`<div class="date"><span class="dn">${DN[x.d.getDay()]}</span><span class="dd">${ar(x.d.getDate())}</span><span class="dm">${MN[x.d.getMonth()]}</span>${isT?'<span class="tlabel">اليوم</span>':''}</div><div class="subjs"></div>`;
     const box=day.querySelector('.subjs');let k=0;
     x.exams.forEach(e=>{const el=document.createElement('div');el.className='subj m-banner';el.style.setProperty('--c','var('+COLOR[e.s]+')');
-      el.innerHTML=`<div class="subj-h"><span class="s">اليوم امتحان ${C[e.s].name} الشهري</span><span class="w">بالتوفيق. فطور زين، نظرة سريعة على ملخصك، وبعد الامتحان ارتاح ساعة قبل ما تكمل.</span></div>`;box.appendChild(el)});
+      el.innerHTML=`<div class="subj-h"><span class="s">اليوم امتحان ${C[e.s].name} الشهري</span><span class="w">بالتوفيق. اليوم بس لهالمادة: فطور زين، نظرة سريعة على ملخصك، ولا تدرس شي جديد. بعد الامتحان ارتاح.</span></div>`;box.appendChild(el)});
     const blocks=x.prep.map(p=>({...p,s:p.e.s,pri:1})).concat(x.other);
     for(const b of blocks){const el=document.createElement('div');el.className='subj'+(b.pri?' m-pri':'')+(b.opt?' m-opt':'');el.dataset.s=b.s;el.style.setProperty('--c','var('+COLOR[b.s]+')');
       const r=b.opt?null:S[Math.min(k,S.length-1)],r2=r&&S[Math.min(k+(b.span||1)-1,S.length-1)];if(r)k+=b.span||1;const tm=r?`<span class="tm">${range(r[0],r2[1])}</span>`:`<span class="tm">${b.opt?'اختياري':'إذا عندك وقت'}</span>`;

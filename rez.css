@@ -155,3 +155,8 @@ body{padding-bottom:calc(56px + env(safe-area-inset-bottom,0px))}
 .parts{display:grid;grid-template-columns:1fr;gap:8px;margin-top:10px}
 .parts label{display:flex;flex-direction:column;gap:4px;font-size:14px;color:var(--muted)}
 .parts select{width:100%}
+
+/* school hours */
+.school-box{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end}
+.school-box label{display:flex;flex-direction:column;gap:4px;font-size:14px;color:var(--muted);flex:1 1 140px}
+.school-box input{font:inherit;min-height:44px;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:8px;padding:6px 10px}

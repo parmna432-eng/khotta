@@ -245,8 +245,8 @@ body:not(.m-view) .monthly{display:none}
 .fontsz button:nth-of-type(1){font-size:14px}.fontsz button:nth-of-type(2){font-size:16px}.fontsz button:nth-of-type(3){font-size:18px}
 .fontsz button[aria-pressed="true"]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
 </style>
-<link rel="stylesheet" href="dream.css?v=41">
-<link rel="stylesheet" href="rez.css?v=41">
+<link rel="stylesheet" href="dream.css?v=42">
+<link rel="stylesheet" href="rez.css?v=42">
 <script>try{const p=JSON.parse(localStorage.getItem('plan6sci-dream'));const r=document.documentElement;if(p&&p.fam&&p.fam!=='other')r.dataset.dream=p.fam==='engineer'&&p.dept==='هندسة الطائرات المسيّرة'?'drone':p.fam;if(p&&p.gender==='f')r.dataset.gender='f'}catch(e){}</script>
 <script>try{const z=+localStorage.getItem('plan6sci-font');if([1.12,1.25].includes(z))document.documentElement.style.setProperty('--zoom',z)}catch(e){}</script>
 
@@ -361,6 +361,10 @@ body:not(.m-view) .monthly{display:none}
     <h2>يومك الدراسي</h2>
     <p class="sub">اختار الساعة اللي تبدي بيها دراستك بالعادة، وأوقات يومك وجلسات الجدول كلها تتحسب عليها. إذا عندك دوام الصبح اختار ١ أو ٢ الظهر، ويومك يترتب بعد الدوام باستراحات أقصر. وداخل كل جلسة ٥٠ دقيقة دراسة و١٠ دقايق استراحة.</p>
     <div class="hour-box" id="hourBox" role="group" aria-label="ساعة بداية الدراسة"></div>
+    <h3 class="sess-h">وقت دوامك بالمدرسة</h3>
+    <p class="sub">اكتب متى تروح ومتى ترجع، والجدول يحط جلساتك برا هالوقت من الأحد للخميس.</p>
+    <div class="school-box"><label>أروح للمدرسة<input type="time" id="schA"></label><label>أرجع من المدرسة<input type="time" id="schB"></label><button class="chip solid" type="button" id="schSave">احفظ دوامي</button><button class="chip" type="button" id="schClear" hidden>شيل الدوام</button></div>
+    <p class="note" id="schNote" hidden></p>
     <h3 class="sess-h">كم ساعة تدرس باليوم؟</h3>
     <p class="sub">الجدول ينرتب على اختيارك من اليوم وجاي. الأيام اللي فاتت واللي أشّرته يبقى مثل ما هو، وكلما زادت الساعات خلصت المنهج أبكر.</p>
     <div class="hour-box" id="sessBox" role="group" aria-label="ساعات الدراسة باليوم"></div>
@@ -423,10 +427,10 @@ body:not(.m-view) .monthly{display:none}
 </div>
 <div class="toast" id="toast" role="status" hidden></div>
 
-<script src="data.js?v=41"></script>
-<script src="plan.js?v=41"></script>
-<script src="dream.js?v=41"></script>
-<script src="rez.js?v=41"></script>
+<script src="data.js?v=42"></script>
+<script src="plan.js?v=42"></script>
+<script src="dream.js?v=42"></script>
+<script src="rez.js?v=42"></script>
 
 </body>
 </html>

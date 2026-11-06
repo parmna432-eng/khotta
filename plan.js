@@ -8,7 +8,7 @@ const HOURS=[7,8,9,10,13,14];
 // study sessions a day (two and a half hours each, with a 10-minute break every hour); 4 only fits a morning start
 const SESS_N=[2,3,4];
 const SESS_L={2:['خفيف','٧ إلى ٨ ساعات'],3:['عادي','٩ إلى ١٠ ساعات'],4:['مكثف','حوالي ١٢ ساعة']};
-const SESS_W=k=>k===2?'جلستين':ar(k)+' جلسات';
+const SESS_W=k=>k===1?'جلسة وحدة':k===2?'جلستين':ar(k)+' جلسات';
 const hourLabel=h=>ar(h>12?h-12:h)+(h>=12?' الظهر':' الصبح');
 const COLOR={math:'--math',phys:'--phys',bio:'--bio',chem:'--chem',eng:'--eng',isl:'--isl',ar:'--ar',rev:'--rev'};
 const RANK={math:0,phys:1,chem:2,bio:3,ar:4,eng:5,isl:6}; // hardest first in the day
@@ -57,7 +57,7 @@ function clock(m){m=((m%1440)+1440)%1440;if(m===0)return'١٢:٠٠ منتصف ا
 const hhmm=t=>{const [a,b]=t.split(':').map(Number);return a*60+b};
 const schoolOn=d=>{const c=prefs.school;if(!c)return false;if(!d)return true;if(typeof isRam==='function'&&isRam(d))return false;
   return d.getDay()!==5&&d.getDay()!==6&&(!c.from||parseKey(c.from)<=d)};
-function schoolRows(k){const a=hhmm(prefs.school.a),b=hhmm(prefs.school.b),pm=a>=660,wake=pm?420:a-60,bed=pm?1410:Math.min(1410,wake+960);
+function schoolRows(k){const a=hhmm(prefs.school.a),b=hhmm(prefs.school.b),pm=a>=660,wake=pm?420:a-60,bed=pm?1410:Math.min(1410,wake+1020);
   const wins=(pm?[[wake+45,a-45]]:[]).concat([[b+60,bed]]);
   const place=n=>{const rows=[];let w=0,cur=wins[0][0];
     for(let i=0;i<n;i++){while(w<wins.length&&cur+150>wins[w][1]){w++;if(w<wins.length)cur=wins[w][0]}
@@ -277,8 +277,8 @@ function render(){
     return `<tr class="${st?'study':'free'}"><td>${w==='نوم'?clock(a):range(a,b)}</td><td>${txt}</td></tr>`}).join('');
   const sc=prefs.school;$('schA').value=sc?sc.a:'';$('schB').value=sc?sc.b:'';$('schClear').hidden=!sc;$('schNote').hidden=!sc;
   if(sc){const k=kBase(new Date(Math.max(TODAY,START))),n=schoolFit(k);$('schNote').textContent=n<k?'بأيام الدوام وقتك يكفي '+SESS_W(n)+' بس، فالجدول ينطيك '+SESS_W(n)+' ويكمل الباقي بالأيام الجاية.':'بأيام الدوام جلساتك كلها برا وقت المدرسة. الجمعة والسبت تمشي على ساعة بدايتك فوق.'}
-  $('schSave').onclick=()=>{const a=$('schA').value,b=$('schB').value;if(!a||!b||a>=b){toast('اكتب وقت الذهاب ووقت الرجوع، والرجوع لازم يكون بعد الذهاب');return}
-    prefs.school={a,b,from:kk(new Date(Math.max(TODAY,START)))};savePrefs();rerender('انحفظ دوامك، والجدول صار برا أوقات المدرسة من اليوم وجاي')};
+  $('schSave').onclick=()=>{let a=$('schA').value,b=$('schB').value;if(!a||!b||a===b){toast('اكتب وقت الذهاب ووقت الرجوع');return}const sw=a>b;if(sw)[a,b]=[b,a];
+    prefs.school={a,b,from:kk(new Date(Math.max(TODAY,START)))};savePrefs();rerender((sw?'الوقتين چانوا معكوسين فعدّلناهم. ':'')+'انحفظ دوامك، والجدول صار برا أوقات المدرسة من اليوم وجاي')};
   $('schClear').onclick=()=>{delete prefs.school;savePrefs();rerender('انشال الدوام، والجدول رجع على ساعة بدايتك')};
   $('hourBox').innerHTML=HOURS.map(h=>`<button type="button" class="hbtn" data-h="${h}" aria-pressed="${h===prefs.hour}">${hourLabel(h)}</button>`).join('');
   document.querySelectorAll('.hbtn').forEach(b=>b.onclick=()=>{const k4=kNow()>3;prefs.hour=+b.dataset.h;if(k4&&prefs.hour>=12){const f=new Date(Math.max(TODAY,START));prefs.sess=prefs.sess.filter(x=>parseKey(x.from)<f);prefs.sess.push({from:kk(f),k:3})}savePrefs();rerender('صار يومك يبدي الساعة '+hourLabel(prefs.hour)+(k4&&prefs.hour>=12?'، وبالعصر تكفي ٣ جلسات باليوم':''))});

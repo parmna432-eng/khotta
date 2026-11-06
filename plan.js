@@ -369,9 +369,9 @@ $('lateOpen').onclick=()=>{lateManual=true;updateLate();$('lateBox').scrollIntoV
 function applyFilter(){document.querySelectorAll('.subj').forEach(t=>t.hidden=!(filter==='all'||t.dataset.s===filter));
   document.querySelectorAll('.day').forEach(d=>d.hidden=![...d.querySelectorAll('.subj')].some(t=>!t.hidden))}
 // lectures ticked today stay on today's monthly sheet until tomorrow, so the day doesn't move on while the student is still in it
-const DAT=PREF.replace('prefs','doneat');const doneAt=Object.fromEntries(Object.entries(get(DAT)||{}).filter(([,v])=>v===kk(TODAY)));
+const DAT=PREF.replace('prefs','doneat2');const doneAt=Object.fromEntries(Object.entries(get(DAT)||{}).filter(([,v])=>v===kk(TODAY)));
 function check(row,id){const cb=row.querySelector('input');cb.checked=!!done[id];row.classList.toggle('checked',cb.checked);
-  cb.addEventListener('change',()=>{if(cb.checked){done[id]=1;doneAt[id]=kk(TODAY)}else{delete done[id];delete doneAt[id]}put(DAT,doneAt);row.classList.toggle('checked',cb.checked);saveDone();progress();updateLate();if(mView())mCards();
+  cb.addEventListener('change',()=>{if(cb.checked){done[id]=1;if(row.closest('#mPlan .day.today'))doneAt[id]=kk(TODAY)}else{delete done[id];delete doneAt[id]}put(DAT,doneAt);row.classList.toggle('checked',cb.checked);saveDone();progress();updateLate();if(mView())mCards();
     document.dispatchEvent(new CustomEvent('plancheck',{detail:{checked:cb.checked}}))})}
 function flagHard(id){const on=!hard[id];if(on)hard[id]=1;else delete hard[id];put(HARD,hard);
   rerender(on?'علّمتها صعبة، وتطلعلك أول شي بأسبوع المراجعة':'شلت علامة الصعبة')}

@@ -642,9 +642,20 @@ $('bkLoad').onclick=()=>$('bkFile').click();
 $('bkFile').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{let o=null;try{o=JSON.parse(r.result)}catch(x){}
   if(!o||o.site!==SITE||!o.data||typeof o.data!=='object'){toast('هذا الملف مو نسخة من هذا الموقع');return}
   for(const k of BK)if(typeof o.data[k]==='string'){try{localStorage.setItem(SITE+'-'+k,o.data[k])}catch(x){}}location.reload()};r.readAsText(f)};
+// automatic second copy: nothing to press. If browser storage is lost but this copy survives, the page puts everything back by itself
+const mirrorDb=()=>new Promise((ok,no)=>{const r=indexedDB.open(SITE+'-copy',1);r.onupgradeneeded=()=>r.result.createObjectStore('kv');r.onsuccess=()=>ok(r.result);r.onerror=()=>no(r.error)});
+const snapshot=()=>{const o={};for(const k of BK){try{const v=localStorage.getItem(SITE+'-'+k);if(v!==null)o[k]=v}catch(e){}}return o};
+let mirrorT=0;const mirror=()=>{clearTimeout(mirrorT);mirrorT=setTimeout(async()=>{try{const db=await mirrorDb();db.transaction('kv','readwrite').objectStore('kv').put(snapshot(),'all')}catch(e){}},400)};
+(async()=>{let keep=null;try{const db=await mirrorDb();keep=await new Promise(ok=>{const q=db.transaction('kv').objectStore('kv').get('all');q.onsuccess=()=>ok(q.result||null);q.onerror=()=>ok(null)})}catch(e){}
+  // the dream is set once on the first visit, so its absence next to a saved copy means the browser lost its storage
+  let gone=false;try{gone=localStorage.getItem(SITE+'-dream')===null}catch(e){}
+  if(keep&&keep.dream&&gone){for(const k in keep)if(BK.includes(k)){try{localStorage.setItem(SITE+'-'+k,keep[k])}catch(e){}}location.reload();return}
+  const set=Storage.prototype.setItem;Storage.prototype.setItem=function(k,v){set.call(this,k,v);if(this===localStorage&&String(k).startsWith(SITE+'-'))mirror()};mirror()})();
 const rsFill=()=>{const s=$('rsSubj').value;$('rsLec').innerHTML=(P.Q[s]||[]).map((l,i)=>'<option value="'+i+'">'+esc(l.t)+'</option>').join('')};
 $('rescue').addEventListener('toggle',()=>{if($('rescue').open&&!$('rsSubj').options.length){$('rsSubj').innerHTML=P.act.map(s=>'<option value="'+s+'">'+C[s].name+'</option>').join('');rsFill()}});
 $('rsSubj').onchange=rsFill;
+$('rsDays').onclick=()=>{const n=Math.floor(+$('rsDaysN').value);if(!(n>=1&&n<=120)){toast('اكتب عدد الأيام من ١ إلى ١٢٠');return}
+  const k=SITE+'-days',set=new Set(Array.isArray(get(k))?get(k):[]),d=new Date();for(let i=0;i<n;i++){set.add(d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate());d.setDate(d.getDate()-1)}put(k,[...set].slice(-120));location.reload()};
 $('rsTick').onclick=()=>{const s=$('rsSubj').value,n=+$('rsLec').value;if(!P.Q[s])return;P.Q[s].slice(0,n+1).forEach(l=>{done['v'+l.v]=1});saveDone();rerender('أشّرنا محاضرات '+C[s].name+' لحد اللي اخترته')};
 $('rsPast').onclick=()=>{let n=0;for(const x of P.days)if(x.d<TODAY)for(const b of x.blocks)for(const l of b.lecs||[])if(!done['v'+l.v]){done['v'+l.v]=1;n++}saveDone();rerender(n?'أشّرنا '+ar(n)+' محاضرة من الأيام اللي فاتت':'ماكو محاضرات غير مأشرة بالأيام اللي فاتت')};
 window.PLANAPP={kOf,setHour(h){if(HOURS.includes(h)){prefs.hour=h;savePrefs();render()}},getHour:()=>prefs.hour,HOURS,hourLabel};

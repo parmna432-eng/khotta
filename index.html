@@ -245,8 +245,8 @@ body:not(.m-view) .monthly{display:none}
 .fontsz button:nth-of-type(1){font-size:14px}.fontsz button:nth-of-type(2){font-size:16px}.fontsz button:nth-of-type(3){font-size:18px}
 .fontsz button[aria-pressed="true"]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
 </style>
-<link rel="stylesheet" href="dream.css?v=46">
-<link rel="stylesheet" href="rez.css?v=46">
+<link rel="stylesheet" href="dream.css?v=47">
+<link rel="stylesheet" href="rez.css?v=47">
 <script>try{const p=JSON.parse(localStorage.getItem('plan6sci-dream'));const r=document.documentElement;if(p&&p.fam&&p.fam!=='other')r.dataset.dream=p.fam==='engineer'&&p.dept==='هندسة الطائرات المسيّرة'?'drone':p.fam;if(p&&p.gender==='f')r.dataset.gender='f'}catch(e){}</script>
 <script>try{const z=+localStorage.getItem('plan6sci-font');if([1.12,1.25].includes(z))document.documentElement.style.setProperty('--zoom',z)}catch(e){}</script>
 
@@ -277,12 +277,13 @@ body:not(.m-view) .monthly{display:none}
     <p class="autosave">كل تأشيرة وتغيير مدرس وترتيب ينحفظ تلقائياً بجهازك، حتى لو سدّيت الموقع. تبديل المدرس ما يمسح تقدمك، بس ممكن يغيّر توزيع أيامك.</p>
     <details class="rescue" id="rescue">
       <summary>احفظ تقدمك أو رجّعه</summary>
-      <p class="sub">تقدمك ينحفظ بهذا المتصفح بس، فإذا انمسحت بيانات المتصفح يضيع. نزّل نسخة من وقت لوقت، وبيها كل تأشيراتك وإعداداتك.</p>
+      <p class="sub">تقدمك ينحفظ تلقائياً مع كل تأشيرة، وينحفظ معه نسخة ثانية بهذا المتصفح ترجع لحالها إذا ضاعت الأولى. إذا مسحت كل بيانات المتصفح تضيع النسختين، فنزّل ملف من وقت لوقت.</p>
       <div class="rs-row"><button class="chip solid" type="button" id="bkSave">نزّل نسخة من تقدمي</button><button class="chip" type="button" id="bkLoad">رجّع من نسخة</button><input type="file" id="bkFile" accept=".json,application/json" hidden></div>
       <h3 class="sess-h">ضاع تقدمك وما عندك نسخة؟</h3>
       <p class="sub">اختار المادة وآخر محاضرة خلصتها، والموقع يأشر كل اللي قبلها. كرر هذا لكل مادة.</p>
       <div class="rs-row"><label>المادة<select id="rsSubj"></select></label><label>آخر محاضرة خلصتها<select id="rsLec"></select></label><button class="chip solid" type="button" id="rsTick">أشّر لحد هنا</button></div>
       <button class="chip" type="button" id="rsPast">أشّر كل محاضرات الأيام اللي فاتت</button>
+      <div class="rs-row"><label>كم يوم ورا بعض التزمت قبل ما يضيع تقدمك؟<input type="number" id="rsDaysN" min="1" max="120" inputmode="numeric"></label><button class="chip" type="button" id="rsDays">رجّع أيام التزامي</button></div>
     </details>
     <div class="m-entry">
       <button class="chip solid" type="button" id="mOpen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>الامتحانات الشهرية<span class="m-count" id="mCount" hidden></span></button>
@@ -436,10 +437,10 @@ body:not(.m-view) .monthly{display:none}
 </div>
 <div class="toast" id="toast" role="status" hidden></div>
 
-<script src="data.js?v=46"></script>
-<script src="plan.js?v=46"></script>
-<script src="dream.js?v=46"></script>
-<script src="rez.js?v=46"></script>
+<script src="data.js?v=47"></script>
+<script src="plan.js?v=47"></script>
+<script src="dream.js?v=47"></script>
+<script src="rez.js?v=47"></script>
 
 </body>
 </html>

@@ -633,6 +633,20 @@ $('mBack').onclick=()=>{if(mPushed){mPushed=false;history.back()}else{history.re
 addEventListener('hashchange',mHash);
 
 // the first-visit card (dream.js) saves the start hour here
+/* ---------- saving progress: everything lives in this browser, so the student can keep a copy and rebuild quickly if it is lost ---------- */
+try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist()}catch(e){}
+const SITE=PREF.replace('-prefs',''),BK=['prefs','v3','hard','monthly','dream','days','badges','font','slots1'];
+$('bkSave').onclick=()=>{const data={};for(const k of BK){try{const v=localStorage.getItem(SITE+'-'+k);if(v!==null)data[k]=v}catch(e){}}
+  const a=document.createElement('a'),u=URL.createObjectURL(new Blob([JSON.stringify({site:SITE,v:1,at:kk(new Date()),data})],{type:'application/json'}));a.href=u;a.download=SITE+'-'+kk(new Date())+'.json';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),1000);toast('نزلت نسختك، احفظها بمكان أمين')};
+$('bkLoad').onclick=()=>$('bkFile').click();
+$('bkFile').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{let o=null;try{o=JSON.parse(r.result)}catch(x){}
+  if(!o||o.site!==SITE||!o.data||typeof o.data!=='object'){toast('هذا الملف مو نسخة من هذا الموقع');return}
+  for(const k of BK)if(typeof o.data[k]==='string'){try{localStorage.setItem(SITE+'-'+k,o.data[k])}catch(x){}}location.reload()};r.readAsText(f)};
+const rsFill=()=>{const s=$('rsSubj').value;$('rsLec').innerHTML=(P.Q[s]||[]).map((l,i)=>'<option value="'+i+'">'+esc(l.t)+'</option>').join('')};
+$('rescue').addEventListener('toggle',()=>{if($('rescue').open&&!$('rsSubj').options.length){$('rsSubj').innerHTML=P.act.map(s=>'<option value="'+s+'">'+C[s].name+'</option>').join('');rsFill()}});
+$('rsSubj').onchange=rsFill;
+$('rsTick').onclick=()=>{const s=$('rsSubj').value,n=+$('rsLec').value;if(!P.Q[s])return;P.Q[s].slice(0,n+1).forEach(l=>{done['v'+l.v]=1});saveDone();rerender('أشّرنا محاضرات '+C[s].name+' لحد اللي اخترته')};
+$('rsPast').onclick=()=>{let n=0;for(const x of P.days)if(x.d<TODAY)for(const b of x.blocks)for(const l of b.lecs||[])if(!done['v'+l.v]){done['v'+l.v]=1;n++}saveDone();rerender(n?'أشّرنا '+ar(n)+' محاضرة من الأيام اللي فاتت':'ماكو محاضرات غير مأشرة بالأيام اللي فاتت')};
 window.PLANAPP={kOf,setHour(h){if(HOURS.includes(h)){prefs.hour=h;savePrefs();render()}},getHour:()=>prefs.hour,HOURS,hourLabel};
 document.addEventListener('dreamsaved',()=>setTimeout(()=>notice(false),900));
 

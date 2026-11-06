@@ -8,7 +8,7 @@ if(!wrap||!header||!plan)return;
 const section=(cls,title,id)=>{const s=document.createElement('section');s.className=cls;if(id)s.id=id;if(title){const h=document.createElement('h2');h.textContent=title;s.appendChild(h)}return s};
 schedule.classList.add('rz-today');schedule.id='rzToday';
 const progress=section('rz-progress','تقدمك','rzProgress');
-for(const el of [q('.sub',header),q('.stats',header),$('examEdit'),$('examWarn'),q('.bar',header),$('sBars'),q('.autosave',header),q('.m-entry',header)])if(el)progress.appendChild(el);
+for(const el of [q('.sub',header),q('.stats',header),$('examEdit'),$('examWarn'),q('.bar',header),$('sBars'),q('.autosave',header),$('rescue'),q('.m-entry',header)])if(el)progress.appendChild(el);
 const days=section('rz-days','','rzDays'),weeks=document.createElement('div');weeks.className='rz-weeks';
 for(const el of [q('.toolbar',schedule),$('filters')])if(el)days.appendChild(el);
 days.appendChild(weeks);

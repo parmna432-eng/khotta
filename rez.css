@@ -160,3 +160,11 @@ body{padding-bottom:calc(56px + env(safe-area-inset-bottom,0px))}
 .school-box{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end}
 .school-box label{display:flex;flex-direction:column;gap:4px;font-size:14px;color:var(--muted);flex:1 1 140px}
 .school-box input{font:inherit;min-height:44px;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:8px;padding:6px 10px}
+
+/* saving and restoring progress */
+.rescue{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:12px 16px}
+.rescue summary{cursor:pointer;font-weight:600;min-height:32px}
+.rescue[open]{display:flex;flex-direction:column;gap:10px}
+.rs-row{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end}
+.rs-row label{display:flex;flex-direction:column;gap:4px;font-size:14px;color:var(--muted);flex:1 1 180px;min-width:0}
+.rs-row select{width:100%}

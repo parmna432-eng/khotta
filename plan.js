@@ -658,6 +658,9 @@ $('rsDays').onclick=()=>{const n=Math.floor(+$('rsDaysN').value);if(!(n>=1&&n<=1
   const k=SITE+'-days',set=new Set(Array.isArray(get(k))?get(k):[]),d=new Date();for(let i=0;i<n;i++){set.add(d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate());d.setDate(d.getDate()-1)}put(k,[...set].slice(-120));location.reload()};
 $('rsTick').onclick=()=>{const s=$('rsSubj').value,n=+$('rsLec').value;if(!P.Q[s])return;P.Q[s].slice(0,n+1).forEach(l=>{done['v'+l.v]=1});saveDone();rerender('أشّرنا محاضرات '+C[s].name+' لحد اللي اخترته')};
 $('rsPast').onclick=()=>{let n=0;for(const x of P.days)if(x.d<TODAY)for(const b of x.blocks)for(const l of b.lecs||[])if(!done['v'+l.v]){done['v'+l.v]=1;n++}saveDone();rerender(n?'أشّرنا '+ar(n)+' محاضرة من الأيام اللي فاتت':'ماكو محاضرات غير مأشرة بالأيام اللي فاتت')};
+// a new student starts from the day they sign up: the lectures of the days before move to that day onwards, in book order
+const planStart=()=>typeof dates==='function'?dates().s:START;
+window.PLANAPP_JOIN={started:()=>TODAY>planStart(),startToday(){if(TODAY>planStart()&&!prefs.shift){prefs.shift={from:kk(TODAY),at:kk(TODAY),mode:'fit'};savePrefs()}}};
 window.PLANAPP={kOf,setHour(h){if(HOURS.includes(h)){prefs.hour=h;savePrefs();render()}},getHour:()=>prefs.hour,HOURS,hourLabel};
 document.addEventListener('dreamsaved',()=>setTimeout(()=>notice(false),900));
 

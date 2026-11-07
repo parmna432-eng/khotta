@@ -289,12 +289,13 @@ function openOnb(){
   let hour=prof&&window.PLANAPP?PLANAPP.getHour():0;
   onb.querySelectorAll('#onbHours button').forEach(b=>b.onclick=()=>{hour=+b.dataset.h;onb.querySelectorAll('#onbHours button').forEach(x=>x.setAttribute('aria-pressed',x===b))});
   if($('#onbX'))$('#onbX').onclick=()=>{closeOnb();setGender(prof.gender);applyTheme(themeOf())};
+  const joining=!prof;
   $('form').onsubmit=e=>{e.preventDefault();
     const name=$('#onbName').value.trim(),other=$('#onbOther').value.trim(),err=$('#onbErr');
     const msg=!name?'اكتب اسمك حتى نبدي':!gender?'اختار ذكر لو أنثى':!fam?'اختار مجال حلمك':!dept?'اختار القسم اللي تحلم بيه':(dept==='حلم ثاني'&&!other)?'اكتب حلمك':!hour?'اختار الساعة اللي تبدي بيها دراستك':'';
     if(msg){err.textContent=msg;err.hidden=false;return}
     prof={name,gender,fam,dept,custom:dept==='حلم ثاني'?other:''};put(KEY,prof);
-    const r=$('.go').getBoundingClientRect();transition(()=>{closeOnb();setGender(gender);setFam(themeOf());if(window.PLANAPP)PLANAPP.setHour(hour);render();document.dispatchEvent(new CustomEvent('dreamsaved'))},r.left+r.width/2,r.top+r.height/2)};
+    const r=$('.go').getBoundingClientRect();transition(()=>{closeOnb();setGender(gender);setFam(themeOf());if(window.PLANAPP)PLANAPP.setHour(hour);render();document.dispatchEvent(new CustomEvent('dreamsaved'));if(joining&&window.PLANAPP_JOIN&&PLANAPP_JOIN.started()){PLANAPP_JOIN.startToday();if(window.PLANAPP)PLANAPP.setHour(PLANAPP.getHour())}},r.left+r.width/2,r.top+r.height/2)};
   setTimeout(()=>$('#onbName').focus(),50);
 }
 function closeOnb(){if(onb){onb.remove();onb=null}}

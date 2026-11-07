@@ -18,7 +18,7 @@ const ar=n=>String(n).replace(/\d/g,d=>'٠١٢٣٤٥٦٧٨٩'[d]);
 const dur=m=>m>=60?ar(Math.floor(m/60))+'س'+(m%60?' '+ar(m%60)+'د':''):ar(m)+'د';
 const PL=id=>'https://www.youtube.com/playlist?list='+id, V=(v,l)=>'https://www.youtube.com/watch?v='+v+'&list='+l;
 // links of one lecture slot: the video(s) of whichever teacher the student picked for that chapter
-const lnk=l=>l.show.map(x=>`<a href="${V(x.v,x.pl)}" target="_blank" rel="noopener">${esc(x.t)}${x.cont?' (تكملة)':''}</a>`).join(' + ');
+const lnk=l=>l.show.map(x=>`<a href="${V(x.v,x.pl)}${x.start?'&amp;t='+x.start+'s':''}" target="_blank" rel="noopener">${esc(x.t)}${x.cont?' (تكملة)':''}</a>`).join(' + ');
 const kk=d=>d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate();
 const dstr=d=>ar(d.getDate())+'/'+ar(d.getMonth()+1)+'/'+ar(d.getFullYear());
 const get=k=>{try{return JSON.parse(localStorage.getItem(k)||'null')}catch(e){return null}};
@@ -45,6 +45,7 @@ function loadPrefs(){
   out.sess=(Array.isArray(p.sess)?p.sess:[]).filter(x=>x&&parseKey(x.from)&&SESS_N.includes(x.k)).map(x=>({from:x.from,k:x.k})).sort((a,b)=>parseKey(a.from)-parseKey(b.from));
   out.mk=SESS_N.includes(p.mk)?p.mk:3;
   out.part={};for(const s of ['eng','ar']){const q=p.part&&p.part[s];if(q&&typeof q==='object'){const o={};for(const k of ['g','l'])if(C[s].teachers.some(x=>x.id===q[k]))o[k]=q[k];if(o.g||o.l)out.part[s]=o}}
+  if(parseKey(p.undoAt))out.undoAt=p.undoAt;
   const sc=p.school,hm=/^([01]\d|2[0-3]):[0-5]\d$/;if(sc&&hm.test(sc.a)&&hm.test(sc.b)&&sc.a<sc.b)out.school={a:sc.a,b:sc.b,from:parseKey(sc.from)?sc.from:''};
   return out;
 }
@@ -192,14 +193,18 @@ function slotsOf(s,t){const M=mainOf(s),out=[];
       if(!alt)show=[{v:mv[0],t:mv[1],m:mv[2],pl:ml.id}];
       else{const a=Math.min(k-1,Math.floor(i*k/n)),b=Math.max(a+1,Math.floor((i+1)*k/n));show=L.v.slice(a,b).map((x,j)=>({v:x[0],t:x[1],m:x[2],pl:x[3]||L.id,cont:a+j<=prev}));prev=b-1}
       out.push({v:mv[0],t:show.map(x=>x.t+(x.cont?' (تكملة)':'')).join(' + '),m:mv[2],dm:show.reduce((a,x)=>a+(x.cont?0:x.m),0)||show[0].m,li,show})})});
-  return out}
+  const cut=[];for(const l of out){if(l.show.length===1&&!l.show[0].cont&&l.dm>165){const n=Math.ceil(l.dm/150),p=Math.ceil(l.dm/n);
+    for(let i=0;i<n;i++){const part=' (جزء '+ar(i+1)+' من '+ar(n)+')',m=Math.min(p,l.dm-i*p);cut.push({...l,v:i?l.v+'~'+(i+1):l.v,t:l.t+part,m:Math.round(l.m/n),dm:m,show:[{...l.show[0],t:l.show[0].t+part,m,start:i*p*60}]})}}else cut.push(l)}
+  return cut}
 const MIG=PREF.replace('prefs','slots1');
 function build(){
   const act=ORDER.filter(s=>prefs.subjects[s]);
-  const T={},Q={},tot={};
+  const T={},Q={},tot={};SIB=new Map();
   for(const s of act){
     const t=mixTeacher(s);T[s]=t;
     Q[s]=slotsOf(s,t);Q[s].forEach((l,i)=>l.qi=i);
+    // slots that only repeat the video before them form one group, ticked as one
+    {let g=null;Q[s].forEach((l,i)=>{if(i&&l.show.every(x=>x.cont)){g=g||['v'+Q[s][i-1].v];g.push('v'+l.v);for(const id of g)SIB.set(id,g)}else g=null})}
     // once: ticks and hard flags saved on an alternate teacher's videos move to the slots that show those videos
     if(!get(MIG))for(const l of Q[s])if(l.show[0].v!==l.v)for(const k of [done,hard])if(!k['v'+l.v]&&l.show.every(x=>k['v'+x.v]))k['v'+l.v]=1;
     if(chapTeacher(s,0).main&&DONE_BEFORE[s])Q[s].splice(0,DONE_BEFORE[s]);
@@ -240,7 +245,7 @@ let done={};try{done=JSON.parse(localStorage.getItem(DONE)||'{}')}catch(e){}if(!
 const saveDone=()=>{try{localStorage.setItem(DONE,JSON.stringify(done))}catch(e){}};
 let hard=get(HARD)||{};
 const FLAG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 21V4M5 4h11l-2 4 2 4H5"/></svg>';
-let P=null,allIds=[],todayEl=null,filter='all',mDue=new Map();
+let P=null,allIds=[],todayEl=null,filter='all',mDue=new Map(),SIB=new Map();
 const $=id=>document.getElementById(id);
 
 function render(){
@@ -277,6 +282,7 @@ function render(){
     return `<tr class="${st?'study':'free'}"><td>${w==='نوم'?clock(a):range(a,b)}</td><td>${txt}</td></tr>`}).join('');
   const sc=prefs.school;$('schA').value=sc?sc.a:'';$('schB').value=sc?sc.b:'';$('schClear').hidden=!sc;$('schNote').hidden=!sc;
   if(sc){const k=kBase(new Date(Math.max(TODAY,START))),n=schoolFit(k);$('schNote').textContent=n<k?'بأيام الدوام وقتك يكفي '+SESS_W(n)+' بس، فالجدول ينطيك '+SESS_W(n)+' ويكمل الباقي بالأيام الجاية.':'بأيام الدوام جلساتك كلها برا وقت المدرسة. الجمعة والسبت تمشي على ساعة بدايتك فوق.'}
+  if(sc&&studyEnd){const ex=prefs.exam&&parseKey(prefs.exam);$('schNote').textContent+=' بهذا الدوام دروسك تخلص '+dstr(studyEnd.d)+(ex&&studyEnd.d>=ex?'، يعني بعد موعد امتحانك. زيد الجلسات بأيام العطلة أو اختار ساعات أكثر.':'.')}
   $('schSave').onclick=()=>{let a=$('schA').value,b=$('schB').value;if(!a||!b||a===b){toast('اكتب وقت الذهاب ووقت الرجوع');return}const sw=a>b;if(sw)[a,b]=[b,a];
     prefs.school={a,b,from:kk(new Date(Math.max(TODAY,START)))};savePrefs();rerender((sw?'الوقتين چانوا معكوسين فعدّلناهم. ':'')+'انحفظ دوامك، والجدول صار برا أوقات المدرسة من اليوم وجاي')};
   $('schClear').onclick=()=>{delete prefs.school;savePrefs();rerender('انشال الدوام، والجدول رجع على ساعة بدايتك')};
@@ -364,14 +370,15 @@ function shift(mode){
 }
 $('lateExtend').onclick=()=>shift('fit');
 $('lateFit').onclick=()=>shift('fit');
-$('lateUndo').onclick=()=>{delete prefs.shift;savePrefs();lateManual=false;rerender('رجع جدولك للترتيب الأصلي')};
+$('lateUndo').onclick=()=>{delete prefs.shift;prefs.undoAt=kk(TODAY);savePrefs();lateManual=false;rerender('رجع جدولك للترتيب الأصلي')};
 $('lateOpen').onclick=()=>{lateManual=true;updateLate();$('lateBox').scrollIntoView({behavior:'smooth',block:'center'})};
 function applyFilter(){document.querySelectorAll('.subj').forEach(t=>t.hidden=!(filter==='all'||t.dataset.s===filter));
   document.querySelectorAll('.day').forEach(d=>d.hidden=![...d.querySelectorAll('.subj')].some(t=>!t.hidden))}
 // lectures ticked today stay on today's monthly sheet until tomorrow, so the day doesn't move on while the student is still in it
 const DAT=PREF.replace('prefs','doneat2');const doneAt=Object.fromEntries(Object.entries(get(DAT)||{}).filter(([,v])=>v===kk(TODAY)));
 function check(row,id){const cb=row.querySelector('input');cb.checked=!!done[id];row.classList.toggle('checked',cb.checked);
-  cb.addEventListener('change',()=>{if(cb.checked){done[id]=1;if(row.closest('#mPlan .day.today'))doneAt[id]=kk(TODAY)}else{delete done[id];delete doneAt[id]}put(DAT,doneAt);row.classList.toggle('checked',cb.checked);saveDone();progress();updateLate();if(mView())mCards();
+  cb.addEventListener('change',()=>{if(cb.checked){done[id]=1;if(row.closest('#mPlan .day.today'))doneAt[id]=kk(TODAY)}else{delete done[id];delete doneAt[id]}put(DAT,doneAt);
+    for(const sid of SIB.get(id)||[]){if(sid===id)continue;if(cb.checked)done[sid]=1;else delete done[sid];document.querySelectorAll('[id="'+sid+'"]').forEach(x=>{x.checked=cb.checked;const r=x.closest('.lec');if(r)r.classList.toggle('checked',cb.checked)})}row.classList.toggle('checked',cb.checked);saveDone();progress();updateLate();if(mView())mCards();
     document.dispatchEvent(new CustomEvent('plancheck',{detail:{checked:cb.checked}}))})}
 function flagHard(id){const on=!hard[id];if(on)hard[id]=1;else delete hard[id];put(HARD,hard);
   rerender(on?'علّمتها صعبة، وتطلعلك أول شي بأسبوع المراجعة':'شلت علامة الصعبة')}
@@ -446,7 +453,7 @@ function exam(){
   $('examBtn').textContent=ex?'غيّر الموعد':'حدد موعد امتحانك';
   window.PLAN_EXAM=ex&&n>0?n:null;
   const late=ex?Math.round((end-ex)/864e5):0,w=$('examWarn');w.hidden=!(late>=0&&ex&&n>0);
-  if(!w.hidden)w.textContent='جدولك يخلص '+dstr(end)+'، '+(late?'بعد موعد امتحانك بـ '+(late===1?'يوم':late===2?'يومين':ar(late)+(late<11?' أيام':' يوم')):'بنفس يوم امتحانك')+'. إذا تأخرت محاضرات شغّل المحاضرات بسرعة أعلى حتى تلحك، وشغّل المحاضرات بسرعة أعلى حتى تلحك.';
+  if(!w.hidden)w.textContent='جدولك يخلص '+dstr(end)+'، '+(late?'بعد موعد امتحانك بـ '+(late===1?'يوم':late===2?'يومين':ar(late)+(late<11?' أيام':' يوم')):'بنفس يوم امتحانك')+'. إذا تأخرت محاضرات شغّل المحاضرات بسرعة أعلى حتى تلحك، أو زيد ساعات الدراسة.';
 }
 $('examBtn').onclick=()=>{const e=$('examEdit');e.hidden=!e.hidden;$('examBtn').setAttribute('aria-expanded',!e.hidden);if(!e.hidden){$('examDate').value=prefs.exam?prefs.exam.split('-').map((x,i)=>i?x.padStart(2,'0'):x).join('-'):'';$('examDate').focus()}};
 $('examSave').onclick=()=>{const v=$('examDate').value;if(!v)return;const [y,m,d]=v.split('-').map(Number);prefs.exam=y+'-'+m+'-'+d;savePrefs();$('examEdit').hidden=true;$('examBtn').setAttribute('aria-expanded','false');
@@ -554,8 +561,9 @@ function mCards(){
       <span class="sb-t"><i style="width:${pc}%"></i></span>
       <span>${e.left?`باقي ${ar(e.left)} محاضرة (${dur(e.mins)} فيديو)${e.studyDays?' على '+daysWord(e.studyDays)+'، تقريباً '+dur(e.perDay)+' باليوم':''}`:'خلصت كل محاضراته، ركّز على الأسئلة والمراجعة'}</span>
       ${e.left&&!(e.over&&e.over.length)?`<span class="m-load ${cls}">الحمل: ${lv}${cls==='high'?'. شغّل محاضراته بسرعة ١.٢٥ أو ١.٥ بدل ما تسهر، وتأكد من الفصول اللي يشملها الامتحان':''}</span>`:''}
-      ${e.over&&e.over.length?`<span class="m-load high">ما تلحق ${ar(e.over.length)} محاضرة (${dur(e.over.reduce((a,l)=>a+lm(l),0))}) قبل الامتحان، تبدي من «${esc(e.over[0].t)}». زيد ساعات الدراسة، أو احذف الفصول اللي ما يشملها الامتحان، أو ركّز على ملخصها وأسئلتها الوزارية</span>`:''}
+      ${e.over&&e.over.length?`<span class="m-load high">ما تلحق ${ar(e.over.length)} محاضرة (${dur(e.over.reduce((a,l)=>a+lm(l),0))}) قبل الامتحان، تبدي من «${esc(e.over[0].t)}». زيد ساعات الدراسة، أو احذف الفصول اللي ما يشملها الامتحان، أو ركّز على ملخصها وأسئلتها الوزارية</span><button type="button" class="linkbtn m-tojump" data-s="${e.s}">حدد لحد يا محاضرة يوصل الامتحان</button>`:''}
       ${e.mock||e.review?`<span class="alt">${e.mock?'امتحان تجريبي قبله بيومين، و':''}${e.review?'مراجعة خفيفة باليوم اللي قبله':''}</span>`:''}</div>`}).join(''):'<p class="note">ما حددت مواعيد بعد. اكتب موعد امتحان كل مادة فوق واحفظ، والجدول ينبني لحاله.</p>';
+  $('mExams').querySelectorAll('.m-tojump').forEach(b=>b.onclick=()=>{const r=document.querySelector('.m-row[data-s="'+b.dataset.s+'"]');if(!r)return;const d=r.querySelector('details');d.open=true;r.scrollIntoView({behavior:'smooth',block:'center'});setTimeout(()=>r.querySelector('.m-to select')?.focus(),400)});
   $('mExams').querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>{monthly=monthly.filter(e=>e.id!==b.dataset.del);saveM();mForm();mRender();mBanner();toast('انحذف الامتحان')});
 }
 function mRender(){
@@ -664,5 +672,8 @@ window.PLANAPP_JOIN={started:()=>TODAY>planStart(),startToday(){if(TODAY>planSta
 window.PLANAPP={kOf,setHour(h){if(HOURS.includes(h)){prefs.hour=h;savePrefs();render()}},getHour:()=>prefs.hour,HOURS,hourLabel};
 document.addEventListener('dreamsaved',()=>setTimeout(()=>notice(false),900));
 
-render();notice(false);if(location.hash==='#monthly')mShow(true);
+// lectures left from the days before move to today by themselves, in book order, once a day
+function autoLate(){const st=typeof dates==='function'?dates().s:START;if(TODAY<=st||prefs.undoAt===kk(TODAY)||!lateList().length)return;
+  prefs.shift={from:kk(TODAY),at:kk(TODAY),mode:'fit'};savePrefs();render()}
+render();autoLate();notice(false);if(location.hash==='#monthly')mShow(true);
 })();

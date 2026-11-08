@@ -250,7 +250,7 @@ const $=id=>document.getElementById(id);
 
 function render(){
   P=build();const {act,T,days}=P;allIds=[];todayEl=null;
-  mDue=new Map();for(const e of monthly){const d=parseKey(e.d);if(act.includes(e.s)&&d>=TODAY)for(const l of mLectures(e.s,e.li,e.to)){const u=new Date(d);u.setDate(u.getDate()-1);mDue.set(l.v,{u,s:e.s})}}
+  mDue=new Map();for(const e of monthly){const d=parseKey(e.d);if(act.includes(e.s)&&d>=TODAY)for(const l of mLectures(e.s,e.li,e.to,e.r)){const u=new Date(d);u.setDate(u.getDate()-1);mDue.set(l.v,{u,s:e.s})}}
   const studyEnd=days.filter(x=>!x.review).slice(-1)[0];
   $('hTitle').textContent='خطة السادس العلمي — من '+dstr(START)+' إلى '+dstr(days[days.length-1].d);
   let L=0,M=0;days.forEach(x=>x.blocks.forEach(b=>(b.lecs||[]).forEach(l=>{L++;M+=l.m})));
@@ -484,13 +484,32 @@ fontSize((()=>{const z=+get('plan6sci-font');return [1,1.12,1.25].includes(z)?z:
 /* ---------- monthly exams: a separate page whose schedule puts each exam's chapters first and keeps the main plan going for the other subjects ---------- */
 const MKEY='plan6sci-monthly';
 // saved exams are re-checked: id goes into markup and li indexes the chapter lists
-let monthly=(Array.isArray(get(MKEY))?get(MKEY):[]).filter(e=>e&&Object.prototype.hasOwnProperty.call(C,e.s)&&parseKey(e.d)&&Array.isArray(e.li)&&/^[a-z]+-[0-9-]+$/.test(e.id)&&e.li.every(li=>Number.isInteger(li)&&li>=0&&li<mainOf(e.s).lists.length));
+let monthly=(Array.isArray(get(MKEY))?get(MKEY):[]).filter(e=>e&&Object.prototype.hasOwnProperty.call(C,e.s)&&parseKey(e.d)&&Array.isArray(e.li)&&/^[a-z]+-[0-9-]+$/.test(e.id)&&e.li.every(li=>Number.isInteger(li)&&li>=0&&li<mainOf(e.s).lists.length)).map(e=>{if(e.r!=null){const r={};for(const k of ['f','t'])if(typeof e.r[k]==='string'&&e.r[k])r[k]=e.r[k];if(r.f||r.t)e.r=r;else delete e.r}return e});
 const saveM=()=>put(MKEY,monthly);
 const mView=()=>document.body.classList.contains('m-view');
 const daysWord=n=>n===1?'يوم':n===2?'يومين':ar(n)+(n<11?' أيام':' يوم');
 // the subject's lectures in the chosen chapters, from the teacher the student picked
 // `to` is the last lecture the exam covers, when it stops partway through a chapter
-function mLectures(s,lis,to){const L=P.Q[s].filter(l=>lis.includes(l.li)),i=to==null?-1:L.findIndex(l=>String(l.v)===String(to));return i<0?L:L.slice(0,i+1)}
+// MRANGE: a chapter the exam can cover from one lecture to another (Arabic literature); `r` is {f,t}, the first and last lecture
+const MRANGE={ar:1};
+const baseV=v=>String(v).split('~')[0];
+// lectures a..b of L, with every part of a long video cut in pieces kept together
+function mSlice(L,f,t){let a=f==null?-1:L.findIndex(l=>String(l.v)===String(f)),b=t==null?-1:L.findIndex(l=>String(l.v)===String(t));
+  if(a<0)a=0;if(b<0)b=L.length-1;else while(b+1<L.length&&baseV(L[b+1].v)===baseV(L[b].v))b++;
+  if(a>b){const x=a;a=b;b=x}return L.slice(a,b+1)}
+// an exam saved before the range existed kept its literature end in `to`: read it as the range end
+function mNorm(s,to,r){const k=MRANGE[s];if(k!=null&&to!=null&&P.Q[s].some(l=>l.li===k&&String(l.v)===String(to)))return {to:null,r:r||{t:to}};return {to,r}}
+const lecT=(s,v)=>{const l=P.Q[s].find(l=>String(l.v)===String(v));return l?l.t:''};
+// what the card says the exam covers: each chapter, with where it starts or stops when the student picked that
+function mScope(e,t){const {to,r}=mNorm(e.s,e.to,e.r),k=MRANGE[e.s],main=e.li.filter(li=>li!==k),last=main.length?Math.max(...main):-1;
+  return e.li.map(li=>{const c=t.lists[li];if(!c)return '';let x=esc(c.t);
+    if(li===k&&r){const f=r.f&&lecT(e.s,r.f),tt=r.t&&lecT(e.s,r.t);x+=(f?' من «'+esc(f)+'»':'')+(tt?' لحد «'+esc(tt)+'»':'')}
+    else if(li===last&&to!=null&&lecT(e.s,to))x+=' لحد «'+esc(lecT(e.s,to))+'»';return x}).filter(Boolean).join('، ')}
+function mLectures(s,lis,to,r){const k=MRANGE[s],Q=P.Q[s];
+  ({to,r}=mNorm(s,to,r));
+  const keep=new Set(mSlice(Q.filter(l=>lis.includes(l.li)&&l.li!==k),null,to));
+  if(k!=null&&lis.includes(k))mSlice(Q.filter(l=>l.li===k),r&&r.f,r&&r.t).forEach(l=>keep.add(l));
+  return Q.filter(l=>keep.has(l))}
 // default chapters: the ones the main plan reaches before the exam day
 function mDefaultLists(s,ex){const set=new Set();for(const x of P.days){if(x.d>=ex)break;for(const b of x.blocks)if(b.s===s)(b.lecs||[]).forEach(l=>set.add(l.li))}
   return set.size?[...set].sort((a,b)=>a-b):[0]}
@@ -505,7 +524,7 @@ function mPlan(){
   if(!ex.length)return {ex,days:[]};
   const days=[];for(const d=new Date(from);d<=ex[ex.length-1].date;d.setDate(d.getDate()+1))days.push({d:new Date(d),prep:[],exams:[],fri:d.getDay()===5});
   for(const e of ex){
-    const n=Math.round((e.date-from)/864e5),L=mLectures(e.s,e.li,e.to);e.lastT=e.to!=null&&L.length?L[L.length-1].t:'';
+    const n=Math.round((e.date-from)/864e5),L=mLectures(e.s,e.li,e.to,e.r);
     e.R=L.filter(l=>!done['v'+l.v]||doneAt['v'+l.v]);const un=e.R.filter(l=>!done['v'+l.v]);e.total=L.length;e.left=un.length;e.mins=un.reduce((a,l)=>a+lm(l),0);e.n=n;days[n].exams.push(e);
     e.mock=n>=6;e.review=n>=2;e.dlF=n-(e.review?1:0);e.dl=e.dlF-(e.mock?1:0);
     if(e.mock)days[n-2].prep.push({e,plain:'امتحان تجريبي لنفسك: ورقة أسئلة وزارية من '+C[e.s].name+' للفصول المطلوبة بنفس وقت الامتحان الحقيقي، وبعدها صحح أخطاءك واكتبها بدفتر الأخطاء'});
@@ -544,7 +563,7 @@ function mPlan(){
   // so main-plan blocks that don't fit are marked optional instead of piling up
   const main=new Map(P.days.map(x=>[x.d.getTime(),x]));
   // a lecture an exam covers is studied before that exam, so it never comes back after it
-  const scope=new Set(monthly.filter(e=>P.act.includes(e.s)).flatMap(e=>mLectures(e.s,e.li,e.to).map(l=>l.v)));
+  const scope=new Set(monthly.filter(e=>P.act.includes(e.s)).flatMap(e=>mLectures(e.s,e.li,e.to,e.r).map(l=>l.v)));
   for(const x of days){const m=main.get(x.d.getTime()),busy=new Set(ex.filter(e=>e.date>=x.d).map(e=>e.s));
     x.other=m&&!x.exams.length?m.blocks.map((b,j)=>({...b,j,lecs:b.lecs&&b.lecs.filter(l=>!scope.has(l.v))})).filter(b=>!busy.has(b.s)&&(!b.lecs||b.lecs.length)):[];
     const room=Math.max(0,dayK(x.d)-x.prep.reduce((a,p)=>a+(p.span||1),0));x.other.forEach((b,k)=>b.opt=k>=room)}
@@ -557,7 +576,7 @@ function mCards(){
   $('mExams').innerHTML=ex.length?ex.map(e=>{const n=Math.round((e.date-TODAY)/864e5),pc=e.total?Math.round(100*(e.total-e.left)/e.total):0,t=P.T[e.s],[lv,cls]=mLoad(e.dl?e.mins/e.dl:e.mins);
     return `<div class="m-card" style="--c:var(${COLOR[e.s]})"><div class="m-top"><b>${C[e.s].name}</b><span class="m-when">${n>0?'بعد '+daysWord(n):'اليوم'} · ${DN[e.date.getDay()]} ${dstr(e.date)}</span>
       <button class="linkbtn" type="button" data-del="${esc(e.id)}">احذف</button></div>
-      <span class="alt">${e.li.map(li=>t.lists[li]?esc(t.lists[li].t):'').filter(Boolean).join('، ')}${e.lastT?' · لحد «'+esc(e.lastT)+'»':''}</span>
+      <span class="alt">${mScope(e,t)}</span>
       <span class="sb-t"><i style="width:${pc}%"></i></span>
       <span>${e.left?`باقي ${ar(e.left)} محاضرة (${dur(e.mins)} فيديو)${e.studyDays?' على '+daysWord(e.studyDays)+'، تقريباً '+dur(e.perDay)+' باليوم':''}`:'خلصت كل محاضراته، ركّز على الأسئلة والمراجعة'}</span>
       ${e.left&&!(e.over&&e.over.length)?`<span class="m-load ${cls}">الحمل: ${lv}${cls==='high'?'. شغّل محاضراته بسرعة ١.٢٥ أو ١.٥ بدل ما تسهر، وتأكد من الفصول اللي يشملها الامتحان':''}</span>`:''}
@@ -608,11 +627,20 @@ function mForm(){
     return `<div class="m-row" data-s="${s}" style="--c:var(${COLOR[s]})"><b>${C[s].name}</b><input type="date" min="${minV}" max="2027-12-31" value="${e?iso(parseKey(e.d)):''}" aria-label="موعد امتحان ${C[s].name} الشهري">
       <details><summary>الفصول والمحاضرات اللي يشملها</summary><div class="sch-box"></div></details></div>`}).join('');
   $('mRows').querySelectorAll('.m-row').forEach(r=>{const s=r.dataset.s,inp=r.querySelector('input[type=date]'),box=r.querySelector('.sch-box'),e=mUpcoming(s);
-    // the last lecture is picked from the last chosen chapter
-    const toBox=(li,to)=>{const m=li.length?Math.max(...li):0;return `<label class="m-to">الامتحان لحد محاضرة: <select aria-label="آخر محاضرة يشملها امتحان ${C[s].name}"><option value="">نهاية الفصل</option>${P.Q[s].filter(l=>l.li===m).map(l=>`<option value="${esc(l.v)}"${String(l.v)===String(to)?' selected':''}>${esc(l.t)}</option>`).join('')}</select></label>`};
-    const fill=(li,to)=>{box.innerHTML=P.T[s].lists.map((l,i)=>`<label class="sch"><input type="checkbox" value="${i}"${li.includes(i)?' checked':''}> ${esc(l.t)}</label>`).join('')+'<div class="m-toBox">'+toBox(li,to)+'</div>'};
-    let edited=!!e;fill(e?e.li:inp.value?mDefaultLists(s,fromIso(inp.value)):[0],e&&e.to);
-    box.addEventListener('change',ev=>{edited=true;if(ev.target.type==='checkbox')box.querySelector('.m-toBox').innerHTML=toBox([...box.querySelectorAll('input:checked')].map(i=>+i.value))});
+    // the last lecture is picked from the last chosen chapter; a range chapter (Arabic literature) gets its own from and to
+    const k=MRANGE[s],opts=(li,sel)=>P.Q[s].filter(l=>l.li===li&&!String(l.v).includes('~')).map(l=>`<option value="${esc(l.v)}"${String(l.v)===String(sel)?' selected':''}>${esc(l.t)}</option>`).join('');
+    const toBox=(li,to,r)=>{const main=li.filter(x=>x!==k),m=main.length?Math.max(...main):k==null?0:-1;
+      let h=m<0?'':`<label class="m-to">الامتحان لحد محاضرة: <select class="m-toS" aria-label="آخر محاضرة يشملها امتحان ${C[s].name}"><option value="">نهاية الفصل</option>${opts(m,to)}</select></label>`;
+      if(k!=null&&li.includes(k)){const nm=esc(P.T[s].lists[k].t);
+        h+=`<label class="m-to">${nm} من محاضرة: <select class="m-rf" aria-label="أول محاضرة من ${nm} يشملها امتحان ${C[s].name}"><option value="">أول الفصل</option>${opts(k,r&&r.f)}</select></label>`+
+          `<label class="m-to">${nm} لحد محاضرة: <select class="m-rt" aria-label="آخر محاضرة من ${nm} يشملها امتحان ${C[s].name}"><option value="">نهاية الفصل</option>${opts(k,r&&r.t)}</select></label>`}
+      return h};
+    const cur=()=>{const g=c=>{const x=box.querySelector(c);return x&&x.value||null};return {to:g('.m-toS'),r:{f:g('.m-rf'),t:g('.m-rt')}}};
+    const fill=(li,to,r)=>{box.innerHTML=P.T[s].lists.map((l,i)=>`<label class="sch"><input type="checkbox" value="${i}"${li.includes(i)?' checked':''}> ${esc(l.t)}</label>`).join('')+'<div class="m-toBox">'+toBox(li,to,r)+'</div>'};
+    const n0=e?mNorm(s,e.to,e.r):{};
+    let edited=!!e;fill(e?e.li:inp.value?mDefaultLists(s,fromIso(inp.value)):[0],n0.to,n0.r);
+    // ticking another chapter keeps the literature range already picked
+    box.addEventListener('change',ev=>{edited=true;if(ev.target.type==='checkbox'){const c=cur();box.querySelector('.m-toBox').innerHTML=toBox([...box.querySelectorAll('input:checked')].map(i=>+i.value),null,c.r)}});
     inp.onchange=()=>{if(!edited&&inp.value)fill(mDefaultLists(s,fromIso(inp.value)))}});
 }
 $('mSave').onclick=()=>{const from=mFrom();let n=0,bad=0;
@@ -620,7 +648,8 @@ $('mSave').onclick=()=>{const from=mFrom();let n=0,bad=0;
     monthly=monthly.filter(e=>!(e.s===s&&parseKey(e.d)>=from));if(!v)return;
     const ex=fromIso(v);if(ex<from||!parseKey(kk(ex))){bad++;return}
     const li=[...r.querySelectorAll('.sch-box input:checked')].map(i=>+i.value);
-    const to=r.querySelector('.m-to select').value;monthly.push({id:s+'-'+kk(ex),s,d:kk(ex),li:li.length?li:[0],...(to?{to}:{})});n++});
+    const val=c=>{const x=r.querySelector(c);return x&&x.value||''},to=val('.m-toS'),rg={};if(val('.m-rf'))rg.f=val('.m-rf');if(val('.m-rt'))rg.t=val('.m-rt');
+    monthly.push({id:s+'-'+kk(ex),s,d:kk(ex),li:li.length?li:[0],...(to?{to}:{}),...(rg.f||rg.t?{r:rg}:{})});n++});
   saveM();mForm();mRender();mBanner();
   toast(bad?'في موعد قبل اليوم وما انحفظ، صححه':n?'انحفظت مواعيد '+ar(n)+' امتحانات وترتب الجدول عليها':'ما حددت أي موعد')};
 // start over: removes every monthly exam date (asks first, since it can't be undone)

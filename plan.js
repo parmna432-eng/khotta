@@ -614,7 +614,7 @@ function mCards(){
       <span class="alt">${mScope(e,t)}</span>
       <span class="sb-t"><i style="width:${pc}%"></i></span>
       <span>${e.left?`باقي ${ar(e.left)} محاضرة (${dur(e.mins)} فيديو)${e.studyDays?' على '+daysWord(e.studyDays)+'، تقريباً '+dur(e.perDay)+' باليوم':''}`:'خلصت كل محاضراته، ركّز على الأسئلة والمراجعة'}</span>
-      ${e.late?`<span class="m-load high">متأخر بهالمادة: بأيام دراستها ياخذ ٣ محاضرات باليوم بنفس جلساتك (${SESS_W(MK())})، بدون ساعات زايدة. الامتحان الأقرب ياخذ دوره أول${e.back?'، ويوم '+DN[e.back.getDay()]+' '+dstr(e.back)+' ترجع للسير اليومي الطبيعي':''}</span>`:''}
+      ${e.late?`<span class="m-load high">متأخر بهالمادة: بأيام دراستها ياخذ ٣ محاضرات باليوم بنفس جلساتك (${SESS_W(MK())})، بدون ساعات زايدة. الامتحان الأقرب ياخذ دوره أول. شغّل محاضراتها بسرعة ١.٢٥ أو ١.٥ حتى تخلص أسرع وترجع للسير الطبيعي${e.back?'، ويوم '+DN[e.back.getDay()]+' '+dstr(e.back)+' ترجع للسير اليومي الطبيعي':''}</span>`:''}
       ${e.reached?'<span class="m-load ok">وصلت لحد السير اليومي الطبيعي لهالمادة، كمّل بجدولك العادي</span>':''}
       ${e.left&&!e.late&&!(e.over&&e.over.length)?`<span class="m-load ${cls}">الحمل: ${lv}${cls==='high'?'. شغّل محاضراته بسرعة ١.٢٥ أو ١.٥ بدل ما تسهر، وتأكد من الفصول اللي يشملها الامتحان':''}</span>`:''}
       ${e.over&&e.over.length?`<span class="m-load high">ما تلحق ${ar(e.over.length)} محاضرة (${dur(e.over.reduce((a,l)=>a+lm(l),0))}) قبل الامتحان، تبدي من «${esc(e.over[0].t)}». زيد ساعات الدراسة، أو احذف الفصول اللي ما يشملها الامتحان، أو ركّز على ملخصها وأسئلتها الوزارية</span><button type="button" class="linkbtn m-tojump" data-s="${e.s}">حدد لحد يا محاضرة يوصل الامتحان</button>`:''}
@@ -644,7 +644,7 @@ function mRender(){
       const nm=b.s==='rev'?'مراجعة':C[b.s].name,tag=b.pri?'<span class="m-tag">'+(b.catchup?'تعويض تأخير · ٣ محاضرات':'امتحان شهري')+'</span>':'',optW=b.opt?'<span class="w">إذا تعبان أجّلها، وترتبها بعدين من «تأخرت؟» بالجدول الرئيسي</span>':'';
       if(b.plain){const id=b.pri?'m'+kk(x.d)+'-'+b.s:'p'+kk(x.d)+'-'+b.j;
         el.innerHTML=`<div class="subj-h">${tm}${tag}${optW}</div><div class="lec"><input type="checkbox" id="${id}"><label for="${id}" class="plain"><span class="subj-h"><span class="s">${nm}</span></span> <span class="t">${esc(b.plain)}</span></label><span></span></div>`;check(el.querySelector('.lec'),id)}
-      else{const t=P.T[b.s];el.innerHTML=`<div class="subj-h">${tm}${tag}<span class="s">${nm}</span><span class="w">${esc([...new Set(b.lecs.map(l=>t.lists[l.li].by))].join(' و'))}${b.fast?' · شغّلها بسرعة '+b.fast:''}</span>${optW}</div>`;
+      else{const t=P.T[b.s];el.innerHTML=`<div class="subj-h">${tm}${tag}<span class="s">${nm}</span><span class="w">${esc([...new Set(b.lecs.map(l=>t.lists[l.li].by))].join(' و'))}${b.fast?' · شغّلها بسرعة '+b.fast:b.catchup?' · شغّلها بسرعة ١.٢٥ أو ١.٥ حتى تخلص أسرع':''}</span>${optW}</div>`;
         b.lecs.forEach(l=>{const id='v'+l.v,rw=document.createElement('div');rw.className='lec';
           rw.innerHTML=`<input type="checkbox" id="${id}" aria-label="أنجزت ${esc(l.t)}"><label for="${id}">${lnk(l)}</label><span class="m">${dur(l.dm||l.m)}</span>`;check(rw,id);el.appendChild(rw)})}
       box.appendChild(el)}

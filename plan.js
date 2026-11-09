@@ -550,11 +550,10 @@ function mPlan(){
   const dayK=d=>schoolK(d,typeof isRam==='function'&&isRam(d)?Math.min(MK(),3):MK());
   const hardK=x=>Math.max(1,dayK(x.d)-(x.fri||x.exams.length?1:0));
   const mins=L=>L.reduce((a,l)=>a+lm(l),0);
-  const run=full=>{const left=new Map(ex.map(e=>[e,e.R.slice()])),plan=days.map(()=>[]),end=e=>full?e.dlF:e.dl;
-    days.forEach((x,i)=>{
-      const room=x.exams.length?0:hardK(x)-x.prep.length;
+  const roomOf=x=>x.exams.length?0:hardK(x)-x.prep.length;
+  const fillDay=(i,plan,left,end,full,n0)=>{const room=roomOf(days[i]);
       const held=e=>plan[i].filter(p=>p.e===e).reduce((a,p)=>a+p.span,0);
-      for(let n=0;n<room;n++){
+      for(let n=n0;n<room;n++){
         const cand=ex.filter(e=>i<end(e)&&left.get(e).length),rate=e=>mins(left.get(e))/(end(e)-i);
         // the nearest exam goes first, then the next one, to the last
         const under=cand.filter(e=>held(e)<2),fresh=under.filter(e=>!held(e)),pool=full===2?cand:full&&fresh.length?fresh:under;
@@ -563,11 +562,32 @@ function mPlan(){
         const out=[];let acc=0;
         while(R.length&&(!out.length||acc+lm(R[0])<=SESS_MIN)){const l=R.shift();out.push(l);acc+=lm(l)}
         const span=Math.max(1,Math.min(room-n,Math.ceil(acc/(SESS_MIN*1.1))));n+=span-1;
-        plan[i].push({e,lecs:out,span,fast:acc>SESS_MIN*span*1.25?'١.٥':acc>SESS_MIN*span?'١.٢٥':''})}
-    });
+        plan[i].push({e,lecs:out,span,fast:fastOf(acc,span)})}};
+  const fastOf=(acc,span)=>acc>SESS_MIN*span*1.25?'١.٥':acc>SESS_MIN*span?'١.٢٥':'';
+  // `from` and `left` let a run start partway through, from what is still left on that day
+  const run=(full,o={})=>{const i0=o.from||0,left=new Map(ex.map(e=>[e,(o.left?o.left.get(e):e.R).slice()])),plan=days.map(()=>[]),end=e=>full?e.dlF:e.dl;
+    days.forEach((x,i)=>{if(i>=i0)fillDay(i,plan,left,end,full,0)});
     return {plan,left,over:[...left.values()].some(L=>L.length)}};
-  // last try: nearest exam first with no daily limit, because a whole chapter has to be done two days before its exam
-  let fit=run(0);if(fit.over){fit=run(1);if(fit.over){const f=run(2);if(!f.over)fit=f}}
+  // normal daily pace: at most two sessions a day per subject
+  const normal=o=>{const f=run(0,o);return f.over?run(1,o):f};
+  let fit=normal();
+  // a subject that can't be finished at the normal pace is behind: it gets a fixed three lectures a day (more when they're short
+  // enough to fit one session) inside the student's usual sessions, so study hours stay the same. As soon as what is left fits the
+  // normal pace again, the rest of the days go back to the normal plan, and that day tells the student they're back on track.
+  const late=ex.filter(e=>fit.left.get(e).length);let back=-1;
+  if(late.length){const plan=days.map(()=>[]);let left=new Map(ex.map(e=>[e,e.R.slice()]));
+    for(let i=0;i<days.length;i++){
+      if(i){const f=normal({from:i,left});if(!f.over){for(let j=i;j<days.length;j++)plan[j]=f.plan[j];left=f.left;back=i;break}}
+      const room=roomOf(days[i]);let n=0;
+      // nearest exam first, so a behind subject with a later exam never takes the sessions of an earlier one
+      for(const e of ex){if(n>=room)break;const R=left.get(e);if(i>=e.dlF||!R.length)continue;const c=late.includes(e);
+        const out=[];let acc=0;while(R.length&&(!out.length||(c&&out.length<3)||acc+lm(R[0])<=SESS_MIN)){const l=R.shift();out.push(l);acc+=lm(l)}
+        const span=Math.max(1,Math.min(room-n,Math.ceil(acc/(SESS_MIN*1.1))));n+=span;
+        plan[i].push({e,lecs:out,span,catchup:c?1:0,fast:fastOf(acc,span)})}
+      fillDay(i,plan,left,e=>late.includes(e)?0:e.dlF,1,n)}
+    fit={plan,left};
+    if(back>0)days[back].back=late.filter(e=>e.n>back)}
+  for(const e of ex){e.late=late.includes(e);e.back=e.late&&back>0&&e.n>back?days[back].d:null}
   days.forEach((x,i)=>{x.prep=fit.plan[i].concat(x.prep)});
   for(const e of ex){e.over=fit.left.get(e);const on=days.filter(x=>x.prep.some(p=>p.e===e&&p.lecs));e.studyDays=on.length;e.perDay=on.length?Math.round((e.mins-mins(e.over))/on.length):e.mins}
   // the main plan carries on for subjects with no exam coming; three study sessions a day in total (two on an exam day),
@@ -582,15 +602,21 @@ function mPlan(){
 }
 // heavier is fine when the student chose more hours
 const mLoad=m=>{const f=MK()/3;return m<=120*f?['مريح','ok']:m<=180*f?['متوسط','mid']:['ثقيل','high']};
+// exams that were behind: once one stops being behind, its card says the student is back to the normal daily pace (until that exam passes)
+const LKEY='plan6sci-late';
 function mCards(){
   const {ex}=mPlan();
+  const was=new Set((Array.isArray(get(LKEY))?get(LKEY):[]).filter(id=>ex.some(e=>e.id===id)));
+  ex.forEach(e=>{e.reached=!e.late&&was.has(e.id);if(e.late)was.add(e.id)});put(LKEY,[...was]);
   $('mExams').innerHTML=ex.length?ex.map(e=>{const n=Math.round((e.date-TODAY)/864e5),pc=e.total?Math.round(100*(e.total-e.left)/e.total):0,t=P.T[e.s],[lv,cls]=mLoad(e.dl?e.mins/e.dl:e.mins);
     return `<div class="m-card" style="--c:var(${COLOR[e.s]})"><div class="m-top"><b>${C[e.s].name}</b><span class="m-when">${n>0?'بعد '+daysWord(n):'اليوم'} · ${DN[e.date.getDay()]} ${dstr(e.date)}</span>
       <button class="linkbtn" type="button" data-del="${esc(e.id)}">احذف</button></div>
       <span class="alt">${mScope(e,t)}</span>
       <span class="sb-t"><i style="width:${pc}%"></i></span>
       <span>${e.left?`باقي ${ar(e.left)} محاضرة (${dur(e.mins)} فيديو)${e.studyDays?' على '+daysWord(e.studyDays)+'، تقريباً '+dur(e.perDay)+' باليوم':''}`:'خلصت كل محاضراته، ركّز على الأسئلة والمراجعة'}</span>
-      ${e.left&&!(e.over&&e.over.length)?`<span class="m-load ${cls}">الحمل: ${lv}${cls==='high'?'. شغّل محاضراته بسرعة ١.٢٥ أو ١.٥ بدل ما تسهر، وتأكد من الفصول اللي يشملها الامتحان':''}</span>`:''}
+      ${e.late?`<span class="m-load high">متأخر بهالمادة: بأيام دراستها ياخذ ٣ محاضرات باليوم بنفس جلساتك (${SESS_W(MK())})، بدون ساعات زايدة. الامتحان الأقرب ياخذ دوره أول${e.back?'، ويوم '+DN[e.back.getDay()]+' '+dstr(e.back)+' ترجع للسير اليومي الطبيعي':''}</span>`:''}
+      ${e.reached?'<span class="m-load ok">وصلت لحد السير اليومي الطبيعي لهالمادة، كمّل بجدولك العادي</span>':''}
+      ${e.left&&!e.late&&!(e.over&&e.over.length)?`<span class="m-load ${cls}">الحمل: ${lv}${cls==='high'?'. شغّل محاضراته بسرعة ١.٢٥ أو ١.٥ بدل ما تسهر، وتأكد من الفصول اللي يشملها الامتحان':''}</span>`:''}
       ${e.over&&e.over.length?`<span class="m-load high">ما تلحق ${ar(e.over.length)} محاضرة (${dur(e.over.reduce((a,l)=>a+lm(l),0))}) قبل الامتحان، تبدي من «${esc(e.over[0].t)}». زيد ساعات الدراسة، أو احذف الفصول اللي ما يشملها الامتحان، أو ركّز على ملخصها وأسئلتها الوزارية</span><button type="button" class="linkbtn m-tojump" data-s="${e.s}">حدد لحد يا محاضرة يوصل الامتحان</button>`:''}
       ${e.mock||e.review?`<span class="alt">${e.mock?'امتحان تجريبي قبله بيومين، و':''}${e.review?'مراجعة خفيفة باليوم اللي قبله':''}</span>`:''}</div>`}).join(''):'<p class="note">ما حددت مواعيد بعد. اكتب موعد امتحان كل مادة فوق واحفظ، والجدول ينبني لحاله.</p>';
   $('mExams').querySelectorAll('.m-tojump').forEach(b=>b.onclick=()=>{const r=document.querySelector('.m-row[data-s="'+b.dataset.s+'"]');if(!r)return;const d=r.querySelector('details');d.open=true;r.scrollIntoView({behavior:'smooth',block:'center'});setTimeout(()=>r.querySelector('.m-to select')?.focus(),400)});
@@ -610,10 +636,12 @@ function mRender(){
     const box=day.querySelector('.subjs');let k=0;
     x.exams.forEach(e=>{const el=document.createElement('div');el.className='subj m-banner';el.style.setProperty('--c','var('+COLOR[e.s]+')');
       el.innerHTML=`<div class="subj-h"><span class="s">اليوم امتحان ${C[e.s].name} الشهري</span><span class="w">بالتوفيق. اليوم بس لهالمادة: فطور زين، نظرة سريعة على ملخصك، ولا تدرس شي جديد. بعد الامتحان ارتاح.</span></div>`;box.appendChild(el)});
+    if(x.back&&x.back.length){const el=document.createElement('div');el.className='subj extra';
+      el.innerHTML=`<div class="subj-h"><span class="m-load ok">وصلت لحد السير اليومي الطبيعي لـ${x.back.map(e=>C[e.s].name).join(' و')}، من اليوم جلساتها ترجع عادية</span></div>`;box.appendChild(el)}
     const blocks=x.prep.map(p=>({...p,s:p.e.s,pri:1})).concat(x.other);
     for(const b of blocks){const el=document.createElement('div');el.className='subj'+(b.pri?' m-pri':'')+(b.opt?' m-opt':'');el.dataset.s=b.s;el.style.setProperty('--c','var('+COLOR[b.s]+')');
       const r=b.opt?null:S[Math.min(k,S.length-1)],r2=r&&S[Math.min(k+(b.span||1)-1,S.length-1)];if(r)k+=b.span||1;const tm=r?`<span class="tm">${range(r[0],r2[1])}</span>`:`<span class="tm">${b.opt?'اختياري':'إذا عندك وقت'}</span>`;
-      const nm=b.s==='rev'?'مراجعة':C[b.s].name,tag=b.pri?'<span class="m-tag">امتحان شهري</span>':'',optW=b.opt?'<span class="w">إذا تعبان أجّلها، وترتبها بعدين من «تأخرت؟» بالجدول الرئيسي</span>':'';
+      const nm=b.s==='rev'?'مراجعة':C[b.s].name,tag=b.pri?'<span class="m-tag">'+(b.catchup?'تعويض تأخير · ٣ محاضرات':'امتحان شهري')+'</span>':'',optW=b.opt?'<span class="w">إذا تعبان أجّلها، وترتبها بعدين من «تأخرت؟» بالجدول الرئيسي</span>':'';
       if(b.plain){const id=b.pri?'m'+kk(x.d)+'-'+b.s:'p'+kk(x.d)+'-'+b.j;
         el.innerHTML=`<div class="subj-h">${tm}${tag}${optW}</div><div class="lec"><input type="checkbox" id="${id}"><label for="${id}" class="plain"><span class="subj-h"><span class="s">${nm}</span></span> <span class="t">${esc(b.plain)}</span></label><span></span></div>`;check(el.querySelector('.lec'),id)}
       else{const t=P.T[b.s];el.innerHTML=`<div class="subj-h">${tm}${tag}<span class="s">${nm}</span><span class="w">${esc([...new Set(b.lecs.map(l=>t.lists[l.li].by))].join(' و'))}${b.fast?' · شغّلها بسرعة '+b.fast:''}</span>${optW}</div>`;

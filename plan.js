@@ -48,6 +48,9 @@ function loadPrefs(){
   // grammar study: full lectures or a teacher's focused review (only subjects with a review in the catalog)
   out.rev={};for(const s of ORDER)if(C[s].review&&p.rev&&p.rev[s]===true)out.rev[s]=true;
   if(parseKey(p.undoAt))out.undoAt=p.undoAt;
+  // focus: subjects (and optionally some of their chapters) that take most sessions from `from` on
+  const f=p.focus;if(f&&parseKey(f.from)&&Array.isArray(f.s)){const s=f.s.filter(x=>ORDER.includes(x));
+    if(s.length){const ch={};for(const x of s){const L=f.ch&&f.ch[x];if(Array.isArray(L)){const v=L.filter(li=>Number.isInteger(li)&&li>=0&&li<mainOf(x).lists.length);if(v.length)ch[x]=v}}out.focus={from:f.from,s,ch}}}
   const sc=p.school,hm=/^([01]\d|2[0-3]):[0-5]\d$/;if(sc&&hm.test(sc.a)&&hm.test(sc.b)&&sc.a<sc.b)out.school={a:sc.a,b:sc.b,from:parseKey(sc.from)?sc.from:''};
   return out;
 }
@@ -193,6 +196,36 @@ function placeMissed(days,missed,R){
     for(const b of blocks)for(const l of b.lecs||[])if(l.from)l.to=new Date(d);
     out.push({d:new Date(d),blocks});d.setDate(d.getDate()+1)}
   return out}
+// focus: from today the subjects the student picked take most sessions, and the other subjects still get one session a day
+// (every other day when the day has a single session), the one that waited longest first. Picked chapters come first inside
+// their subject; when they are done the subject goes back to normal. Every lecture stays in the plan and ticks never change.
+function focusFlow(days,F){
+  const from=new Date(Math.max(TODAY,START)),isLight=k=>k==='isl'||k==='arL',subj=k=>k==='arL'?'ar':k;
+  const kind=(s,l)=>s==='ar'&&PARTS.ar&&l.li===1?'arL':s,q={};
+  for(const y of days)if(!y.past&&y.d>=from)for(const b of y.blocks)for(const l of b.lecs||[]){const k=kind(b.s,l);(q[k]=q[k]||[]).push(l)}
+  for(const k in q){const s=subj(k),ch=F.ch[s];q[k].sort((a,b)=>a.qi-b.qi);if(ch)q[k]=q[k].filter(l=>ch.includes(l.li)).concat(q[k].filter(l=>!ch.includes(l.li)))}
+  const foc=k=>{const s=subj(k);if(!F.s.includes(s)||!q[k].length)return false;const ch=F.ch[s];return !ch||ch.includes(q[k][0].li)};
+  const mm=l=>l.dm||l.m,last={},out=days.filter(y=>y.past||y.d<from),d=new Date(from);let idx=0;
+  const any=()=>Object.values(q).some(L=>L.length);
+  while(any()&&idx<2000){
+    const fri=d.getDay()===5,k0=kDay(d),ks=Object.keys(q).filter(k=>q[k].length);
+    const lightK=ks.filter(k=>isLight(k)&&!foc(k)),heavy=ks.filter(k=>!lightK.includes(k));
+    const useL=lightK.length&&(k0>=2||!heavy.length),k=useL?Math.max(0,k0-1):k0;
+    const Fk=heavy.filter(foc),Sk=heavy.filter(x=>!foc(x)),blocks=[],cnt={};let u=0;
+    const take=x=>{const L=q[x],o=[];let acc=0;while(L.length&&(!o.length||acc+mm(L[0])<=SESS_MIN)){o.push(L[0]);acc+=mm(L[0]);L.shift()}
+      const w=o.length===1?Math.max(1,Math.ceil(mm(o[0])/(SESS_MIN*1.1))):1;if(u&&u+w>k){q[x].unshift(...o);return false}
+      blocks.push({s:subj(x),lecs:o,w});u+=w;cnt[x]=(cnt[x]||0)+1;last[x]=idx;return true};
+    const wait=(a,b)=>(last[a]??-1)-(last[b]??-1)||q[b].length-q[a].length;
+    // one session for the other subjects (every other day when the day has one session), then the picked subjects, two each at most
+    let sec=Fk.length&&Sk.length?(k>=2?1:idx%2):0;
+    for(const x of Sk.slice().sort(wait)){if(sec<=0||u>=k)break;if(take(x))sec--}
+    for(let r=0;r<2;r++)for(const x of Fk.slice().sort(wait)){if(u>=k)break;if((cnt[x]||0)===r&&q[x].length&&foc(x))take(x)}
+    for(const x of Sk.slice().sort(wait)){if(u>=k)break;if(!cnt[x])take(x)}
+    blocks.sort((a,b)=>RANK[a.s]-RANK[b.s]);
+    if(useL)for(const x of lightK)blocks.push({s:subj(x),lecs:[q[x].shift()],w:lightK.length>1?.5:1});
+    if(fri)blocks.push({s:'rev',plain:'مراجعة الأسبوع: ارجع لملخصات كل مادة وحل ١٠ أسئلة وزارية منها'});
+    out.push({d:new Date(d),blocks});d.setDate(d.getDate()+1);idx++}
+  return out}
 // slot i of a chapter shows the chosen teacher's lectures at the same place in the chapter (a teacher with more lectures shows two
 // in some slots, one with fewer repeats a lecture marked "تكملة"), so switching teachers never moves a day or loses a tick
 function slotsOf(s,t){const M=mainOf(s),out=[];
@@ -235,6 +268,7 @@ function build(){
       return {d:x.d,past:true,blocks:blocks.filter(b=>b.s==='rev'||b.lecs.length||b.moved.length)}});
     if(missed.length)days=placeMissed(days,missed,R);
   }
+  if(prefs.focus)days=focusFlow(days,{...prefs.focus,s:prefs.focus.s.filter(s=>act.includes(s))});
   // monthly exams go into this same plan (see mMerge)
   const base=days;P={act,T,Q,days:base,base};const mon=mPlan(base);days=mMerge(base,mon);
   const d=new Date(days[days.length-1].d);d.setDate(d.getDate()+1);
@@ -354,7 +388,7 @@ function render(){
   jump.hidden=!todayEl;jump.onclick=()=>todayEl&&todayEl.scrollIntoView({behavior:'smooth',block:'center'});
 
   window.PLAN={plan:days,S:Object.fromEntries(ORDER.map(s=>[s,{name:C[s].name}])),kk,timeline:TL};
-  progress();exam();updateLate();mBanner();document.dispatchEvent(new CustomEvent('planbuilt'));
+  progress();exam();updateLate();mBanner();focusUI();document.dispatchEvent(new CustomEvent('planbuilt'));
 }
 
 // hours-a-day buttons; 4 sessions is off for an afternoon start
@@ -475,6 +509,28 @@ $('examClear').onclick=()=>{delete prefs.exam;savePrefs();$('examEdit').hidden=t
 
 function toast(msg){const t=$('toast');t.textContent=msg;t.hidden=false;clearTimeout(toast.h);toast.h=setTimeout(()=>t.hidden=true,3200)}
 function rerender(msg){const y=scrollY;render();scrollTo(0,y);if(msg)toast(msg)}
+
+/* ---------- focus: give some subjects or chapters priority, with a way back to the default plan ---------- */
+const fNames=F=>F.s.map(s=>C[s].name+(F.ch[s]?' ('+F.ch[s].map(li=>(P.T[s]||mainOf(s)).lists[li].t).join('، ')+')':'')).join(' و');
+function focusUI(){const F=prefs.focus,act=P.act;
+  $('focusBox').innerHTML=act.map(s=>{const on=F&&F.s.includes(s),ch=on&&F.ch[s]||[];
+    return `<div class="f-row" data-s="${s}"><label class="sch"><input type="checkbox" class="f-s"${on?' checked':''}> <span class="dot" style="--c:var(${COLOR[s]})"></span>${C[s].name}</label>
+      <details${ch.length?' open':''}><summary>فصول محددة بس (اختياري)</summary>${P.T[s].lists.map((l,li)=>`<label class="sch"><input type="checkbox" class="f-ch" value="${li}"${ch.includes(li)?' checked':''}> ${esc(l.t)}</label>`).join('')}</details></div>`}).join('');
+  // ticking a chapter picks its subject too
+  $('focusBox').querySelectorAll('.f-ch').forEach(c=>c.onchange=()=>{if(c.checked)c.closest('.f-row').querySelector('.f-s').checked=true});
+  $('focusReset').hidden=!F;
+  const b=$('fBanner');b.hidden=!F;if(F)b.querySelector('span').textContent='جدولك مركّز على '+fNames(F)+' من '+dstr(parseKey(F.from))+'، والمواد الثانية إلها جلسة كل يوم.'}
+const fClose=()=>{$('focusEdit').hidden=true;$('focusToggle').setAttribute('aria-expanded','false')};
+const fReset=()=>{if(!prefs.focus)return;delete prefs.focus;savePrefs();fClose();rerender('رجع جدولك الافتراضي بدون تفضيل مواد، وتقدّمك بقى مثل ما هو')};
+$('focusToggle').onclick=()=>{const box=$('focusEdit');box.hidden=!box.hidden;$('focusToggle').setAttribute('aria-expanded',!box.hidden)};
+$('focusReset').onclick=fReset;$('fBannerReset').onclick=fReset;
+$('focusApply').onclick=()=>{const s=[],ch={};
+  $('focusBox').querySelectorAll('.f-row').forEach(r=>{if(!r.querySelector('.f-s').checked)return;const x=r.dataset.s;s.push(x);const L=[...r.querySelectorAll('.f-ch:checked')].map(i=>+i.value);if(L.length)ch[x]=L});
+  if(!s.length){toast('اختار مادة وحدة على الأقل، أو رجّع الجدول الافتراضي');return}
+  if(s.length===P.act.length&&!Object.keys(ch).length){toast('اخترت كل المواد، وهذا نفس الجدول الافتراضي');return}
+  const F={from:kk(new Date(Math.max(TODAY,START))),s,ch};
+  if(!confirm('جدولك من اليوم وجاي راح يتغير: '+fNames(F)+' تاخذ أغلب جلساتك، والمواد الثانية جلسة كل يوم. تقدّمك يبقى مثل ما هو. نكمل؟'))return;
+  prefs.focus=F;savePrefs();fClose();rerender('صار جدولك مركّز على '+fNames(F)+'. تكدر ترجع للجدول الافتراضي من فوق بأي وقت')};
 
 /* ---------- subjects editor ---------- */
 $('subjToggle').onclick=()=>{const box=$('subjEdit');box.hidden=!box.hidden;$('subjToggle').setAttribute('aria-expanded',!box.hidden)};

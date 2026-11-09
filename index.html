@@ -181,6 +181,13 @@ body:not(.m-view) .monthly{display:none}
 .to-wizari{text-decoration:none}
 .m-count{background:var(--card);color:var(--ink);border-radius:99px;min-width:20px;padding:0 6px;font-size:14px;text-align:center}
 .m-banner-top{margin:0;font-size:14px;color:var(--today);font-weight:600}
+.f-banner{margin:0;font-size:14px;color:var(--accent);font-weight:600}
+.f-box{display:flex;flex-direction:column;gap:6px;margin-block:10px}
+.f-row{display:flex;flex-direction:column;gap:2px}
+.f-row details{padding-inline-start:30px;font-size:14px;color:var(--muted)}
+.f-row details .sch{font-size:14px}
+.f-warn{margin:0;font-size:14px;color:var(--today);font-weight:600}
+.f-acts{display:flex;flex-wrap:wrap;gap:8px}
 .m-form{display:flex;flex-direction:column;gap:10px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px}
 .m-form-h{margin:0;font-size:14px;color:var(--muted)}
 .m-rows{display:flex;flex-direction:column}
@@ -245,8 +252,8 @@ body:not(.m-view) .monthly{display:none}
 .fontsz button:nth-of-type(1){font-size:14px}.fontsz button:nth-of-type(2){font-size:16px}.fontsz button:nth-of-type(3){font-size:18px}
 .fontsz button[aria-pressed="true"]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
 </style>
-<link rel="stylesheet" href="dream.css?v=53">
-<link rel="stylesheet" href="rez.css?v=53">
+<link rel="stylesheet" href="dream.css?v=54">
+<link rel="stylesheet" href="rez.css?v=54">
 <script>try{const p=JSON.parse(localStorage.getItem('plan6sci-dream'));const r=document.documentElement;if(p&&p.fam&&p.fam!=='other')r.dataset.dream=p.fam==='engineer'&&p.dept==='هندسة الطائرات المسيّرة'?'drone':p.fam;if(p&&p.gender==='f')r.dataset.gender='f'}catch(e){}</script>
 <script>try{const z=+localStorage.getItem('plan6sci-font');if([1.12,1.25].includes(z))document.documentElement.style.setProperty('--zoom',z)}catch(e){}</script>
 
@@ -289,6 +296,7 @@ body:not(.m-view) .monthly{display:none}
       <button class="chip solid" type="button" id="mOpen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>الامتحانات الشهرية<span class="m-count" id="mCount" hidden></span></button>
       <a class="chip solid to-wizari" href="https://parmna432-eng.github.io/wizari/"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19l4-12 4 8 3-5 5 9z"/></svg>تجهيز ليوم الوزاري: خطة النص الثاني</a>
       <p class="m-banner-top" id="mBanner" hidden><span></span> <button class="linkbtn" type="button" id="mBannerGo">شوف جدوله</button></p>
+      <p class="f-banner" id="fBanner" hidden><span></span> <button class="linkbtn" type="button" id="fBannerReset">رجّع الجدول الافتراضي</button></p>
     </div>
   </header>
 
@@ -317,8 +325,16 @@ body:not(.m-view) .monthly{display:none}
       <h2>المواد والمدرسين</h2>
       <div class="tools">
         <button class="chip" type="button" id="bell" aria-label="عرض التنبيه"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 16V11a6 6 0 0 1 12 0v5l2 2H4z"/><path d="M10 20a2 2 0 0 0 4 0"/></svg>التنبيهات</button>
+        <button class="chip" type="button" id="focusToggle" aria-expanded="false" aria-controls="focusEdit">ركّز على مواد</button>
         <button class="chip solid" type="button" id="subjToggle" aria-expanded="false" aria-controls="subjEdit">حدّث المواد</button>
       </div>
+    </div>
+    <div class="subj-edit" id="focusEdit" hidden>
+      <p class="sub">اختار المواد اللي تريد تركّز عليها، وإذا تريد فصول محددة منها. المواد اللي تختارها تاخذ أغلب جلساتك من اليوم، والمواد الثانية تبقى إلها جلسة كل يوم حتى ما تتراكم.</p>
+      <div class="f-box" id="focusBox"></div>
+      <p class="f-warn">انتبه: إذا ركّزت على مواد أو فصول محددة، جدولك من اليوم وجاي راح يتغير. تقدّمك وتأشيراتك تبقى مثل ما هي، وتكدر ترجع للجدول الافتراضي بأي وقت.</p>
+      <div class="f-acts"><button class="chip solid" type="button" id="focusApply">ركّز وغيّر جدولي</button>
+      <button class="chip" type="button" id="focusReset" hidden>رجّع الجدول الافتراضي بدون تفضيل مواد</button></div>
     </div>
     <div class="subj-edit" id="subjEdit" hidden>
       <p class="sub">أشّر المواد اللي تريدها بجدولك. إذا شلت مادة الجدول يقصر، وإذا أضفت مادة يطول، حسب وقت محاضراتها.</p>
@@ -437,10 +453,10 @@ body:not(.m-view) .monthly{display:none}
 </div>
 <div class="toast" id="toast" role="status" hidden></div>
 
-<script src="data.js?v=53"></script>
-<script src="plan.js?v=53"></script>
-<script src="dream.js?v=53"></script>
-<script src="rez.js?v=53"></script>
+<script src="data.js?v=54"></script>
+<script src="plan.js?v=54"></script>
+<script src="dream.js?v=54"></script>
+<script src="rez.js?v=54"></script>
 
 </body>
 </html>

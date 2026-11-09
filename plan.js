@@ -235,6 +235,8 @@ function build(){
       return {d:x.d,past:true,blocks:blocks.filter(b=>b.s==='rev'||b.lecs.length||b.moved.length)}});
     if(missed.length)days=placeMissed(days,missed,R);
   }
+  // monthly exams go into this same plan (see mMerge)
+  const base=days;P={act,T,Q,days:base,base};const mon=mPlan(base);days=mMerge(base,mon);
   const d=new Date(days[days.length-1].d);d.setDate(d.getDate()+1);
   // final review week: subjects with the most lectures marked hard come first, and each review block lists those lectures
   const hardOf={};for(const s of act)hardOf[s]=Q[s].filter(l=>hard['v'+l.v]);
@@ -246,7 +248,7 @@ function build(){
   const slots={};days.forEach(x=>!x.past&&x.blocks.forEach(b=>{if(b.lecs)slots[b.s]=(slots[b.s]||0)+1}));
   const ids=[],idsBy={};for(const s of act){idsBy[s]=Q[s].map(l=>'v'+l.v);ids.push(...idsBy[s])}
   if(!get(MIG)){put(MIG,1);saveDone();put(HARD,hard)}
-  return {act,T,Q,days,tot,slots,ids,idsBy};
+  return {act,T,Q,days,tot,slots,ids,idsBy,base,mon};
 }
 
 /* ---------- render ---------- */
@@ -320,9 +322,9 @@ function render(){
     const box=day.querySelector('.subjs');
     p.blocks.forEach((b,j)=>{
       const el=document.createElement('div');el.className='subj';el.dataset.s=b.s;el.style.setProperty('--c','var('+COLOR[b.s]+')');
-      const nm=b.s==='rev'?'مراجعة':C[b.s].name,tm=`<span class="tm">${spanOf(TD,b)}</span>`;
-      if(b.plain){const id='p'+kk(p.d)+'-'+j;allIds.push(id);
-        el.innerHTML=`<div class="subj-h">${tm}</div><div class="lec"><input type="checkbox" id="${id}"><label for="${id}" class="plain"><span class="subj-h"><span class="s">${nm}</span></span> <span class="t">${esc(b.plain)}</span></label><span></span></div>`;check(el.querySelector('.lec'),id);
+      const nm=b.s==='rev'?'مراجعة':C[b.s].name,tm=b.added?'<span class="tm">جلسة إضافية</span>':`<span class="tm">${spanOf(TD,b)}</span>`,mt=b.mtag?'<span class="m-tag">'+esc(b.mtag)+'</span>':'';
+      if(b.plain){const id=b.pid||'p'+kk(p.d)+'-'+j;allIds.push(id);
+        el.innerHTML=`<div class="subj-h">${tm}${mt}</div><div class="lec"><input type="checkbox" id="${id}"><label for="${id}" class="plain"><span class="subj-h"><span class="s">${nm}</span></span> <span class="t">${esc(b.plain)}</span></label><span></span></div>`;check(el.querySelector('.lec'),id);
         if(b.hard&&b.hard.length){const t=T[b.s],h=document.createElement('div');h.className='hard-list';
           h.innerHTML=`<span class="hl-t">${FLAG}ابدأ بالمحاضرات اللي علّمتها صعبة (${ar(b.hard.length)})</span>`+b.hard.map(l=>lnk(l)).join('');el.appendChild(h)}}
       // a session that ended up with no new lecture (short subjects) becomes a review session instead of an empty box
@@ -330,7 +332,7 @@ function render(){
       else{const t=T[b.s],lists=[...new Set(b.lecs.concat(b.moved||[]).map(l=>l.li))].map(li=>t.lists[li]);const bm=b.lecs.reduce((a,l)=>a+(l.dm||l.m),0);
         const speed=bm>190?' · شغّلها بسرعة ١.٥':bm>150?' · شغّلها بسرعة ١.٢٥':'';
         const from=b.extra?b.lecs.reduce((m,l)=>l.from&&(!m||l.from<m)?l.from:m,null):null;
-        el.innerHTML=`<div class="subj-h">${b.extra?'<span class="tm late-tag">تعويض</span>':tm}<span class="s">${nm}</span><span class="w">${b.extra?'ما لحكت بأيام المادة'+' · ':''}${lists.map(l=>esc(l.t)).join(' ← ')} · ${esc(lists[0]&&lists[0].by||t.name)}${speed}</span></div>`;
+        el.innerHTML=`<div class="subj-h">${b.extra?'<span class="tm late-tag">تعويض</span>':tm}${mt}<span class="s">${nm}</span><span class="w">${b.extra?'ما لحكت بأيام المادة'+' · ':''}${lists.map(l=>esc(l.t)).join(' ← ')} · ${esc(lists[0]&&lists[0].by||t.name)}${speed}</span></div>`;
         b.lecs.forEach(l=>{const id='v'+l.v;allIds.push(id);const r=document.createElement('div');r.className='lec';
           r.innerHTML=`<input type="checkbox" id="${id}" aria-label="أنجزت ${esc(l.t)}"><label for="${id}">${lnk(l)}${mDue.has(l.v)&&p.d>=mDue.get(l.v).u?' <span class="mv-to">تدرسها قبل امتحان '+C[mDue.get(l.v).s].name+' من جدول الامتحانات</span>':''}</label><span class="m">${dur(l.dm||l.m)}</span><button type="button" class="flag" aria-pressed="${!!hard[id]}" aria-label="صعبة عليّ: ${esc(l.t)}" title="صعبة عليّ">${FLAG}</button>`;
           check(r,id);r.querySelector('.flag').onclick=()=>flagHard(id);el.appendChild(r)});
@@ -388,7 +390,7 @@ function applyFilter(){document.querySelectorAll('.subj').forEach(t=>t.hidden=!(
 // lectures ticked today stay on today's monthly sheet until tomorrow, so the day doesn't move on while the student is still in it
 const DAT=PREF.replace('prefs','doneat2');const doneAt=Object.fromEntries(Object.entries(get(DAT)||{}).filter(([,v])=>v===kk(TODAY)));
 function check(row,id){const cb=row.querySelector('input');cb.checked=!!done[id];row.classList.toggle('checked',cb.checked);
-  cb.addEventListener('change',()=>{if(cb.checked){done[id]=1;if(row.closest('#mPlan .day.today'))doneAt[id]=kk(TODAY)}else{delete done[id];delete doneAt[id]}put(DAT,doneAt);
+  cb.addEventListener('change',()=>{if(cb.checked){done[id]=1;if(row.closest('.day.today'))doneAt[id]=kk(TODAY)}else{delete done[id];delete doneAt[id]}put(DAT,doneAt);
     for(const sid of SIB.get(id)||[]){if(sid===id)continue;if(cb.checked)done[sid]=1;else delete done[sid];document.querySelectorAll('[id="'+sid+'"]').forEach(x=>{x.checked=cb.checked;const r=x.closest('.lec');if(r)r.classList.toggle('checked',cb.checked)})}row.classList.toggle('checked',cb.checked);saveDone();progress();updateLate();if(mView())mCards();
     document.dispatchEvent(new CustomEvent('plancheck',{detail:{checked:cb.checked}}))})}
 function flagHard(id){const on=!hard[id];if(on)hard[id]=1;else delete hard[id];put(HARD,hard);
@@ -528,8 +530,10 @@ function mDefaultLists(s,ex){const set=new Set();for(const x of P.days){if(x.d>=
 // (retrieval practice), a timed mock exam two days before, a light review and full sleep the night before, nothing new on exam day,
 // and a cap on how much exam work goes into one day so the main plan keeps moving.
 const SESS_MIN=150,lm=l=>l.dm||l.m;
-const MK=()=>prefs.hour>=12?Math.min(prefs.mk,3):prefs.mk;
-function mPlan(){
+// the exams schedule uses the main plan's own sessions, so both pages show the same day
+const MK=()=>kNow();
+// `base` is the main plan before exams are put into it; its days tell which subjects study on which day
+function mPlan(base){base=base||P.base||P.days;
   const from=new Date(Math.max(TODAY,START));
   const ex=monthly.filter(e=>P.act.includes(e.s)).map(e=>({...e,date:parseKey(e.d)})).filter(e=>e.date>=from).sort((a,b)=>a.date-b.date);
   if(!ex.length)return {ex,days:[]};
@@ -547,8 +551,8 @@ function mPlan(){
   // new lectures go into real sessions: a session holds SESS_MIN of video (one long lecture alone is fine) and what is left takes another
   // session. Monthly exams come first: their lectures take the day's sessions in full (two a day per subject at most, so a subject doesn't fill the whole day; a video longer than a session takes the sessions it needs)
   // and the main plan gets what is left. If that can't finish them, the mock day is used too and every exam subject takes one session before any takes a second, so the nearest exam can't eat the time of the others. What still doesn't fit is told to the student on the card, never squeezed into a session.
-  const dayK=d=>schoolK(d,typeof isRam==='function'&&isRam(d)?Math.min(MK(),3):MK());
-  const hardK=x=>Math.max(1,dayK(x.d)-(x.fri||x.exams.length?1:0));
+  const dayK=d=>kDay(d);
+  const hardK=x=>Math.max(1,dayK(x.d)-(x.exams.length?1:0));
   const mins=L=>L.reduce((a,l)=>a+lm(l),0);
   const roomOf=x=>x.exams.length?0:hardK(x)-x.prep.length;
   const fillDay=(i,plan,left,end,full,n0)=>{const room=roomOf(days[i]);
@@ -588,18 +592,50 @@ function mPlan(){
     fit={plan,left};
     if(back>0)days[back].back=late.filter(e=>e.n>back)}
   for(const e of ex){e.late=late.includes(e);e.back=e.late&&back>0&&e.n>back?days[back].d:null}
+  // no lecture is ever dropped before its exam: what still doesn't fit becomes extra sessions, spread over the study days
+  // with the fewest extras, then the subject's lectures go back into book order over all its sessions
+  const addN=days.map(()=>0);
+  for(const e of ex){const L=fit.left.get(e);e.added=0;if(!L.length)continue;
+    const ok=[];for(let i=0;i<Math.min(e.dlF,days.length);i++)if(!days[i].exams.length)ok.push(i);
+    if(!ok.length)continue;
+    while(L.length){const out=[];let acc=0;while(L.length&&(!out.length||acc+lm(L[0])<=SESS_MIN)){const l=L.shift();out.push(l);acc+=lm(l)}
+      const i=ok.reduce((b,j)=>addN[j]<addN[b]?j:b,ok[0]);addN[i]++;e.added++;
+      fit.plan[i].push({e,lecs:out,span:1,added:1,fast:fastOf(acc,1)})}
+    const B=fit.plan.flatMap(pl=>pl.filter(p=>p.e===e&&p.lecs)),all=B.flatMap(p=>p.lecs).sort((a,b)=>a.qi-b.qi);let k=0;
+    for(const p of B){p.lecs=all.slice(k,k+p.lecs.length);k+=p.lecs.length}}
   days.forEach((x,i)=>{x.prep=fit.plan[i].concat(x.prep)});
   for(const e of ex){e.over=fit.left.get(e);const on=days.filter(x=>x.prep.some(p=>p.e===e&&p.lecs));e.studyDays=on.length;e.perDay=on.length?Math.round((e.mins-mins(e.over))/on.length):e.mins}
   // the main plan carries on for subjects with no exam coming; three study sessions a day in total (two on an exam day),
   // so main-plan blocks that don't fit are marked optional instead of piling up
-  const main=new Map(P.days.map(x=>[x.d.getTime(),x]));
+  const main=new Map(base.map(x=>[x.d.getTime(),x]));
   // a lecture an exam covers is studied before that exam, so it never comes back after it
   const scope=new Set(monthly.filter(e=>P.act.includes(e.s)).flatMap(e=>mLectures(e.s,e.li,e.to,e.r).map(l=>l.v)));
-  for(const x of days){const m=main.get(x.d.getTime()),busy=new Set(ex.filter(e=>e.date>=x.d).map(e=>e.s));
-    x.other=m&&!x.exams.length?m.blocks.map((b,j)=>({...b,j,lecs:b.lecs&&b.lecs.filter(l=>!scope.has(l.v))})).filter(b=>!busy.has(b.s)&&(!b.lecs||b.lecs.length)):[];
-    const room=Math.max(0,dayK(x.d)-x.prep.reduce((a,p)=>a+(p.span||1),0));x.other.forEach((b,k)=>b.opt=k>=room)}
-  return {ex,days};
+  // the other subjects keep the main plan's days, and each takes its next lectures in book order from its own line
+  // (Arabic literature has a line of its own). A subject with an exam coming waits until that exam; what has no room waits for after the exams.
+  const kind=(s,l)=>s+(s==='ar'&&PARTS.ar&&l.li===1?'L':''),live=l=>!done['v'+l.v]||doneAt['v'+l.v],qs=new Map();
+  for(const y of base)if(!y.past&&y.d>=from)for(const b of y.blocks)for(const l of b.lecs||[])if(!scope.has(l.v)&&live(l)){const k=kind(b.s,l);if(!qs.has(k))qs.set(k,[]);qs.get(k).push(l)}
+  for(const q of qs.values())q.sort((a,b)=>a.qi-b.qi);
+  for(const x of days){const m=main.get(x.d.getTime()),busy=new Set(ex.filter(e=>e.date>=x.d).map(e=>e.s));x.other=[];if(!m||x.exams.length)continue;
+    let room=dayK(x.d)-x.prep.reduce((a,p)=>a+(p.added?0:p.span||1),0);
+    m.blocks.forEach((b,j)=>{if(b.plain){if(!b.hard)x.other.push({s:b.s,plain:b.plain,j});return}
+      if(!b.lecs||!b.lecs.length||busy.has(b.s))return;const w=b.w||1;if(w>room+1e-9)return;
+      const lecs=(qs.get(kind(b.s,b.lecs[0]))||[]).splice(0,b.lecs.length);if(!lecs.length)return;room-=w;x.other.push({s:b.s,lecs,w,j})})}
+  return {ex,days,from};
 }
+// one plan: from today to the last monthly exam the main plan shows the exams schedule, and every lecture that schedule
+// doesn't reach moves to after the last exam in book order. Nothing is dropped, and both pages show the same days.
+function mMerge(base,M){if(!M.days.length)return base;
+  const from=M.from,R=new Date(M.days[M.days.length-1].d);R.setDate(R.getDate()+1);
+  const used=new Set(),live=l=>!done['v'+l.v]||doneAt['v'+l.v],tag=p=>p.added?'جلسة إضافية حتى تكمل الفصل':p.catchup?'تعويض تأخير · ٣ محاضرات':'تحضير امتحان '+C[p.e.s].name;
+  const win=M.days.map(x=>{const blocks=[],src=[];
+    x.exams.forEach(e=>{blocks.push({s:e.s,plain:'اليوم امتحان '+C[e.s].name+' الشهري. بالتوفيق، ولا تدرس شي جديد لهالمادة'});src.push(null)});
+    x.prep.forEach(p=>{blocks.push(p.lecs?{s:p.e.s,lecs:p.lecs,w:p.span||1,mtag:tag(p),added:p.added}:{s:p.e.s,plain:p.plain,mtag:'امتحان شهري'});src.push(p)});
+    x.other.forEach(b=>{const {j,...o}=b;blocks.push(o);src.push(b)});
+    blocks.forEach((b,j)=>{(b.lecs||[]).forEach(l=>used.add(l.v+"#"+l.qi));if(b.plain){b.pid='p'+kk(x.d)+'-'+j;if(src[j])src[j].pid=b.pid}});
+    return {d:new Date(x.d),blocks}});
+  const missed=[];for(const y of base)if(!y.past&&y.d>=from&&y.d<R)for(const b of y.blocks)for(const l of b.lecs||[])if(!used.has(l.v+"#"+l.qi)&&live(l))missed.push({...l,s:b.s});
+  const after=base.filter(y=>y.d>=R).map(y=>({...y,blocks:y.blocks.map(b=>b.lecs?{...b,lecs:b.lecs.filter(l=>!used.has(l.v+"#"+l.qi))}:b).filter(b=>!b.lecs||b.lecs.length)}));
+  return base.filter(y=>y.d<from).concat(win,missed.length?placeMissed(after,missed,R):after)}
 // heavier is fine when the student chose more hours
 const mLoad=m=>{const f=MK()/3;return m<=120*f?['مريح','ok']:m<=180*f?['متوسط','mid']:['ثقيل','high']};
 // exams that were behind: once one stops being behind, its card says the student is back to the normal daily pace (until that exam passes)
@@ -614,23 +650,24 @@ function mCards(){
       <span class="alt">${mScope(e,t)}</span>
       <span class="sb-t"><i style="width:${pc}%"></i></span>
       <span>${e.left?`باقي ${ar(e.left)} محاضرة (${dur(e.mins)} فيديو)${e.studyDays?' على '+daysWord(e.studyDays)+'، تقريباً '+dur(e.perDay)+' باليوم':''}`:'خلصت كل محاضراته، ركّز على الأسئلة والمراجعة'}</span>
-      ${e.late?`<span class="m-load high">متأخر بهالمادة: بأيام دراستها ياخذ ٣ محاضرات باليوم بنفس جلساتك (${SESS_W(MK())})، بدون ساعات زايدة. الامتحان الأقرب ياخذ دوره أول. شغّل محاضراتها بسرعة ١.٢٥ أو ١.٥ حتى تخلص أسرع وترجع للسير الطبيعي${e.back?'، ويوم '+DN[e.back.getDay()]+' '+dstr(e.back)+' ترجع للسير اليومي الطبيعي':''}</span>`:''}
+      ${e.late?`<span class="m-load high">متأخر بهالمادة: بأيام دراستها ياخذ ٣ محاضرات باليوم بنفس جلساتك (${SESS_W(MK())}). الامتحان الأقرب ياخذ دوره أول. شغّل محاضراتها بسرعة ١.٢٥ أو ١.٥ حتى تخلص أسرع وترجع للسير الطبيعي${e.back?'، ويوم '+DN[e.back.getDay()]+' '+dstr(e.back)+' ترجع للسير اليومي الطبيعي':''}</span>`:''}
+      ${e.added?'<span class="m-load high">حتى تكمل الفصل كامل قبل الامتحان، ضفنا '+ar(e.added)+' جلسة إضافية فوق جلساتك، لأن ما نتخطى أي محاضرة'+(e.late?'':'. شغّلها بسرعة ١.٢٥ أو ١.٥ حتى تخلص أسرع')+'</span>':''}
       ${e.reached?'<span class="m-load ok">وصلت لحد السير اليومي الطبيعي لهالمادة، كمّل بجدولك العادي</span>':''}
       ${e.left&&!e.late&&!(e.over&&e.over.length)?`<span class="m-load ${cls}">الحمل: ${lv}${cls==='high'?'. شغّل محاضراته بسرعة ١.٢٥ أو ١.٥ بدل ما تسهر، وتأكد من الفصول اللي يشملها الامتحان':''}</span>`:''}
       ${e.over&&e.over.length?`<span class="m-load high">ما تلحق ${ar(e.over.length)} محاضرة (${dur(e.over.reduce((a,l)=>a+lm(l),0))}) قبل الامتحان، تبدي من «${esc(e.over[0].t)}». زيد ساعات الدراسة، أو احذف الفصول اللي ما يشملها الامتحان، أو ركّز على ملخصها وأسئلتها الوزارية</span><button type="button" class="linkbtn m-tojump" data-s="${e.s}">حدد لحد يا محاضرة يوصل الامتحان</button>`:''}
       ${e.mock||e.review?`<span class="alt">${e.mock?'امتحان تجريبي قبله بيومين، و':''}${e.review?'مراجعة خفيفة باليوم اللي قبله':''}</span>`:''}</div>`}).join(''):'<p class="note">ما حددت مواعيد بعد. اكتب موعد امتحان كل مادة فوق واحفظ، والجدول ينبني لحاله.</p>';
   $('mExams').querySelectorAll('.m-tojump').forEach(b=>b.onclick=()=>{const r=document.querySelector('.m-row[data-s="'+b.dataset.s+'"]');if(!r)return;const d=r.querySelector('details');d.open=true;r.scrollIntoView({behavior:'smooth',block:'center'});setTimeout(()=>r.querySelector('.m-to select')?.focus(),400)});
-  $('mExams').querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>{monthly=monthly.filter(e=>e.id!==b.dataset.del);saveM();mForm();mRender();mBanner();toast('انحذف الامتحان')});
+  $('mExams').querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>{monthly=monthly.filter(e=>e.id!==b.dataset.del);saveM();render();mForm();mRender();toast('انحذف الامتحان')});
 }
 function mRender(){
   mCards();
-  sessBox($('mSess'),MK(),k=>{prefs.mk=k;savePrefs();mRender();mBanner();toast('صار جدول الامتحانات '+SESS_L[k][1]+' ('+SESS_W(k)+')، وتقدّمك بقى مثل ما هو')});
-  const {days}=mPlan();let S,PR,RV;
+  sessBox($('mSess'),kBase(mFrom()),k=>{const f=mFrom();prefs.sess=prefs.sess.filter(x=>parseKey(x.from)<f);if(kBase(new Date(f.getTime()-864e5))!==k||!prefs.sess.length)prefs.sess.push({from:kk(f),k});savePrefs();render();mForm();mRender();toast('صار يومك '+SESS_L[k][1]+' ('+SESS_W(k)+') بالجدولين، وتقدّمك بقى مثل ما هو')});
+  const {days}=P.mon;let S,PR,RV;
   const host=$('mPlan');host.innerHTML='';
   if(!days.length){$('mPlanH').hidden=true;$('mWhy').hidden=true;return}
   $('mPlanH').hidden=false;$('mWhy').hidden=false;
   for(const x of days){
-    const TX=timeline(MK(),x.d);S=TX.filter(r=>typeof r[2]==='number');PR=TX.find(r=>r[2]==='practice');RV=TX.find(r=>r[2]==='review');
+    const TX=timeline(kOf(x.d),x.d);S=TX.filter(r=>typeof r[2]==='number');PR=TX.find(r=>r[2]==='practice');RV=TX.find(r=>r[2]==='review');
     const isT=x.d.getTime()===TODAY.getTime(),day=document.createElement('div');day.className='day'+(x.exams.length?' m-exam':'')+(isT?' today':'');
     day.innerHTML=`<div class="date"><span class="dn">${DN[x.d.getDay()]}</span><span class="dd">${ar(x.d.getDate())}</span><span class="dm">${MN[x.d.getMonth()]}</span>${isT?'<span class="tlabel">اليوم</span>':''}</div><div class="subjs"></div>`;
     const box=day.querySelector('.subjs');let k=0;
@@ -640,9 +677,9 @@ function mRender(){
       el.innerHTML=`<div class="subj-h"><span class="m-load ok">وصلت لحد السير اليومي الطبيعي لـ${x.back.map(e=>C[e.s].name).join(' و')}، من اليوم جلساتها ترجع عادية</span></div>`;box.appendChild(el)}
     const blocks=x.prep.map(p=>({...p,s:p.e.s,pri:1})).concat(x.other);
     for(const b of blocks){const el=document.createElement('div');el.className='subj'+(b.pri?' m-pri':'')+(b.opt?' m-opt':'');el.dataset.s=b.s;el.style.setProperty('--c','var('+COLOR[b.s]+')');
-      const r=b.opt?null:S[Math.min(k,S.length-1)],r2=r&&S[Math.min(k+(b.span||1)-1,S.length-1)];if(r)k+=b.span||1;const tm=r?`<span class="tm">${range(r[0],r2[1])}</span>`:`<span class="tm">${b.opt?'اختياري':'إذا عندك وقت'}</span>`;
-      const nm=b.s==='rev'?'مراجعة':C[b.s].name,tag=b.pri?'<span class="m-tag">'+(b.catchup?'تعويض تأخير · ٣ محاضرات':'امتحان شهري')+'</span>':'',optW=b.opt?'<span class="w">إذا تعبان أجّلها، وترتبها بعدين من «تأخرت؟» بالجدول الرئيسي</span>':'';
-      if(b.plain){const id=b.pri?'m'+kk(x.d)+'-'+b.s:'p'+kk(x.d)+'-'+b.j;
+      const r=b.opt||b.added?null:S[Math.min(k,S.length-1)],r2=r&&S[Math.min(k+(b.span||1)-1,S.length-1)];if(r)k+=b.span||1;const tm=r?`<span class="tm">${range(r[0],r2[1])}</span>`:`<span class="tm">${b.added?'جلسة إضافية':b.opt?'اختياري':'إذا عندك وقت'}</span>`;
+      const nm=b.s==='rev'?'مراجعة':C[b.s].name,tag=b.pri?'<span class="m-tag">'+(b.added?'جلسة إضافية حتى تكمل الفصل':b.catchup?'تعويض تأخير · ٣ محاضرات':'امتحان شهري')+'</span>':'',optW=b.opt?'<span class="w">إذا تعبان أجّلها، وترتبها بعدين من «تأخرت؟» بالجدول الرئيسي</span>':'';
+      if(b.plain){const id=b.pid||(b.pri?'m'+kk(x.d)+'-'+b.s:'p'+kk(x.d)+'-'+b.j);
         el.innerHTML=`<div class="subj-h">${tm}${tag}${optW}</div><div class="lec"><input type="checkbox" id="${id}"><label for="${id}" class="plain"><span class="subj-h"><span class="s">${nm}</span></span> <span class="t">${esc(b.plain)}</span></label><span></span></div>`;check(el.querySelector('.lec'),id)}
       else{const t=P.T[b.s];el.innerHTML=`<div class="subj-h">${tm}${tag}<span class="s">${nm}</span><span class="w">${esc([...new Set(b.lecs.map(l=>t.lists[l.li].by))].join(' و'))}${b.fast?' · شغّلها بسرعة '+b.fast:b.catchup?' · شغّلها بسرعة ١.٢٥ أو ١.٥ حتى تخلص أسرع':''}</span>${optW}</div>`;
         b.lecs.forEach(l=>{const id='v'+l.v,rw=document.createElement('div');rw.className='lec';
@@ -689,12 +726,12 @@ $('mSave').onclick=()=>{const from=mFrom();let n=0,bad=0;
     const li=[...r.querySelectorAll('.sch-box input:checked')].map(i=>+i.value);
     const val=c=>{const x=r.querySelector(c);return x&&x.value||''},to=val('.m-toS'),rg={};if(val('.m-rf'))rg.f=val('.m-rf');if(val('.m-rt'))rg.t=val('.m-rt');
     monthly.push({id:s+'-'+kk(ex),s,d:kk(ex),li:li.length?li:[0],...(to?{to}:{}),...(rg.f||rg.t?{r:rg}:{})});n++});
-  saveM();mForm();mRender();mBanner();
+  saveM();render();mForm();mRender();
   toast(bad?'في موعد قبل اليوم وما انحفظ، صححه':n?'انحفظت مواعيد '+ar(n)+' امتحانات وترتب الجدول عليها':'ما حددت أي موعد')};
 // start over: removes every monthly exam date (asks first, since it can't be undone)
 $('mReset').onclick=()=>{if(!monthly.length){toast('ما عندك مواعيد امتحانات محفوظة');return}
   if(!confirm('تمسح كل مواعيد الامتحانات الشهرية وترجع تدخلها من جديد؟'))return;
-  monthly=[];saveM();mForm();mRender();mBanner();toast('انمسحت كل المواعيد، دخّلها من جديد')};
+  monthly=[];saveM();render();mForm();mRender();toast('انمسحت كل المواعيد، دخّلها من جديد')};
 // main page banner and switching between the two pages
 function mBanner(){const {ex}=mPlan(),b=$('mBanner'),n=ex.length;$('mCount').textContent=n?ar(n):'';$('mCount').hidden=!n;
   if(!n){b.hidden=true;return}const e=ex[0],d=Math.round((e.date-TODAY)/864e5);b.hidden=false;

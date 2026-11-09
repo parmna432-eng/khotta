@@ -245,8 +245,8 @@ body:not(.m-view) .monthly{display:none}
 .fontsz button:nth-of-type(1){font-size:14px}.fontsz button:nth-of-type(2){font-size:16px}.fontsz button:nth-of-type(3){font-size:18px}
 .fontsz button[aria-pressed="true"]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
 </style>
-<link rel="stylesheet" href="dream.css?v=52">
-<link rel="stylesheet" href="rez.css?v=52">
+<link rel="stylesheet" href="dream.css?v=53">
+<link rel="stylesheet" href="rez.css?v=53">
 <script>try{const p=JSON.parse(localStorage.getItem('plan6sci-dream'));const r=document.documentElement;if(p&&p.fam&&p.fam!=='other')r.dataset.dream=p.fam==='engineer'&&p.dept==='هندسة الطائرات المسيّرة'?'drone':p.fam;if(p&&p.gender==='f')r.dataset.gender='f'}catch(e){}</script>
 <script>try{const z=+localStorage.getItem('plan6sci-font');if([1.12,1.25].includes(z))document.documentElement.style.setProperty('--zoom',z)}catch(e){}</script>
 
@@ -409,8 +409,8 @@ body:not(.m-view) .monthly{display:none}
     <button class="chip" type="button" id="mReset">إعادة تعيين أيام الامتحانات</button></div>
   </div>
   <div class="m-form">
-    <p class="m-form-h">كم ساعة تدرس باليوم بأيام الامتحانات الشهرية؟ هذا لجدول الامتحانات بس، وتقدّمك ما يتأثر.</p>
-    <div class="hour-box" id="mSess" role="group" aria-label="ساعات الدراسة بأيام الامتحانات"></div>
+    <p class="m-form-h">كم ساعة تدرس باليوم؟ هذا نفس اختيار جدولك الرئيسي: الجدولين صاروا جدول واحد، وتقدّمك ما يتأثر.</p>
+    <div class="hour-box" id="mSess" role="group" aria-label="ساعات الدراسة باليوم"></div>
   </div>
   <div class="m-exams" id="mExams"></div>
   <details class="m-why" id="mWhy" hidden>
@@ -418,8 +418,8 @@ body:not(.m-view) .monthly{display:none}
     <ul>
       <li><b>يتوزع على كل الأيام قبل الامتحان</b> بدل ما تحشر المادة بآخر يومين. الدراسة الموزعة على أيام تثبت بالذاكرة أكثر بكثير من الحشر (التكرار المتباعد).</li>
       <li><b>الجلسة ساعتين ونص بالكثير</b>، يعني محاضرتين أو ثلاث. اللي يزيد يروح لجلسة ثانية، وما ينحشر بنفس الجلسة.</li>
-      <li><b>الأولوية لأقرب امتحان</b>: مادة أول امتحان تاخذ جلسات اليوم أول، وبعدها مادة الامتحان الثاني، وهيج للأخير. موادك من الجدول الرئيسي تاخذ اللي يبقى. المادة تاخذ جلستين باليوم بالكثير، وإذا الوقت ما يكفي كل مادة امتحان تاخذ جلسة قبل ما تاخذ أي مادة جلسة ثانية، واللي ما يلحق يطلعلك ببطاقة المادة.</li>
-      <li><b>ثلاث جلسات دراسة باليوم بس.</b> إذا زادت مادة من الجدول الرئيسي تطلع «اختياري»: تقراها إذا عندك طاقة، أو تأجلها بدون تأنيب ضمير.</li>
+      <li><b>الأولوية لأقرب امتحان</b>: مادة أول امتحان تاخذ جلسات اليوم أول، وبعدها مادة الامتحان الثاني، وهيج للأخير. موادك الثانية تاخذ اللي يبقى من جلساتك، بنفس تسلسلها، واللي ما يلحق ينتقل لبعد الامتحانات. المادة المتأخرة تاخذ ٣ محاضرات باليوم لحد ما ترجع للسير الطبيعي.</li>
+      <li><b>جدول واحد، وما نتخطى أي محاضرة.</b> هذا نفس جدولك الرئيسي، بنفس جلساتك. وإذا الوقت ما يكفي حتى تكمل الفصل كامل قبل الامتحان، نضيف جلسة إضافية بدل ما نتخطى محاضرات، ونكتبلك عليها.</li>
       <li><b>كل يوم تختبر نفسك</b>: أسئلة وزارية على اللي درسته، وتسميع بدون ما تفتح الدفتر لمحاضرات قبل ٣ أيام. اختبار النفس يثبت المعلومة أحسن من إعادة القراءة.</li>
       <li><b>قبل الامتحان بيومين امتحان تجريبي</b> بنفس الوقت الحقيقي، حتى تكتشف أخطاءك وعندك وقت تصلحها.</li>
       <li><b>اليوم اللي قبله مراجعة خفيفة ونوم ٧ إلى ٨ ساعات</b>، لأن النوم هو اللي يثبت الحفظ. ويوم الامتحان ما بيه محاضرات جديدة للمادة.</li>
@@ -437,10 +437,10 @@ body:not(.m-view) .monthly{display:none}
 </div>
 <div class="toast" id="toast" role="status" hidden></div>
 
-<script src="data.js?v=52"></script>
-<script src="plan.js?v=52"></script>
-<script src="dream.js?v=52"></script>
-<script src="rez.js?v=52"></script>
+<script src="data.js?v=53"></script>
+<script src="plan.js?v=53"></script>
+<script src="dream.js?v=53"></script>
+<script src="rez.js?v=53"></script>
 
 </body>
 </html>

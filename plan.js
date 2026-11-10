@@ -4,12 +4,13 @@ const C=window.CATALOG, ORDER=Object.keys(C);
 const PREF='plan6sci-prefs', DONE='plan6sci-v3', NOTICE='plan6sci-notice-alt', HARD='plan6sci-hard';
 const DONE_BEFORE=window.PLAN_DONE_BEFORE||{}; // lectures already watched before the plan started, per subject (main teacher only)
 const START=new Date(2026,10,1), SLOT=145, REVIEW_DAYS=6;
-const HOURS=[7,8,9,10,13,14];
+// study start hours: 7 to 11 in the morning, 12 to 6 in the afternoon and evening
+const HOURS=[7,8,9,10,11,12,13,14,15,16,17,18];
 // study sessions a day (two and a half hours each, with a 10-minute break every hour); 4 only fits a morning start
 const SESS_N=[2,3,4];
 const SESS_L={2:['خفيف','٧ إلى ٨ ساعات'],3:['عادي','٩ إلى ١٠ ساعات'],4:['مكثف','حوالي ١٢ ساعة']};
 const SESS_W=k=>k===1?'جلسة وحدة':k===2?'جلستين':ar(k)+' جلسات';
-const hourLabel=h=>ar(h>12?h-12:h)+(h>=12?' الظهر':' الصبح');
+const hourLabel=h=>ar(h>12?h-12:h)+(h<12?' الصبح':h<15?' الظهر':h<18?' العصر':' المسا');
 const COLOR={math:'--math',phys:'--phys',bio:'--bio',chem:'--chem',eng:'--eng',isl:'--isl',ar:'--ar',rev:'--rev'};
 const RANK={math:0,phys:1,chem:2,bio:3,ar:4,eng:5,isl:6}; // hardest first in the day
 const DN=['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'];
@@ -199,7 +200,7 @@ function placeMissed(days,missed,R){
 // focus: from today the subjects the student picked take most sessions, and the other subjects still get one session a day
 // (every other day when the day has a single session), the one that waited longest first. Picked chapters come first inside
 // their subject; when they are done the subject goes back to normal. Every lecture stays in the plan and ticks never change.
-function focusFlow(days,F){
+function focusFlow(days,F,margin=0){
   const from=new Date(Math.max(TODAY,START)),isLight=k=>k==='isl'||k==='arL',subj=k=>k==='arL'?'ar':k;
   const kind=(s,l)=>s==='ar'&&PARTS.ar&&l.li===1?'arL':s,q={};
   for(const y of days)if(!y.past&&y.d>=from)for(const b of y.blocks)for(const l of b.lecs||[]){const k=kind(b.s,l);(q[k]=q[k]||[]).push(l)}
@@ -207,22 +208,35 @@ function focusFlow(days,F){
   const foc=k=>{const s=subj(k);if(!F.s.includes(s)||!q[k].length)return false;const ch=F.ch[s];return !ch||ch.includes(q[k][0].li)};
   const mm=l=>l.dm||l.m,last={},out=days.filter(y=>y.past||y.d<from),d=new Date(from);let idx=0;
   const any=()=>Object.values(q).some(L=>L.length);
+  // the end of the plan without focus, and how many sessions a subject still needs (cut the way sessions are cut below)
+  const END=days.length?days[days.length-1].d:from;
+  const chunks=x=>{const L=q[x];let n=0,i=0;
+    while(i<L.length){let acc=mm(L[i]),c=1;i++;while(i<L.length&&acc+mm(L[i])<=SESS_MIN){acc+=mm(L[i]);c++;i++}
+      n+=c===1?Math.max(1,Math.ceil(acc/(SESS_MIN*1.1))):1}
+    return n};
   while(any()&&idx<2000){
     const fri=d.getDay()===5,k0=kDay(d),ks=Object.keys(q).filter(k=>q[k].length);
-    const lightK=ks.filter(k=>isLight(k)&&!foc(k)),heavy=ks.filter(k=>!lightK.includes(k));
+    // light lessons (Islamic, Arabic literature) keep their shared daily line; a picked one also takes full sessions
+    const lightK=ks.filter(isLight),heavy=ks.filter(k=>!isLight(k)||foc(k));
     const useL=lightK.length&&(k0>=2||!heavy.length),k=useL?Math.max(0,k0-1):k0;
     const Fk=heavy.filter(foc),Sk=heavy.filter(x=>!foc(x)),blocks=[],cnt={};let u=0;
     const take=x=>{const L=q[x],o=[];let acc=0;while(L.length&&(!o.length||acc+mm(L[0])<=SESS_MIN)){o.push(L[0]);acc+=mm(L[0]);L.shift()}
       const w=o.length===1?Math.max(1,Math.ceil(mm(o[0])/(SESS_MIN*1.1))):1;if(u&&u+w>k){q[x].unshift(...o);return false}
       blocks.push({s:subj(x),lecs:o,w});u+=w;cnt[x]=(cnt[x]||0)+1;last[x]=idx;return true};
     const wait=(a,b)=>(last[a]??-1)-(last[b]??-1)||q[b].length-q[a].length;
-    // one session for the other subjects (every other day when the day has one session), then the picked subjects, two each at most
-    let sec=Fk.length&&Sk.length?(k>=2?1:idx%2):0;
-    for(const x of Sk.slice().sort(wait)){if(sec<=0||u>=k)break;if(take(x))sec--}
+    // the plan keeps the end the student's own plan had: a subject whose sessions left wouldn't fit one a day before that end
+    // takes what it needs today first (two at most), whether it is picked or not
+    const dLeft=Math.max(1,Math.round((END-d)/864e5)+1);
+    const need=x=>Math.min(2,Math.max(0,chunks(x)-Math.max(0,dLeft-1-margin)));
+    for(const x of heavy.slice().sort((a,b)=>need(b)-need(a)||wait(a,b)))for(let r=need(x);r>0;r--){if(u>=k||!q[x].length||!take(x))break}
+    // then one session for the other subjects (every other day when the day has one session), then the picked subjects, two each at most
+    let sec=Fk.length&&Sk.length?Math.max(0,(k>=2?1:idx%2)-Sk.filter(x=>cnt[x]).length):0;
+    for(const x of Sk.slice().sort(wait)){if(sec<=0||u>=k)break;if(!cnt[x]&&take(x))sec--}
     for(let r=0;r<2;r++)for(const x of Fk.slice().sort(wait)){if(u>=k)break;if((cnt[x]||0)===r&&q[x].length&&foc(x))take(x)}
-    for(const x of Sk.slice().sort(wait)){if(u>=k)break;if(!cnt[x])take(x)}
+    // a session nobody picked goes to the other subjects, a second one each when room is still left
+    for(let r=0;r<2;r++)for(const x of heavy.slice().sort(wait)){if(u>=k)break;if((cnt[x]||0)===r&&q[x].length)take(x)}
     blocks.sort((a,b)=>RANK[a.s]-RANK[b.s]);
-    if(useL)for(const x of lightK)blocks.push({s:subj(x),lecs:[q[x].shift()],w:lightK.length>1?.5:1});
+    if(useL){const lk=lightK.filter(x=>q[x].length);for(const x of lk)blocks.push({s:subj(x),lecs:[q[x].shift()],w:lk.length>1?.5:1})}
     if(fri)blocks.push({s:'rev',plain:'مراجعة الأسبوع: ارجع لملخصات كل مادة وحل ١٠ أسئلة وزارية منها'});
     out.push({d:new Date(d),blocks});d.setDate(d.getDate()+1);idx++}
   return out}
@@ -268,7 +282,9 @@ function build(){
       return {d:x.d,past:true,blocks:blocks.filter(b=>b.s==='rev'||b.lecs.length||b.moved.length)}});
     if(missed.length)days=placeMissed(days,missed,R);
   }
-  if(prefs.focus)days=focusFlow(days,{...prefs.focus,s:prefs.focus.s.filter(s=>act.includes(s))});
+  // focus never moves the plan's end: if a run ends later it is planned again with the subjects at risk starting earlier, and if none fits the plan stays as it is
+  let focusOff=false;if(prefs.focus){const F={...prefs.focus,s:prefs.focus.s.filter(s=>act.includes(s))},end=days[days.length-1].d;let r=null;
+    for(let m=0;m<=14&&!r;m+=2){const t=focusFlow(days,F,m);if(t[t.length-1].d<=end)r=t}if(r)days=r;else focusOff=true}
   // monthly exams go into this same plan (see mMerge)
   const base=days;P={act,T,Q,days:base,base};const mon=mPlan(base);days=mMerge(base,mon);
   const d=new Date(days[days.length-1].d);d.setDate(d.getDate()+1);
@@ -282,7 +298,7 @@ function build(){
   const slots={};days.forEach(x=>!x.past&&x.blocks.forEach(b=>{if(b.lecs)slots[b.s]=(slots[b.s]||0)+1}));
   const ids=[],idsBy={};for(const s of act){idsBy[s]=Q[s].map(l=>'v'+l.v);ids.push(...idsBy[s])}
   if(!get(MIG)){put(MIG,1);saveDone();put(HARD,hard)}
-  return {act,T,Q,days,tot,slots,ids,idsBy,base,mon};
+  return {act,T,Q,days,tot,slots,ids,idsBy,base,mon,focusOff};
 }
 
 /* ---------- render ---------- */
@@ -519,7 +535,7 @@ function focusUI(){const F=prefs.focus,act=P.act;
   // ticking a chapter picks its subject too
   $('focusBox').querySelectorAll('.f-ch').forEach(c=>c.onchange=()=>{if(c.checked)c.closest('.f-row').querySelector('.f-s').checked=true});
   $('focusReset').hidden=!F;
-  const b=$('fBanner');b.hidden=!F;if(F)b.querySelector('span').textContent='جدولك مركّز على '+fNames(F)+' من '+dstr(parseKey(F.from))+'، والمواد الثانية إلها جلسة كل يوم.'}
+  const b=$('fBanner');b.hidden=!F;if(F)b.querySelector('span').textContent=P.focusOff?'اخترت تركّز على '+fNames(F)+'، بس هذا يأخر نهاية خطتك، فبقى جدولك مثل ما هو. جرّب مواد أقل أو فصل محدد.':'جدولك مركّز على '+fNames(F)+' من '+dstr(parseKey(F.from))+'، والمواد الثانية إلها جلسة كل يوم، ونهاية خطتك ما تتغير.'}
 const fClose=()=>{$('focusEdit').hidden=true;$('focusToggle').setAttribute('aria-expanded','false')};
 const fReset=()=>{if(!prefs.focus)return;delete prefs.focus;savePrefs();fClose();rerender('رجع جدولك الافتراضي بدون تفضيل مواد، وتقدّمك بقى مثل ما هو')};
 $('focusToggle').onclick=()=>{const box=$('focusEdit');box.hidden=!box.hidden;$('focusToggle').setAttribute('aria-expanded',!box.hidden)};
@@ -530,7 +546,7 @@ $('focusApply').onclick=()=>{const s=[],ch={};
   if(s.length===P.act.length&&!Object.keys(ch).length){toast('اخترت كل المواد، وهذا نفس الجدول الافتراضي');return}
   const F={from:kk(new Date(Math.max(TODAY,START))),s,ch};
   if(!confirm('جدولك من اليوم وجاي راح يتغير: '+fNames(F)+' تاخذ أغلب جلساتك، والمواد الثانية جلسة كل يوم. تقدّمك يبقى مثل ما هو. نكمل؟'))return;
-  prefs.focus=F;savePrefs();fClose();rerender('صار جدولك مركّز على '+fNames(F)+'. تكدر ترجع للجدول الافتراضي من فوق بأي وقت')};
+  prefs.focus=F;savePrefs();fClose();render();toast(P.focusOff?'هالتركيز يأخر نهاية خطتك، فبقى جدولك مثل ما هو. جرّب مواد أقل':'صار جدولك مركّز على '+fNames(F)+'، ونهاية خطتك بقت نفسها')};
 
 /* ---------- subjects editor ---------- */
 $('subjToggle').onclick=()=>{const box=$('subjEdit');box.hidden=!box.hidden;$('subjToggle').setAttribute('aria-expanded',!box.hidden)};

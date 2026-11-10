@@ -64,8 +64,12 @@ function clock(m){m=((m%1440)+1440)%1440;if(m===0)return'١٢:٠٠ منتصف ا
 const hhmm=t=>{const [a,b]=t.split(':').map(Number);return a*60+b};
 const schoolOn=d=>{const c=prefs.school;if(!c)return false;if(!d)return true;if(typeof isRam==='function'&&isRam(d))return false;
   return d.getDay()!==5&&d.getDay()!==6&&(!c.from||parseKey(c.from)<=d)};
-function schoolRows(k){const a=hhmm(prefs.school.a),b=hhmm(prefs.school.b),pm=a>=660,wake=pm?420:a-60,bed=pm?1410:Math.min(1410,wake+1020);
-  const wins=(pm?[[wake+45,a-45]]:[]).concat([[b+60,bed]]);
+// the student's chosen start hour is the earliest a session starts on school days too: with afternoon school they wake 45
+// minutes before it (and before school), and a late hour moves study after school and bedtime later; with morning school
+// wake-up stays an hour before school and sessions start after school, not before the chosen hour
+function schoolRows(k){const a=hhmm(prefs.school.a),b=hhmm(prefs.school.b),pm=a>=660,H=prefs.hour*60;
+  const wake=pm?Math.max(300,Math.min(H-45,a-105)):a-60,bed=pm?Math.min(1590,Math.max(1410,wake+1020)):Math.min(1410,wake+1020);
+  const wins=(pm?[[Math.max(wake+45,H),a-45]]:[]).concat([[Math.max(b+60,H),bed]]);
   const place=n=>{const rows=[];let w=0,cur=wins[0][0];
     for(let i=0;i<n;i++){while(w<wins.length&&cur+150>wins[w][1]){w++;if(w<wins.length)cur=wins[w][0]}
       if(w>=wins.length)return null;rows.push([cur,cur+150,i]);cur+=150;if(i<n-1&&cur+20<=wins[w][1]){rows.push([cur,cur+20,'استراحة قصيرة']);cur+=20}}
@@ -73,7 +77,7 @@ function schoolRows(k){const a=hhmm(prefs.school.a),b=hhmm(prefs.school.b),pm=a>
     if(w>=wins.length)return null;const end=wins[w][1],pr=Math.min(90,end-cur-20);rows.push([cur,cur+pr,'practice'],[cur+pr,cur+pr+20,'review']);cur+=pr+20;
     if(cur<end)rows.push([cur,end,'وقت حر وراحة قبل النوم']);return rows};
   let n=k,rows=null;while(n>=1&&!(rows=place(n)))n--;
-  if(!rows){const st=b+60;rows=[[st,st+150,0],[st+150,st+180,'practice'],[st+180,st+195,'review']]}
+  if(!rows){const st=Math.max(b+60,Math.min(H,bed-195));rows=[[st,st+150,0],[st+150,st+180,'practice'],[st+180,st+195,'review']]}
   const fixed=(pm?[[wake,wake+45,'الكعدة، فطور خفيف، ترتيب مكان الدراسة'],[a-45,a,'تحضير والطريق للمدرسة']]:[[wake,a,'الكعدة، فطور والطريق للمدرسة']]).concat([[a,b,'دوام المدرسة'],[b,b+60,'رجعة من الدوام، غداء وراحة'],[Math.max(bed,rows[rows.length-1][1]),Math.max(bed,rows[rows.length-1][1])+480,'نوم']]);
   return rows.concat(fixed).sort((x,y)=>x[0]-y[0])}
 const schoolFit=k=>schoolRows(k).filter(r=>typeof r[2]==='number').length;

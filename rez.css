@@ -123,8 +123,8 @@ select{min-height:44px}
 .toolbar{gap:12px}
 
 /* navigation: bottom bar on phones, sticky bar on wide screens */
-.rz-nav{position:fixed;z-index:30;inset-inline:0;bottom:0;display:grid;grid-template-columns:repeat(4,1fr);background:var(--card);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px)}
-.rz-nav button{font:inherit;font-size:14px;font-weight:500;min-height:56px;background:none;border:0;color:var(--muted);cursor:pointer;position:relative}
+.rz-nav{position:fixed;z-index:30;inset-inline:0;bottom:0;display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);background:var(--card);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px)}
+.rz-nav button{font:inherit;font-size:14px;font-weight:500;min-height:56px;padding-inline:0;background:none;border:0;color:var(--muted);cursor:pointer;position:relative}
 .rz-nav button[aria-current="true"]{color:var(--ink);font-weight:700}
 .rz-nav button[aria-current="true"]::before{content:"";position:absolute;inset-inline:22%;top:-1px;height:3px;background:var(--today)}
 body{padding-bottom:calc(56px + env(safe-area-inset-bottom,0px))}
@@ -168,3 +168,11 @@ body{padding-bottom:calc(56px + env(safe-area-inset-bottom,0px))}
 .rs-row{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end}
 .rs-row label{display:flex;flex-direction:column;gap:4px;font-size:14px;color:var(--muted);flex:1 1 180px;min-width:0}
 .rs-row select,.rs-row input{width:100%;min-height:44px;font:inherit;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:8px;padding:6px 10px}
+
+/* shapes (DESIGN.md): 6px for sheets, panels and tags, 8px for controls, no pills */
+.late,.subj-edit,.notice,.exam-edit,.rep,.m-form,.m-why,.mon,.term,.onb-card,.story-card,.story-img img,.bdg,.m-tag,.m-count,.late-tag{border-radius:6px}
+.sch,.toast,.hours-pick button,.dept button,.dream-grid button,.go,.late-btns .chip{border-radius:8px}
+.sb-t,.plainbar{border-radius:2px}
+/* lectures left today: its own line under the date, so the month and the video time keep their places */
+#plan .day.today .hrs.tleft{grid-column:1/-1;grid-row:4;justify-self:start;color:var(--today);font-weight:600}
+#plan .day.today .hrs.tleft:not(:empty){margin-top:4px}

@@ -188,6 +188,9 @@ body:not(.m-view) .monthly{display:none}
 .f-row details .sch{font-size:14px}
 .f-warn{margin:0;font-size:14px;color:var(--today);font-weight:600}
 .f-acts{display:flex;flex-wrap:wrap;gap:8px}
+.ask{border:1px solid var(--line);border-radius:6px;background:var(--card);color:var(--ink);padding:16px;width:min(92vw,440px);font:inherit;line-height:1.7;zoom:var(--zoom,1)}
+.ask::backdrop{background:rgba(6,16,40,.55)}
+.ask p{margin:0 0 14px}
 .m-form{display:flex;flex-direction:column;gap:10px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px}
 .m-form-h{margin:0;font-size:14px;color:var(--muted)}
 .m-rows{display:flex;flex-direction:column}
@@ -252,8 +255,8 @@ body:not(.m-view) .monthly{display:none}
 .fontsz button:nth-of-type(1){font-size:14px}.fontsz button:nth-of-type(2){font-size:16px}.fontsz button:nth-of-type(3){font-size:18px}
 .fontsz button[aria-pressed="true"]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
 </style>
-<link rel="stylesheet" href="dream.css?v=58">
-<link rel="stylesheet" href="rez.css?v=58">
+<link rel="stylesheet" href="dream.css?v=59">
+<link rel="stylesheet" href="rez.css?v=59">
 <script>try{const p=JSON.parse(localStorage.getItem('plan6sci-dream'));const r=document.documentElement;if(p&&p.fam&&p.fam!=='other')r.dataset.dream=p.fam==='engineer'&&p.dept==='هندسة الطائرات المسيّرة'?'drone':p.fam;if(p&&p.gender==='f')r.dataset.gender='f'}catch(e){}</script>
 <script>try{const z=+localStorage.getItem('plan6sci-font');if([1.12,1.25].includes(z))document.documentElement.style.setProperty('--zoom',z)}catch(e){}</script>
 
@@ -383,7 +386,7 @@ body:not(.m-view) .monthly{display:none}
     </div>
   </section>
 
-  <section>
+  <section id="daySec">
     <h2>يومك الدراسي</h2>
     <p class="sub">اختار الساعة اللي تبدي بيها دراستك بالعادة، وأوقات يومك وجلسات الجدول كلها تتحسب عليها. إذا عندك دوام الصبح اختار ١ أو ٢ الظهر، ويومك يترتب بعد الدوام باستراحات أقصر. وداخل كل جلسة ٥٠ دقيقة دراسة و١٠ دقايق استراحة.</p>
     <div class="hour-box" id="hourBox" role="group" aria-label="ساعة بداية الدراسة"></div>
@@ -442,6 +445,7 @@ body:not(.m-view) .monthly{display:none}
       <li><b>إذا الحمل ثقيل</b> شغّل المحاضرات بسرعة ١.٢٥ أو ١.٥ بدل ما تسهر، وتأكد من الفصول اللي يشملها الامتحان فعلاً.</li>
     </ul>
   </details>
+  <button class="chip solid" type="button" id="mToPlan" hidden>شوف أيام الامتحانات بجدولك</button>
   <h3 id="mPlanH" hidden>جدول الامتحانات</h3>
   <div id="mPlan" class="m-plan"></div>
 </section>
@@ -453,10 +457,11 @@ body:not(.m-view) .monthly{display:none}
 </div>
 <div class="toast" id="toast" role="status" hidden></div>
 
-<script src="data.js?v=58"></script>
-<script src="plan.js?v=58"></script>
-<script src="dream.js?v=58"></script>
-<script src="rez.js?v=58"></script>
+<dialog id="ask" class="ask" aria-labelledby="askMsg"><p id="askMsg"></p><div class="f-acts"><button class="chip solid" type="button" id="askOk"></button><button class="chip" type="button" id="askNo">إلغاء</button></div></dialog>
+<script src="data.js?v=59"></script>
+<script src="plan.js?v=59"></script>
+<script src="dream.js?v=59"></script>
+<script src="rez.js?v=59"></script>
 
 </body>
 </html>

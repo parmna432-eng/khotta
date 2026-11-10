@@ -185,7 +185,7 @@ function streakN(){
 function streakCard(){
   const el=document.getElementById('mStreak');if(!el)return;
   const n=streakN();
-  el.innerHTML=`<span class="k">أيام الالتزام ورا بعض</span><span class="v">${n?ar(n)+(n===1?' يوم':n<11?' أيام':' يوم'):'ابدأ اليوم'}</span><span class="s">${n?'أشّر محاضرة اليوم حتى ما ينقطع العداد':'أشّر أول محاضرة تخلصها'}</span>`;
+  el.innerHTML=`<span class="k">أيام الالتزام ورا بعض</span><span class="v">${n?ar(n)+(n===1?' يوم':n<11?' أيام':' يوم'):'ابدأ اليوم'}</span><span class="s">${!n?'أشّر أول محاضرة تخلصها':new Set(Array.isArray(get(DAYS))?get(DAYS):[]).has(dayKey(new Date()))?'اليوم محسوب. كمّل باجر حتى يكبر العداد':'اليوم بعده ما محسوب: أشّر محاضرة حتى ما ينقطع العداد'}</span>`;
 }
 function quoteCard(){
   const el=document.getElementById('mQuote');if(!el)return;

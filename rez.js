@@ -55,13 +55,13 @@ if(filters)filters.addEventListener('click',()=>setTimeout(()=>{const b=filters.
 
 // nav
 const nav=document.createElement('nav');nav.className='rz-nav';nav.setAttribute('aria-label','أقسام الموقع');
-const items=[['today','اليوم'],['days','الأيام'],['exams','الامتحانات'],['teach','المدرسين']];
+const items=[['today','اليوم'],['days','الأيام'],['exams','الامتحانات'],['teach','المدرسين'],['set','الإعدادات']];
 nav.innerHTML=items.map(([k,t])=>`<button type="button" data-go="${k}">${t}</button>`).join('');
 wrap.before(nav);
 const inMonthly=()=>document.body.classList.contains('m-view');
 const mark=k=>qa('button',nav).forEach(b=>b.setAttribute('aria-current',b.dataset.go===k));
 const reduce=matchMedia('(prefers-reduced-motion:reduce)').matches,behavior=reduce?'auto':'smooth';
-const target=k=>k==='today'?(q('.day.today',plan)||schedule):k==='days'?days:$('teachersSec');
+const target=k=>k==='today'?(q('.day.today',plan)||schedule):k==='days'?days:k==='set'?$('daySec'):$('teachersSec');
 function go(k){
   if(k==='exams'){if(!inMonthly())$('mOpen').click();mark(k);scrollTo({top:0,behavior});return}
   const jump=()=>{const y=target(k).getBoundingClientRect().top+scrollY-(innerWidth>=900?64:12);scrollTo({top:k==='today'?0:y,behavior});mark(k)};

@@ -49,6 +49,8 @@ function loadPrefs(){
   // grammar study: full lectures or a teacher's focused review (only subjects with a review in the catalog)
   out.rev={};for(const s of ORDER)if(C[s].review&&p.rev&&p.rev[s]===true)out.rev[s]=true;
   if(parseKey(p.undoAt))out.undoAt=p.undoAt;
+  // the student lifted the daily limit on extra exam sessions
+  if(p.xfree===true)out.xfree=true;
   // focus: subjects (and optionally some of their chapters) that take most sessions from `from` on
   const f=p.focus;if(f&&parseKey(f.from)&&Array.isArray(f.s)){const s=f.s.filter(x=>ORDER.includes(x));
     if(s.length){const ch={};for(const x of s){const L=f.ch&&f.ch[x];if(Array.isArray(L)){const v=L.filter(li=>Number.isInteger(li)&&li>=0&&li<mainOf(x).lists.length);if(v.length)ch[x]=v}}out.focus={from:f.from,s,ch}}}
@@ -388,7 +390,7 @@ function render(){
         const from=b.extra?b.lecs.reduce((m,l)=>l.from&&(!m||l.from<m)?l.from:m,null):null;
         el.innerHTML=`<div class="subj-h">${b.extra?'<span class="tm late-tag">تعويض</span>':tm}${mt}<span class="s">${nm}</span><span class="w">${b.extra?'ما لحكت بأيام المادة'+' · ':''}${lists.map(l=>esc(l.t)).join(' ← ')} · ${esc(lists[0]&&lists[0].by||t.name)}${speed}</span></div>`;
         b.lecs.forEach(l=>{const id='v'+l.v;allIds.push(id);const r=document.createElement('div');r.className='lec';
-          r.innerHTML=`<input type="checkbox" id="${id}" aria-label="أنجزت ${esc(l.t)}"><label for="${id}">${lnk(l)}${mDue.has(l.v)&&p.d>=mDue.get(l.v).u?' <span class="mv-to">تدرسها قبل امتحان '+C[mDue.get(l.v).s].name+' من جدول الامتحانات</span>':''}</label><span class="m">${dur(l.dm||l.m)}</span><button type="button" class="flag" aria-pressed="${!!hard[id]}" aria-label="صعبة عليّ: ${esc(l.t)}" title="صعبة عليّ">${FLAG}</button>`;
+          r.innerHTML=`<input type="checkbox" id="${id}" aria-label="أنجزت ${esc(l.t)}"><label for="${id}">${lnk(l)}${mDue.has(l.v)&&p.d>=mDue.get(l.v).u?' <span class="mv-to">ما لحكت قبل امتحان '+C[mDue.get(l.v).s].name+' ضمن حدك اليومي</span>':''}</label><span class="m">${dur(l.dm||l.m)}</span><button type="button" class="flag" aria-pressed="${!!hard[id]}" aria-label="صعبة عليّ: ${esc(l.t)}" title="صعبة عليّ">${FLAG}</button>`;
           check(r,id);r.querySelector('.flag').onclick=()=>flagHard(id);el.appendChild(r)});
         (b.moved||[]).forEach(l=>{const r=document.createElement('div');r.className='lec moved';
           r.innerHTML=`<span class="mv-x" aria-hidden="true">↩</span><span>${lnk(l)} <span class="mv-to">ما خلصتها، انتقلت ${l.to?'ليوم '+DN[l.to.getDay()]+' '+ar(l.to.getDate())+'/'+ar(l.to.getMonth()+1):'لأيام التعويض'}</span></span><span class="m">${dur(l.dm||l.m)}</span><span></span>`;el.appendChild(r)})}
@@ -668,34 +670,50 @@ function mPlan(base){base=base||P.base||P.days;
     fit={plan,left};
     if(back>0)days[back].back=late.filter(e=>e.n>back)}
   for(const e of ex){e.late=late.includes(e);e.back=e.late&&back>0&&e.n>back?days[back].d:null}
-  // no lecture is ever dropped before its exam: what still doesn't fit becomes extra sessions, spread over the study days
-  // with the fewest extras, then the subject's lectures go back into book order over all its sessions
-  const addN=days.map(()=>0);
+  // what still doesn't fit becomes extra sessions, spread over the study days with the fewest extras, then the subject's
+  // lectures go back into book order over all its sessions. A day takes one extra session at most and never more than four
+  // sessions in all, so no day grows past what a student can study. What is over that limit stays on the card as "won't fit"
+  // and is studied after the exams; the student can lift the limit (prefs.xfree) to finish the chapter whatever it takes.
+  const addN=days.map(()=>0),capOf=i=>prefs.xfree?99:Math.max(0,Math.min(1,4-dayK(days[i].d)));
   for(const e of ex){const L=fit.left.get(e);e.added=0;if(!L.length)continue;
     const ok=[];for(let i=0;i<Math.min(e.dlF,days.length);i++)if(!days[i].exams.length)ok.push(i);
     if(!ok.length)continue;
-    while(L.length){const out=[];let acc=0;while(L.length&&(!out.length||acc+lm(L[0])<=SESS_MIN)){const l=L.shift();out.push(l);acc+=lm(l)}
-      const i=ok.reduce((b,j)=>addN[j]<addN[b]?j:b,ok[0]);addN[i]++;e.added++;
+    // refilling by time can leave a few lectures over, so extra sessions are added again while a day still has room for one
+    for(let it=0;it<8&&L.length&&ok.some(j=>addN[j]<capOf(j));it++){
+    while(L.length){const free=ok.filter(j=>addN[j]<capOf(j));if(!free.length)break;
+      const out=[];let acc=0;while(L.length&&(!out.length||acc+lm(L[0])<=SESS_MIN)){const l=L.shift();out.push(l);acc+=lm(l)}
+      const i=free.reduce((b,j)=>addN[j]<addN[b]?j:b,free[0]);addN[i]++;e.added++;
       fit.plan[i].push({e,lecs:out,span:1,added:1,fast:fastOf(acc,1)})}
-    const B=fit.plan.flatMap(pl=>pl.filter(p=>p.e===e&&p.lecs)),all=B.flatMap(p=>p.lecs).sort((a,b)=>a.qi-b.qi);let k=0;
-    for(const p of B){p.lecs=all.slice(k,k+p.lecs.length);k+=p.lecs.length}}
+    // back into book order: each session is refilled by video time (never by how many lectures it had), so a session can't
+    // end up holding hours more than it lasts. What no longer fits goes back to "won't fit", and an emptied session is removed.
+    const B=fit.plan.flatMap(pl=>pl.filter(p=>p.e===e&&p.lecs)),all=B.flatMap(p=>p.lecs).sort((a,b)=>a.qi-b.qi);
+    for(const p of B){const out=[],cap=SESS_MIN*(p.span||1);let acc=0;
+      while(all.length&&(!out.length||(p.catchup&&out.length<3&&acc+lm(all[0])<=cap*1.3)||acc+lm(all[0])<=cap)){const l=all.shift();out.push(l);acc+=lm(l)}
+      p.lecs=out;p.fast=fastOf(acc,p.span||1)}
+    if(all.length)L.unshift(...all);
+    fit.plan.forEach((pl,i)=>{for(let j=pl.length-1;j>=0;j--){const p=pl[j];if(p.e===e&&p.lecs&&!p.lecs.length){if(p.added){e.added--;addN[i]--}pl.splice(j,1)}}})}}
   days.forEach((x,i)=>{x.prep=fit.plan[i].concat(x.prep)});
   for(const e of ex){e.over=fit.left.get(e);const on=days.filter(x=>x.prep.some(p=>p.e===e&&p.lecs));e.studyDays=on.length;e.perDay=on.length?Math.round((e.mins-mins(e.over))/on.length):e.mins}
   // the main plan carries on for subjects with no exam coming; three study sessions a day in total (two on an exam day),
   // so main-plan blocks that don't fit are marked optional instead of piling up
   const main=new Map(base.map(x=>[x.d.getTime(),x]));
   // a lecture an exam covers is studied before that exam, so it never comes back after it
-  const scope=new Set(monthly.filter(e=>P.act.includes(e.s)).flatMap(e=>mLectures(e.s,e.li,e.to,e.r).map(l=>l.v)));
+  // (one that didn't fit before its exam goes back to its subject's line, and comes first there once that exam has passed)
+  const placed=new Set(days.flatMap(x=>x.prep.flatMap(p=>(p.lecs||[]).map(l=>l.v+'#'+l.qi))));
   // the other subjects keep the main plan's days, and each takes its next lectures in book order from its own line
   // (Arabic literature has a line of its own). A subject with an exam coming waits until that exam; what has no room waits for after the exams.
   const kind=(s,l)=>s+(s==='ar'&&PARTS.ar&&l.li===1?'L':''),live=l=>!done['v'+l.v]||doneAt['v'+l.v],qs=new Map();
-  for(const y of base)if(!y.past&&y.d>=from)for(const b of y.blocks)for(const l of b.lecs||[])if(!scope.has(l.v)&&live(l)){const k=kind(b.s,l);if(!qs.has(k))qs.set(k,[]);qs.get(k).push(l)}
+  for(const y of base)if(!y.past&&y.d>=from)for(const b of y.blocks)for(const l of b.lecs||[])if(!placed.has(l.v+'#'+l.qi)&&live(l)){const k=kind(b.s,l);if(!qs.has(k))qs.set(k,[]);qs.get(k).push(l)}
   for(const q of qs.values())q.sort((a,b)=>a.qi-b.qi);
   for(const x of days){const m=main.get(x.d.getTime()),busy=new Set(ex.filter(e=>e.date>=x.d).map(e=>e.s));x.other=[];if(!m||x.exams.length)continue;
     let room=dayK(x.d)-x.prep.reduce((a,p)=>a+(p.added?0:p.span||1),0);
     m.blocks.forEach((b,j)=>{if(b.plain){if(!b.hard)x.other.push({s:b.s,plain:b.plain,j});return}
       if(!b.lecs||!b.lecs.length||busy.has(b.s))return;const w=b.w||1;if(w>room+1e-9)return;
-      const lecs=(qs.get(kind(b.s,b.lecs[0]))||[]).splice(0,b.lecs.length);if(!lecs.length)return;room-=w;x.other.push({s:b.s,lecs,w,j})})}
+      // a session is filled by video time, not by how many lectures the main plan had there; a light daily lesson stays one lecture
+      const kd=kind(b.s,b.lecs[0]),q=qs.get(kd)||[],lecs=[];let acc=0;
+      if(w<1||kd==='isl'||kd==='arL'){if(q.length)lecs.push(q.shift())}
+      else while(q.length&&(!lecs.length||acc+lm(q[0])<=SESS_MIN*w)){acc+=lm(q[0]);lecs.push(q.shift())}
+      if(!lecs.length)return;room-=w;x.other.push({s:b.s,lecs,w,j})})}
   return {ex,days,from};
 }
 // one plan: from today to the last monthly exam the main plan shows the exams schedule, and every lecture that schedule
@@ -727,12 +745,16 @@ function mCards(){
       <span class="sb-t"><i style="width:${pc}%"></i></span>
       <span>${e.left?`باقي ${ar(e.left)} محاضرة (${dur(e.mins)} فيديو)${e.studyDays?' على '+daysWord(e.studyDays)+'، تقريباً '+dur(e.perDay)+' باليوم':''}`:'خلصت كل محاضراته، ركّز على الأسئلة والمراجعة'}</span>
       ${e.late?`<span class="m-load high">متأخر بهالمادة: بأيام دراستها ياخذ ٣ محاضرات باليوم بنفس جلساتك (${SESS_W(MK())}). الامتحان الأقرب ياخذ دوره أول. شغّل محاضراتها بسرعة ١.٢٥ أو ١.٥ حتى تخلص أسرع وترجع للسير الطبيعي${e.back?'، ويوم '+DN[e.back.getDay()]+' '+dstr(e.back)+' ترجع للسير اليومي الطبيعي':''}</span>`:''}
-      ${e.added?'<span class="m-load high">حتى تكمل الفصل كامل قبل الامتحان، ضفنا '+ar(e.added)+' جلسة إضافية فوق جلساتك، لأن ما نتخطى أي محاضرة'+(e.late?'':'. شغّلها بسرعة ١.٢٥ أو ١.٥ حتى تخلص أسرع')+'</span>':''}
+      ${e.added?'<span class="m-load high">حتى تكمل الفصل كامل قبل الامتحان، ضفنا '+ar(e.added)+' جلسة إضافية فوق جلساتك'+(prefs.xfree?'، بدون حد يومي لأنك اخترت تكمل الفصل كله':'، جلسة إضافية وحدة باليوم بالكثير')+(e.late?'':'. شغّلها بسرعة ١.٢٥ أو ١.٥ حتى تخلص أسرع')+'</span>':''}
+      ${prefs.xfree&&e.added?'<button type="button" class="linkbtn m-xcap">رجّع الحد اليومي للجلسات</button>':''}
       ${e.reached?'<span class="m-load ok">وصلت لحد السير اليومي الطبيعي لهالمادة، كمّل بجدولك العادي</span>':''}
       ${e.left&&!e.late&&!(e.over&&e.over.length)?`<span class="m-load ${cls}">الحمل: ${lv}${cls==='high'?'. شغّل محاضراته بسرعة ١.٢٥ أو ١.٥ بدل ما تسهر، وتأكد من الفصول اللي يشملها الامتحان':''}</span>`:''}
-      ${e.over&&e.over.length?`<span class="m-load high">ما تلحق ${ar(e.over.length)} محاضرة (${dur(e.over.reduce((a,l)=>a+lm(l),0))}) قبل الامتحان، تبدي من «${esc(e.over[0].t)}». زيد ساعات الدراسة، أو احذف الفصول اللي ما يشملها الامتحان، أو ركّز على ملخصها وأسئلتها الوزارية</span><button type="button" class="linkbtn m-tojump" data-s="${e.s}">حدد لحد يا محاضرة يوصل الامتحان</button>`:''}
+      ${e.over&&e.over.length?`<span class="m-load high">ما تلحق ${ar(e.over.length)} محاضرة (${dur(e.over.reduce((a,l)=>a+lm(l),0))}) قبل الامتحان ضمن الحد اليومي، تبدي من «${esc(e.over[0].t)}». ما حشرناها حتى ما يصير يومك أطول من طاقتك، وتبقى بجدولك بعد الامتحانات. الأحسن تحدد لحد يا محاضرة يوصل الامتحان، أو ركّز على ملخصها وأسئلتها الوزارية</span><button type="button" class="linkbtn m-tojump" data-s="${e.s}">حدد لحد يا محاضرة يوصل الامتحان</button><button type="button" class="linkbtn m-xfree">كمّل الفصل كله بجلسات إضافية</button>`:''}
       ${e.mock||e.review?`<span class="alt">${e.mock?'امتحان تجريبي قبله بيومين، و':''}${e.review?'مراجعة خفيفة باليوم اللي قبله':''}</span>`:''}</div>`}).join(''):'<p class="note">ما حددت مواعيد بعد. اكتب موعد امتحان كل مادة فوق واحفظ، والجدول ينبني لحاله.</p>';
   $('mExams').querySelectorAll('.m-tojump').forEach(b=>b.onclick=()=>{const r=document.querySelector('.m-row[data-s="'+b.dataset.s+'"]');if(!r)return;const d=r.querySelector('details');d.open=true;r.scrollIntoView({behavior:'smooth',block:'center'});setTimeout(()=>r.querySelector('.m-to select')?.focus(),400)});
+  // lifting the daily limit is the student's own choice, asked first because days get long
+  $('mExams').querySelectorAll('.m-xfree').forEach(b=>b.onclick=()=>{if(!confirm('راح نضيف جلسات إضافية بدون حد حتى تكمل الفصل كله قبل الامتحان، وبعض الأيام تصير طويلة (ممكن فوق ١٠ ساعات). نكمل؟'))return;prefs.xfree=true;savePrefs();render();mForm();mRender();toast('انشال الحد اليومي، وكل محاضرات الفصل صارت قبل الامتحان')});
+  $('mExams').querySelectorAll('.m-xcap').forEach(b=>b.onclick=()=>{delete prefs.xfree;savePrefs();render();mForm();mRender();toast('رجع الحد اليومي: جلسة إضافية وحدة باليوم بالكثير')});
   $('mExams').querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>{monthly=monthly.filter(e=>e.id!==b.dataset.del);saveM();render();mForm();mRender();toast('انحذف الامتحان')});
 }
 function mRender(){
